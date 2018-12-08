@@ -1,0 +1,20 @@
+PODS:
+  - Eureka (4.3.0)
+  - UICircularProgressRing (4.1.0)
+
+DEPENDENCIES:
+  - Eureka
+  - UICircularProgressRing
+
+SPEC REPOS:
+  https://github.com/cocoapods/specs.git:
+    - Eureka
+    - UICircularProgressRing
+
+SPEC CHECKSUMS:
+  Eureka: 6d711cb30ca333b4bc893110285a722ae3840114
+  UICircularProgressRing: 5a32c01f54474571b1e66e8fa050c0f83d6d981b
+
+PODFILE CHECKSUM: 307fbd7324b755e353279828ded9f501b87d8e36
+
+COCOAPODS: 1.5.3
