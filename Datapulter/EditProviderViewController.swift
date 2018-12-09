@@ -10,7 +10,7 @@ import UIKit
 import os.log
 import Eureka
 
-class EditProviderViewController: FormViewController {
+class EditProviderViewController: FormViewController, UITextFieldDelegate {
     
     //MARK: Properties
     @IBOutlet weak var save: UIBarButtonItem!
@@ -18,41 +18,76 @@ class EditProviderViewController: FormViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // Do any additional setup after loading the view.
-        form +++ Section("REQUIRED")
-            <<< TextRow("keyIDTag"){ row in
+
+        // Downcast then show appropriate form
+        if let backblazeb2 = provider as? b2 {
+            form
+            +++ Section("REQUIRED")
+            <<< TextRow("tagKeyID"){ row in
                 row.title = "Key ID"
                 row.placeholder = "Your account key ID"
-                row.value = self.provider?.Account
-                }.onChange{ row in
-                    guard let value = row.value else { fatalError("Cannot get Key ID value from row") }
-                    self.save.isEnabled = true
-                    self.provider?.Account = value
-                }
-            <<< PasswordRow("keyTag"){
-                $0.title = "Key"
-                $0.placeholder = "Your key"
+                row.value = backblazeb2.Account
+                row.add(rule: RuleRequired())
+            }.cellUpdate { cell, row in
+                cell.textField.delegate = self
             }
-            <<< TextRow("bucketTag"){
-                $0.title = "Bucket"
-                $0.placeholder = "Your unique bucket name"
+            <<< PasswordRow("tagKey"){ row in
+                row.title = "Key"
+                row.placeholder = "Your key"
+                row.value = backblazeb2.Key
+                row.add(rule: RuleRequired())
+            }.cellUpdate { cell, row in
+                cell.textField.delegate = self
+            }
+            <<< TextRow("tagBucket"){ row in
+                row.title = "Bucket"
+                row.placeholder = "Your unique bucket name"
+                row.value = backblazeb2.Bucket
+                row.add(rule: RuleRequired())
+            }.cellUpdate { cell, row in
+                cell.textField.delegate = self
             }
             +++ Section("OPTIONS")
-            <<< SwitchRow("versionTag"){
-                $0.title = "Versions"
+            <<< SwitchRow("tagVersions"){ row in
+                row.title = "Versions"
+                row.value = backblazeb2.Versions
             }
-            <<< SwitchRow("hardDeleteTag"){
-                $0.title = "Hard Delete"
+            <<< SwitchRow("tagHardDelete"){ row in
+                row.title = "Hard Delete"
+                row.value = backblazeb2.HardDelete
             }
-            <<< IntRow("chunkSizeTag"){
-                $0.title = "Chunk Size"
+            <<< IntRow("tagChunkSize"){ row in
+                row.title = "Chunk Size"
+                row.value = backblazeb2.ChunkSize
             }
-            <<< IntRow("uploadCutoffTag"){
-                $0.title = "Upload Cutoff"
+            <<< IntRow("tagUploadCutoff"){ row in
+                row.title = "Upload Cutoff"
+                row.value = backblazeb2.UploadCutoff
             }
+        } // else if let s3-compliant = provider as? s3
+    }
+        
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        // Disable the Save button while editing.
+        save.isEnabled = false
     }
     
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        let valuesDictionary = form.values() // retrieve all form values
+        for (_, value) in valuesDictionary {
+            if(value == nil) {
+                // user left a form value blank
+                save.isEnabled = false
+                break
+            } else {
+                save.isEnabled = true
+            }
+        }
+    }
+    
+    
+
+
     /*
     // Call unwindToProviderList when user clicks back button
     override func viewWillDisappear(_ animated: Bool) {
@@ -70,7 +105,7 @@ class EditProviderViewController: FormViewController {
         /*if let owningNavigationController = navigationController {
             owningNavigationController.popViewController(animated: true)
         }*/
-        dismiss(animated: true, completion: nil)
+        //dismiss(animated: true, completion: nil)
     }*/
     
     /*

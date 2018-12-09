@@ -14,15 +14,14 @@ class Provider: NSObject, NSCoding {
     //MARK: Properties
     
     var name: String
+    var backend: Site
     var innerRing: UIColor
     
-    var Account: String?
-    var Key: String?
-    var Endpoint: String?
-    var Versions: Bool?
-    var HardDelete: Bool?
-    var UploadCutoff: Int64?
-    var ChunkSize: Int64?
+    enum Site {
+        case Backblaze
+        case Amazon
+        case DigitalOcean
+    }
     
     //MARK: Archiving Paths
     
@@ -33,31 +32,23 @@ class Provider: NSObject, NSCoding {
     
     struct PropertyKey {
         static let name = "name"
+        static let backend = "backend"
     }
     
     //MARK: Initialization
     
-    init(name: String) {
+    init(name: String, backend: Site) {
         // Initialize stored properties.
         self.name = name
-        self.innerRing = .green
-    }
-    
-    init(name: String, Account: String, Key: String, Versions: Bool, HardDelete: Bool, UploadCutoff: Int64, ChunkSize: Int64) {
-        self.name = name
-        self.Account = Account
-        self.Key = Key
-        self.Versions = Versions
-        self.HardDelete = HardDelete
-        self.UploadCutoff = UploadCutoff
-        self.ChunkSize = ChunkSize
-        self.innerRing = .green
+        self.backend = backend
+        self.innerRing = .red
     }
     
     //MARK: NSCoding
     
     func encode(with aCoder: NSCoder) {
         aCoder.encode(name, forKey: PropertyKey.name)
+        aCoder.encode(backend, forKey: PropertyKey.backend)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -67,8 +58,10 @@ class Provider: NSObject, NSCoding {
             return nil
         }
         
+        let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
+        
         // Must call designated initializer.
-        self.init(name: name)
+        self.init(name: name, backend: backend)
     }
     
 }

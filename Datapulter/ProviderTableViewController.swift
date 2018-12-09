@@ -146,13 +146,10 @@ class ProviderTableViewController: UITableViewController {
     //MARK: Private Methods
     
     private func loadSampleProviders() {
-        let provider1 = Provider(name: "B2Backblaze", Account: "12345ABCDE", Key: "S3CR3Tk3y", Versions: true, HardDelete: false, UploadCutoff: 5, ChunkSize: 96)
-        let provider2 = Provider(name: "Amazon S3")
-        let provider3 = Provider(name: "DigitalOcean Spaces")
-    
-        
-        
-        providers += [provider1, provider2, provider3]
+        let provider1 = b2(name: "My Backblaze B2 Remote", Account: "123456ABCDE", Key: "S3CR3TK3Y", Bucket: "mybucket", Versions: true, HardDelete: false, UploadCutoff: 96, ChunkSize: 5)
+        let provider2 = b2(name: "My Second Backblaze B2 Remote", Account: "123456ABCDE", Key: "S3CR3TK3Y", Bucket: "myotherbucket", Versions: false, HardDelete: true, UploadCutoff: 88, ChunkSize: 7)
+
+        providers += [provider1, provider2]
     }
     
     //MARK: Actions
@@ -165,10 +162,7 @@ class ProviderTableViewController: UITableViewController {
                 providers[selectedIndexPath.row] = provider
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
-            else {
-                
-            }
-        }
+        } // add else for AddProviderViewController
     }
     
 }
