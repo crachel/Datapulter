@@ -27,6 +27,16 @@ class b2: Provider {
     //pacer         *pacer.Pacer                 // To pace and retry the API calls
     //bufferTokens  chan []byte                  // control concurrency of multipart uploads
     
+    struct Options {
+        var Account: String
+        var Key: String
+        var Endpoint: String
+        var Versions: Bool
+        var HardDelete: Bool
+        var UploadCutoff: Int64
+        var ChunkSize: Int64
+    }
+    
     // Object describes a b2 object
     struct Object {
         //fs       *Fs          // what this object is part of

@@ -74,9 +74,19 @@
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <viewLayoutGuide key="safeArea" id="xU2-Sh-CsX"/>
                     </view>
-                    <navigationItem key="navigationItem" title="Edit Provider" id="e0X-LP-fTa"/>
+                    <navigationItem key="navigationItem" title="Edit Provider" id="e0X-LP-fTa">
+                        <barButtonItem key="rightBarButtonItem" enabled="NO" systemItem="save" id="gIq-k4-Gyb">
+                            <connections>
+                                <segue destination="fia-s0-ZNt" kind="unwind" identifier="unwindToProviderList" unwindAction="unwindToProviderListWithSender:" id="wmx-7n-ypZ"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
+                    <connections>
+                        <outlet property="save" destination="gIq-k4-Gyb" id="rga-zw-7ka"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="zhA-YA-xfN" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                <exit id="fia-s0-ZNt" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="1206" y="-225"/>
         </scene>

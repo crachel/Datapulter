@@ -56,7 +56,6 @@ class ProviderTableViewController: UITableViewController {
         cell.ringView.innerRingWidth = 8
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
-        //cell.ringView.valueKnobSize = 10
      
         cell.ringView.startProgress(to: 25, duration: 6) {
             // This is called when it's finished animating!
@@ -147,9 +146,11 @@ class ProviderTableViewController: UITableViewController {
     //MARK: Private Methods
     
     private func loadSampleProviders() {
-        let provider1 = b2(root: "/")
+        let provider1 = Provider(name: "B2Backblaze", Account: "12345ABCDE", Key: "S3CR3Tk3y", Versions: true, HardDelete: false, UploadCutoff: 5, ChunkSize: 96)
         let provider2 = Provider(name: "Amazon S3")
         let provider3 = Provider(name: "DigitalOcean Spaces")
+    
+        
         
         providers += [provider1, provider2, provider3]
     }

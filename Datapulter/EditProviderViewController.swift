@@ -13,6 +13,7 @@ import Eureka
 class EditProviderViewController: FormViewController {
     
     //MARK: Properties
+    @IBOutlet weak var save: UIBarButtonItem!
     var provider: Provider?
     
     override func viewDidLoad() {
@@ -23,9 +24,11 @@ class EditProviderViewController: FormViewController {
             <<< TextRow("keyIDTag"){ row in
                 row.title = "Key ID"
                 row.placeholder = "Your account key ID"
+                row.value = self.provider?.Account
                 }.onChange{ row in
                     guard let value = row.value else { fatalError("Cannot get Key ID value from row") }
-                    self.provider?.name = value
+                    self.save.isEnabled = true
+                    self.provider?.Account = value
                 }
             <<< PasswordRow("keyTag"){
                 $0.title = "Key"
@@ -49,6 +52,16 @@ class EditProviderViewController: FormViewController {
                 $0.title = "Upload Cutoff"
             }
     }
+    
+    /*
+    // Call unwindToProviderList when user clicks back button
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        if self.isMovingFromParent {
+            self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+        }
+    }*/
     
 
  /*

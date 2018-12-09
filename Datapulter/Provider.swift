@@ -16,6 +16,14 @@ class Provider: NSObject, NSCoding {
     var name: String
     var innerRing: UIColor
     
+    var Account: String?
+    var Key: String?
+    var Endpoint: String?
+    var Versions: Bool?
+    var HardDelete: Bool?
+    var UploadCutoff: Int64?
+    var ChunkSize: Int64?
+    
     //MARK: Archiving Paths
     
     static let DocumentsDirectory = FileManager().urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -32,6 +40,17 @@ class Provider: NSObject, NSCoding {
     init(name: String) {
         // Initialize stored properties.
         self.name = name
+        self.innerRing = .green
+    }
+    
+    init(name: String, Account: String, Key: String, Versions: Bool, HardDelete: Bool, UploadCutoff: Int64, ChunkSize: Int64) {
+        self.name = name
+        self.Account = Account
+        self.Key = Key
+        self.Versions = Versions
+        self.HardDelete = HardDelete
+        self.UploadCutoff = UploadCutoff
+        self.ChunkSize = ChunkSize
         self.innerRing = .green
     }
     
