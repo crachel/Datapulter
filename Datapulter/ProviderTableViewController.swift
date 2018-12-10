@@ -53,7 +53,7 @@ class ProviderTableViewController: UITableViewController {
         cell.providerLabel.text = provider.name
         cell.ringView.innerRingColor = provider.innerRing
         cell.ringView.outerRingWidth = 10
-        cell.ringView.innerRingWidth = 8
+        cell.ringView.innerRingWidth = 10
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
      

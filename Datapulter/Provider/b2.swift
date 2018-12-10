@@ -29,9 +29,6 @@ class b2: Provider {
         static let sha1InfoHeader = headerPrefix + sha1Key
         static let testModeHeader = "X-Bz-Test-Mode"
         static let retryAfterHeader = "Retry-After"
-        //minSleep            = 10 * time.Millisecond
-        //maxSleep            = 5 * time.Minute
-        //static let decayConstant = 1 // bigger for slower decay, exponential
         static let maxParts = 10000
         static let maxVersions = 100 // maximum number of versions we search in --b2-versions mode
         static let minChunkSize = 5 * 1024 * 1024

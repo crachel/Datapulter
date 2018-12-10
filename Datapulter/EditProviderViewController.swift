@@ -47,22 +47,18 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             }.cellUpdate { cell, row in
                 cell.textField.delegate = self
             }
-            +++ Section("OPTIONS")
+            +++ Section(header: "OPTIONS", footer: "Ignore unless you know what these mean.")
             <<< SwitchRow("tagVersions"){ row in
                 row.title = "Versions"
                 row.value = backblazeb2.Versions
+            } .onChange { row in
+                backblazeb2.Versions = row.value!
             }
             <<< SwitchRow("tagHardDelete"){ row in
                 row.title = "Hard Delete"
                 row.value = backblazeb2.HardDelete
-            }
-            <<< IntRow("tagChunkSize"){ row in
-                row.title = "Chunk Size"
-                row.value = backblazeb2.ChunkSize
-            }
-            <<< IntRow("tagUploadCutoff"){ row in
-                row.title = "Upload Cutoff"
-                row.value = backblazeb2.UploadCutoff
+            } .onChange { row in
+                backblazeb2.HardDelete = row.value!
             }
         } // else if let s3-compliant = provider as? s3
     }

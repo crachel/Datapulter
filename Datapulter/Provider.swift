@@ -41,7 +41,7 @@ class Provider: NSObject, NSCoding {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
-        self.innerRing = .red
+        self.innerRing = .blue
     }
     
     //MARK: NSCoding
