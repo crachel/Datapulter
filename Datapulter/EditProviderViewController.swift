@@ -15,18 +15,17 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
     //MARK: Properties
     @IBOutlet weak var save: UIBarButtonItem!
     var provider: Provider?
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Downcast then show appropriate form
-        if let backblazeb2 = provider as? b2 {
+ 
+        if let backblaze = provider as? b2 {
             form
             +++ Section("REQUIRED")
             <<< TextRow("tagKeyID"){ row in
                 row.title = "Key ID"
                 row.placeholder = "Your account key ID"
-                row.value = backblazeb2.Account
+                row.value = backblaze.account
                 row.add(rule: RuleRequired())
             }.cellUpdate { cell, row in
                 cell.textField.delegate = self
@@ -34,7 +33,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             <<< PasswordRow("tagKey"){ row in
                 row.title = "Key"
                 row.placeholder = "Your key"
-                row.value = backblazeb2.Key
+                row.value = backblaze.key
                 row.add(rule: RuleRequired())
             }.cellUpdate { cell, row in
                 cell.textField.delegate = self
@@ -42,23 +41,23 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             <<< TextRow("tagBucket"){ row in
                 row.title = "Bucket"
                 row.placeholder = "Your unique bucket name"
-                row.value = backblazeb2.Bucket
+                row.value = backblaze.bucket
                 row.add(rule: RuleRequired())
             }.cellUpdate { cell, row in
                 cell.textField.delegate = self
             }
-            +++ Section(header: "OPTIONS", footer: "Ignore unless you know what these mean.")
+            +++ Section("OPTIONS")
             <<< SwitchRow("tagVersions"){ row in
                 row.title = "Versions"
-                row.value = backblazeb2.Versions
-            } .onChange { row in
-                backblazeb2.Versions = row.value!
+                row.value = backblaze.versions
+            }.onChange { row in
+                //backblazeb2.versions = row.value!
             }
             <<< SwitchRow("tagHardDelete"){ row in
                 row.title = "Hard Delete"
-                row.value = backblazeb2.HardDelete
-            } .onChange { row in
-                backblazeb2.HardDelete = row.value!
+                row.value = backblaze.harddelete
+            }.onChange { row in
+                //backblazeb2.harddelete = row.value!
             }
         } // else if let s3-compliant = provider as? s3
     }
@@ -69,19 +68,34 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
+        var formValidated = true
         let valuesDictionary = form.values() // retrieve all form values
         for (_, value) in valuesDictionary {
             if(value == nil) {
                 // user left a form value blank
-                save.isEnabled = false
+                formValidated = false
                 break
-            } else {
-                save.isEnabled = true
             }
+        }
+        if(formValidated){
+            save.isEnabled = true
         }
     }
     
-    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        super.prepare(for: segue, sender: sender)
+        
+        switch(segue.identifier ?? "") {
+            
+        case "unwindToProviderList": // Save button has been clicked
+            if (provider as? b2) != nil {
+                os_log("Unwinding to provider list.", log: OSLog.default, type: .debug)
+            }
+            
+        default:
+            fatalError("Unexpected Segue Identifier; \(String(describing: segue.identifier))")
+        }
+    }
 
 
     /*

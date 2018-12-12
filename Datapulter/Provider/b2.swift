@@ -6,18 +6,19 @@
 //
 
 import UIKit
+import os.log
 
 class b2: Provider {
     
     //MARK: Properties
 
-    var Account: String
-    var Key: String
-    var Bucket: String
-    var Versions: Bool
-    var HardDelete: Bool
-    var UploadCutoff: Int
-    var ChunkSize: Int
+    var account: String
+    var key: String
+    var bucket: String
+    var versions: Bool
+    var harddelete: Bool
+    var uploadcutoff: Int
+    var chunksize: Int
     
     struct const {
         static let defaultEndpoint = "https://api.backblazeb2.com"
@@ -69,24 +70,62 @@ class b2: Provider {
     //MARK: Types
     
     struct PropertyKey {
-        static let name = "name"
+        static let account = "account"
+        static let key = "key"
+        static let bucket = "bucket"
+        static let versions = "versions"
+        static let harddelete = "harddelete"
+        static let uploadcutoff = "uploadcutoff"
+        static let chunksize = "chunksize"
     }
     
     //MARK: Initialization
-    init(name: String, Account: String, Key: String, Bucket: String, Versions: Bool, HardDelete: Bool, UploadCutoff: Int, ChunkSize: Int) {
-        self.Account = Account
-        self.Key = Key
-        self.Bucket = Bucket
-        self.Versions = Versions
-        self.HardDelete = HardDelete
-        self.UploadCutoff = UploadCutoff
-        self.ChunkSize = ChunkSize
+    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, uploadcutoff: Int, chunksize: Int) {
+        
+        self.account = account
+        self.key = key
+        self.bucket = bucket
+        self.versions = versions
+        self.harddelete = harddelete
+        self.uploadcutoff = uploadcutoff
+        self.chunksize = chunksize
+        
         super.init(name: name, backend: .Backblaze)
     }
     
+    /*
     //MARK: NSCoding
     
     required convenience init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }*/
+    
+    //MARK: NSCoding
+    
+    override func encode(with aCoder: NSCoder) {
+        aCoder.encode(name, forKey: PropertyKey.name)
+        aCoder.encode(account, forKey: PropertyKey.account)
+        aCoder.encode(key, forKey: PropertyKey.key)
+        aCoder.encode(bucket, forKey: PropertyKey.bucket)
     }
+    
+    required convenience init?(coder aDecoder: NSCoder) {
+        // These are required. If we cannot decode, the initializer should fail.
+        guard
+            let name = aDecoder.decodeObject(forKey: PropertyKey.name) as? String,
+            let account = aDecoder.decodeObject(forKey: PropertyKey.account) as? String,
+            let key = aDecoder.decodeObject(forKey: PropertyKey.key) as? String,
+            let bucket = aDecoder.decodeObject(forKey: PropertyKey.bucket) as? String
+        else
+        {
+            os_log("Unable to decode a b2 object.", log: OSLog.default, type: .debug)
+            return nil
+        }
+        
+        //let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
+        
+        // Must call designated initializer.
+        self.init(name: name, account: account, key: key, bucket: bucket, versions: true, harddelete: false, uploadcutoff: 96, chunksize: 5)
+    }
+ 
 }

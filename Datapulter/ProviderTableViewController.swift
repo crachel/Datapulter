@@ -24,8 +24,14 @@ class ProviderTableViewController: UITableViewController {
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
-        // Load the sampel data.
-        loadSampleProviders()
+        // Load any saved providers, otherwise load sample data.
+        if let savedProviderss = loadProviders() {
+            providers += savedProviderss
+        }
+        else {
+            // Load the sample data.
+            //loadSampleProviders()
+        }
     }
 
     // MARK: - Table view data source
@@ -86,6 +92,7 @@ class ProviderTableViewController: UITableViewController {
         if editingStyle == .delete {
             // Delete the row from the data source
             providers.remove(at: indexPath.row)
+            saveProviders()
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
@@ -136,6 +143,7 @@ class ProviderTableViewController: UITableViewController {
             let selectedProvider = providers[indexPath.row]
             providerDetailViewController.provider = selectedProvider
 
+
             os_log("Editing a provider.", log: OSLog.default, type: .debug)
             
         default:
@@ -145,9 +153,22 @@ class ProviderTableViewController: UITableViewController {
     
     //MARK: Private Methods
     
+    private func saveProviders() {
+        let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(providers, toFile: Provider.ArchiveURL.path)
+        if isSuccessfulSave {
+            os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
+        } else {
+            os_log("Failed to save providers...", log: OSLog.default, type: .error)
+        }
+    }
+    
+    private func loadProviders() -> [Provider]?  {
+        return NSKeyedUnarchiver.unarchiveObject(withFile: Provider.ArchiveURL.path) as? [Provider]
+    }
+    
     private func loadSampleProviders() {
-        let provider1 = b2(name: "My Backblaze B2 Remote", Account: "123456ABCDE", Key: "S3CR3TK3Y", Bucket: "mybucket", Versions: true, HardDelete: false, UploadCutoff: 96, ChunkSize: 5)
-        let provider2 = b2(name: "My Second Backblaze B2 Remote", Account: "123456ABCDE", Key: "S3CR3TK3Y", Bucket: "myotherbucket", Versions: false, HardDelete: true, UploadCutoff: 88, ChunkSize: 7)
+        let provider1 = b2(name: "My Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "mybucket", versions: true, harddelete: false, uploadcutoff: 96, chunksize: 5)
+        let provider2 = b2(name: "My Second Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "myotherbucket", versions: false, harddelete: true, uploadcutoff: 88, chunksize: 7)
 
         providers += [provider1, provider2]
     }
@@ -163,6 +184,9 @@ class ProviderTableViewController: UITableViewController {
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
         } // add else for AddProviderViewController
+        
+        // Save the providers.
+        saveProviders()
     }
     
 }
