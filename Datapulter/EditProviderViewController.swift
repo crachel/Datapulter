@@ -51,13 +51,17 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 row.title = "Versions"
                 row.value = backblaze.versions
             }.onChange { row in
-                //backblazeb2.versions = row.value!
+                if(self.formValidated()){
+                    self.save.isEnabled = true
+                }
             }
             <<< SwitchRow("tagHardDelete"){ row in
                 row.title = "Hard Delete"
                 row.value = backblaze.harddelete
             }.onChange { row in
-                //backblazeb2.harddelete = row.value!
+                if(self.formValidated()){
+                    self.save.isEnabled = true
+                }
             }
         } // else if let s3-compliant = provider as? s3
     }
@@ -68,18 +72,19 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
-        var formValidated = true
-        let valuesDictionary = form.values() // retrieve all form values
-        for (_, value) in valuesDictionary {
-            if(value == nil) {
-                // user left a form value blank
-                formValidated = false
-                break
-            }
-        }
-        if(formValidated){
+        if(formValidated()){
             save.isEnabled = true
         }
+    }
+    
+    func formValidated() -> Bool {
+        for (_, value) in form.values() {
+            if(value == nil) {
+                // user left a form value blank
+                return false
+            }
+        }
+        return true
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -88,9 +93,15 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
         switch(segue.identifier ?? "") {
             
         case "unwindToProviderList": // Save button has been clicked
-            if (provider as? b2) != nil {
-                os_log("Unwinding to provider list.", log: OSLog.default, type: .debug)
-            }
+            let valuesDictionary = form.values()
+            if let backblaze = provider as? b2 {
+                backblaze.account = valuesDictionary["tagKeyID"] as! String
+                backblaze.key = valuesDictionary["tagKey"] as! String
+                backblaze.bucket = valuesDictionary["tagBucket"] as! String
+                backblaze.versions = valuesDictionary["tagVersions"] as! Bool
+                backblaze.harddelete = valuesDictionary["tagHardDelete"] as! Bool
+            } // else if let s3
+            os_log("Unwinding to provider list.", log: OSLog.default, type: .debug)
             
         default:
             fatalError("Unexpected Segue Identifier; \(String(describing: segue.identifier))")
@@ -102,11 +113,25 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
     // Call unwindToProviderList when user clicks back button
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
+        /*
         if self.isMovingFromParent {
             self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+        }*/
+     if self.isMovingFromParent {
+        os_log("Back button clicked", log: OSLog.default, type: .debug)
+     }
+    }
+
+    override func willMove(toParent parent: UIViewController?)
+    {
+        super.willMove(toParent: parent)
+        if parent == nil
+        {
+            os_log("Back button clicked", log: OSLog.default, type: .debug)
         }
     }*/
+    
+
     
 
  /*

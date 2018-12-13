@@ -17,8 +17,6 @@ class b2: Provider {
     var bucket: String
     var versions: Bool
     var harddelete: Bool
-    var uploadcutoff: Int
-    var chunksize: Int
     
     struct const {
         static let defaultEndpoint = "https://api.backblazeb2.com"
@@ -80,25 +78,16 @@ class b2: Provider {
     }
     
     //MARK: Initialization
-    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, uploadcutoff: Int, chunksize: Int) {
+    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool) {
         
         self.account = account
         self.key = key
         self.bucket = bucket
         self.versions = versions
         self.harddelete = harddelete
-        self.uploadcutoff = uploadcutoff
-        self.chunksize = chunksize
         
         super.init(name: name, backend: .Backblaze)
     }
-    
-    /*
-    //MARK: NSCoding
-    
-    required convenience init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }*/
     
     //MARK: NSCoding
     
@@ -107,6 +96,8 @@ class b2: Provider {
         aCoder.encode(account, forKey: PropertyKey.account)
         aCoder.encode(key, forKey: PropertyKey.key)
         aCoder.encode(bucket, forKey: PropertyKey.bucket)
+        aCoder.encode(versions, forKey: PropertyKey.versions)
+        aCoder.encode(harddelete, forKey: PropertyKey.harddelete)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -122,10 +113,12 @@ class b2: Provider {
             return nil
         }
         
-        //let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
+        let versions = aDecoder.decodeBool(forKey: PropertyKey.versions)
+        let harddelete = aDecoder.decodeBool(forKey: PropertyKey.harddelete)
+        
         
         // Must call designated initializer.
-        self.init(name: name, account: account, key: key, bucket: bucket, versions: true, harddelete: false, uploadcutoff: 96, chunksize: 5)
+        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete)
     }
  
 }

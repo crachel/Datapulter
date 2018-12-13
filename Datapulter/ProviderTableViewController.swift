@@ -30,7 +30,7 @@ class ProviderTableViewController: UITableViewController {
         }
         else {
             // Load the sample data.
-            //loadSampleProviders()
+            loadSampleProviders()
         }
     }
 
@@ -167,8 +167,8 @@ class ProviderTableViewController: UITableViewController {
     }
     
     private func loadSampleProviders() {
-        let provider1 = b2(name: "My Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "mybucket", versions: true, harddelete: false, uploadcutoff: 96, chunksize: 5)
-        let provider2 = b2(name: "My Second Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "myotherbucket", versions: false, harddelete: true, uploadcutoff: 88, chunksize: 7)
+        let provider1 = b2(name: "My Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "mybucket", versions: true, harddelete: false)
+        let provider2 = b2(name: "My Second Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "myotherbucket", versions: false, harddelete: true)
 
         providers += [provider1, provider2]
     }
