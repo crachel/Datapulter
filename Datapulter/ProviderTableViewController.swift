@@ -14,6 +14,7 @@ class ProviderTableViewController: UITableViewController {
     //MARK: Properties
     
     var providers = [Provider]()
+    var autoupload = AutoUpload()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,16 +26,18 @@ class ProviderTableViewController: UITableViewController {
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
         // Load any saved providers, otherwise load sample data.
-        if let savedProviderss = loadProviders() {
-            providers += savedProviderss
+        if let savedProviders = loadProviders() {
+            providers += savedProviders
         }
         else {
             // Load the sample data.
-            loadSampleProviders()
+            //loadSampleProviders()
         }
+        
+        //autoupload.start(providers)
     }
 
-    // MARK: - Table view data source
+    //MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
@@ -56,7 +59,9 @@ class ProviderTableViewController: UITableViewController {
         // Fetches the appropriate provider for the data source layout.
         let provider = providers[indexPath.row]
 
-        cell.providerLabel.text = provider.name
+        // Configure the cell...
+        //cell.providerLabel.text = provider.name
+        cell.providerLabel.text = "\(autoupload.test())"
         cell.ringView.innerRingColor = provider.innerRing
         cell.ringView.outerRingWidth = 10
         cell.ringView.innerRingWidth = 10
@@ -70,9 +75,6 @@ class ProviderTableViewController: UITableViewController {
                 cell.ringView.startProgress(to: 100, duration: 2)
             }
         }
-    
-        
-        // Configure the cell...
 
         return cell
     }
@@ -116,7 +118,7 @@ class ProviderTableViewController: UITableViewController {
     */
 
     
-    // MARK: - Navigation
+    //MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
