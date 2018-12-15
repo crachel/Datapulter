@@ -7,19 +7,14 @@
 
 import UIKit
 import os.log
+import Alamofire
 
-class b2: Provider {
+final class b2: Provider {
     
     //MARK: Properties
-
-    var account: String
-    var key: String
-    var bucket: String
-    var versions: Bool
-    var harddelete: Bool
     
     struct const {
-        static let defaultEndpoint = "https://api.backblazeb2.com"
+        static let apiURL = "https://api.backblazeb2.com"
         static let headerPrefix = "x-bz-info-"
         static let timeKey = "src_last_modified_millis"
         static let timeHeader = headerPrefix + timeKey
@@ -33,6 +28,47 @@ class b2: Provider {
         static let minChunkSize = 5 * 1024 * 1024
         static let defaultChunkSize = 96 * 1024 * 1024
         static let defaultUploadCutoff = 200 * 1024 * 1024
+    }
+
+    var account: String
+    var key: String
+    var bucket: String
+    var versions: Bool
+    var harddelete: Bool
+    
+    enum Router: URLRequestConvertible {
+        
+        case b2_authorize_account(accountId: String, applicationKey: String)
+        case b2_get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
+        
+        // MARK: URLRequestConvertible
+        
+        func asURLRequest() throws -> URLRequest {
+            let result: (path: String, method: String, parameters: Parameters, body: Data) = {
+                switch self {
+                case let .b2_authorize_account(accountId, applicationKey):
+                    let authNData = "\(accountId):\(applicationKey)".data(using: .utf8)
+                    return ("\(const.apiURL)/b2api/v2/b2_authorize_account",
+                            "GET",
+                            ["Authorization": "Basic \(String(describing: authNData?.base64EncodedString()))"],
+                            "".data(using: .utf8)!) // empty body
+                case let .b2_get_upload_url(apiUrl, accountAuthorizationToken, bucketId):
+                    let httpBody = "{\"bucketId\":\"\(bucketId)\"}".data(using: .utf8)
+                    return("\(apiUrl)/b2api/v2/b2_get_upload_url",
+                           "POST",
+                           ["Authorization": accountAuthorizationToken],
+                           httpBody!)
+                }
+            }()
+            
+            let url = try result.path.asURL()
+            
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = result.method
+            urlRequest.httpBody = result.body
+        
+            return try URLEncoding.default.encode(urlRequest, with: result.parameters)
+        }
     }
     
     // Remote describes a b2 remote
@@ -73,8 +109,6 @@ class b2: Provider {
         static let bucket = "bucket"
         static let versions = "versions"
         static let harddelete = "harddelete"
-        static let uploadcutoff = "uploadcutoff"
-        static let chunksize = "chunksize"
     }
     
     //MARK: Initialization
@@ -88,6 +122,9 @@ class b2: Provider {
         
         super.init(name: name, backend: .Backblaze)
     }
+    
+    //MARK: Public methods
+
     
     //MARK: NSCoding
     

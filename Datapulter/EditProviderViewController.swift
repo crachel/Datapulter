@@ -9,6 +9,7 @@
 import UIKit
 import os.log
 import Eureka
+import Alamofire
 
 class EditProviderViewController: FormViewController, UITextFieldDelegate {
     

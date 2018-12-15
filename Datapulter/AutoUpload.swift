@@ -45,9 +45,7 @@ class AutoUpload {
         
         //let fetchOptions = PHFetchOptions()
         
-        let assets = PHAsset.fetchAssets(in: collection[0], options: nil)
-        
-        return assets
+        return PHAsset.fetchAssets(in: collection[0], options: nil)
     }
     
 }

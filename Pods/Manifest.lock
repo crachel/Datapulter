@@ -1,20 +1,24 @@
 PODS:
+  - Alamofire (5.0.0.beta.1)
   - Eureka (4.3.0)
   - UICircularProgressRing (4.1.0)
 
 DEPENDENCIES:
+  - Alamofire (~> 5.0.0.beta.1)
   - Eureka
   - UICircularProgressRing
 
 SPEC REPOS:
   https://github.com/cocoapods/specs.git:
+    - Alamofire
     - Eureka
     - UICircularProgressRing
 
 SPEC CHECKSUMS:
+  Alamofire: 2ef6d6c984c5d21c366e9b41a9ae7dfee2b67a44
   Eureka: 6d711cb30ca333b4bc893110285a722ae3840114
   UICircularProgressRing: 5a32c01f54474571b1e66e8fa050c0f83d6d981b
 
-PODFILE CHECKSUM: 307fbd7324b755e353279828ded9f501b87d8e36
+PODFILE CHECKSUM: 8a6a523d63b19ff9c479b6ce5aa4964f00f4e87f
 
 COCOAPODS: 1.5.3
