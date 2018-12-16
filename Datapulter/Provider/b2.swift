@@ -61,9 +61,9 @@ final class b2: Provider {
                 }
             }()
             
-            let url = try result.path.asURL()
+            //let url = try result.path.asURL()
             
-            var urlRequest = URLRequest(url: url)
+            var urlRequest = URLRequest(url: try result.path.asURL())
             urlRequest.httpMethod = result.method
             urlRequest.httpBody = result.body
         

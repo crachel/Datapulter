@@ -60,15 +60,15 @@ class ProviderTableViewController: UITableViewController {
         let provider = providers[indexPath.row]
 
         // Configure the cell...
-        //cell.providerLabel.text = provider.name
-        cell.providerLabel.text = "\(autoupload.test())"
+        cell.providerLabel.text = provider.name
+        //cell.providerLabel.text = "\(autoupload.test())"
         cell.ringView.innerRingColor = provider.innerRing
         cell.ringView.outerRingWidth = 10
         cell.ringView.innerRingWidth = 10
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
      
-        cell.ringView.startProgress(to: 25, duration: 6) {
+        cell.ringView.startProgress(to: 25, duration: 0) {
             // This is called when it's finished animating!
             DispatchQueue.main.async {
                 // We can animate the ring back to another value here, and it does so fluidly

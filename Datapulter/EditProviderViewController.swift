@@ -9,7 +9,6 @@
 import UIKit
 import os.log
 import Eureka
-import Alamofire
 
 class EditProviderViewController: FormViewController, UITextFieldDelegate {
     
@@ -23,7 +22,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
         if let backblaze = provider as? b2 {
             form
             +++ Section("REQUIRED")
-            <<< TextRow("tagKeyID"){ row in
+            <<< AccountRow("tagKeyID"){ row in
                 row.title = "Key ID"
                 row.placeholder = "Your account key ID"
                 row.value = backblaze.account
@@ -39,7 +38,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             }.cellUpdate { cell, row in
                 cell.textField.delegate = self
             }
-            <<< TextRow("tagBucket"){ row in
+            <<< AccountRow("tagBucket"){ row in
                 row.title = "Bucket"
                 row.placeholder = "Your unique bucket name"
                 row.value = backblaze.bucket
