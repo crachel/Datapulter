@@ -8,9 +8,18 @@
 
 import UIKit
 import Photos
+import Alamofire
 
 class AutoUpload {
     var providers: Provider?
+    
+    var manager: Alamofire.Session?
+    
+    init() {
+        let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
+        manager = Alamofire.Session(configuration: configuration)
+    }
+    
     
     func start() {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {

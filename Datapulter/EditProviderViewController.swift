@@ -19,7 +19,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
  
-        if let backblaze = provider as? b2 {
+        if let backblaze = provider as? B2 {
             form
             +++ Section("REQUIRED")
             <<< AccountRow("tagKeyID"){ row in
@@ -32,7 +32,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             }
             <<< PasswordRow("tagKey"){ row in
                 row.title = "Key"
-                row.placeholder = "Your key"
+                row.placeholder = "Required"
                 row.value = backblaze.key
                 row.add(rule: RuleRequired())
             }.cellUpdate { cell, row in
@@ -94,7 +94,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             
         case "unwindToProviderList": // Save button has been clicked
             let valuesDictionary = form.values()
-            if let backblaze = provider as? b2 {
+            if let backblaze = provider as? B2 {
                 backblaze.account = valuesDictionary["tagKeyID"] as! String
                 backblaze.key = valuesDictionary["tagKey"] as! String
                 backblaze.bucket = valuesDictionary["tagBucket"] as! String

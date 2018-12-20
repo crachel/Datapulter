@@ -9,7 +9,7 @@
 import UIKit
 import Eureka
 
-class AddProviderViewController: FormViewController {
+class AddProviderViewController: FormViewController, UITextFieldDelegate {
     
     //MARK: Properties
 
@@ -21,25 +21,14 @@ class AddProviderViewController: FormViewController {
         
         form +++ Section()
             <<< ActionSheetRow<String>("actionsProvider") {
-                $0.title = "Provider"
-                $0.selectorTitle = "Pick a provider"
+                $0.title = "Pick Provider"
+                $0.selectorTitle = "Pick Provider"
                 $0.options = ["Amazon S3","Backblaze B2","DigitalOcean Spaces"]
                 $0.value = "Backblaze B2"    // initially selected
             }
-            <<< AccountRow(){ row in
-                row.title = "Text Row"
-                row.placeholder = "Enter text here"
-                row.hidden = Condition.function(["actionsProvider"])
-                { form in
-                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-                        return row.value != "Backblaze B2"
-                    }
-                    return false
-                }
-            } 
-            <<< AccountRow(){ row in
-                row.title = "Phone Row"
-                row.placeholder = "And numbers here"
+            <<< AccountRow("tagKeyID"){ row in
+                row.title = "Key ID"
+                row.placeholder = "Your account key ID"
                 row.add(rule: RuleRequired())
                 row.hidden = Condition.function(["actionsProvider"])
                 { form in
@@ -48,7 +37,64 @@ class AddProviderViewController: FormViewController {
                     }
                     return false
                 }
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
             }
+            <<< PasswordRow("tagKey"){ row in
+                row.title = "Key"
+                row.placeholder = "Your key"
+                row.add(rule: RuleRequired())
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Backblaze B2"
+                    }
+                    return false
+                }
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+            }
+            <<< AccountRow("tagBucket"){ row in
+                row.title = "Bucket"
+                row.placeholder = "Your unique bucket name"
+                row.add(rule: RuleRequired())
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Backblaze B2"
+                    }
+                    return false
+                }
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+                }
+            +++ Section("OPTIONS")
+            <<< SwitchRow("tagVersions"){ row in
+                row.title = "Versions"
+                row.value = true
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Backblaze B2"
+                    }
+                    return false
+                }
+                }
+            <<< SwitchRow("tagHardDelete"){ row in
+                row.title = "Hard Delete"
+                row.value = false
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Backblaze B2"
+                    }
+                    return false
+                }
+        }
+        
+        
+        
+        
     }
     
     //MARK: Navigation

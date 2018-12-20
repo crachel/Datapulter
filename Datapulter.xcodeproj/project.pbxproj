@@ -8,10 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		2ADA62915F98068E30C859E1 /* Pods_Datapulter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */; };
+		9B5B1AD021C9D075002D9959 /* BasicAuthHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5B1ACF21C9D075002D9959 /* BasicAuthHandler.swift */; };
 		9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */; };
 		9BC163E521B838D3003272FF /* ProviderTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163E421B838D3003272FF /* ProviderTableViewController.swift */; };
 		9BC163E721B844CD003272FF /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163E621B844CD003272FF /* Provider.swift */; };
-		9BC163ED21B95263003272FF /* b2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163EC21B95263003272FF /* b2.swift */; };
+		9BC163ED21B95263003272FF /* B2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163EC21B95263003272FF /* B2.swift */; };
 		9BC6C22E21BBFC6900D96D7A /* EditProviderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC6C22D21BBFC6900D96D7A /* EditProviderViewController.swift */; };
 		9BCE4AE521B7DB9600DECB10 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCE4AE421B7DB9600DECB10 /* AppDelegate.swift */; };
 		9BCE4AE721B7DB9600DECB10 /* AddProviderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCE4AE621B7DB9600DECB10 /* AddProviderViewController.swift */; };
@@ -35,10 +36,11 @@
 /* Begin PBXFileReference section */
 		255F2EFF802574F1F6D5DC03 /* Pods-Datapulter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Datapulter.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Datapulter/Pods-Datapulter.debug.xcconfig"; sourceTree = "<group>"; };
 		384C332A8CCA221D1966A88F /* Pods-Datapulter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Datapulter.release.xcconfig"; path = "Pods/Target Support Files/Pods-Datapulter/Pods-Datapulter.release.xcconfig"; sourceTree = "<group>"; };
+		9B5B1ACF21C9D075002D9959 /* BasicAuthHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BasicAuthHandler.swift; sourceTree = "<group>"; };
 		9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTableViewCell.swift; sourceTree = "<group>"; };
 		9BC163E421B838D3003272FF /* ProviderTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTableViewController.swift; sourceTree = "<group>"; };
 		9BC163E621B844CD003272FF /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
-		9BC163EC21B95263003272FF /* b2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = b2.swift; path = Datapulter/Provider/b2.swift; sourceTree = "<group>"; };
+		9BC163EC21B95263003272FF /* B2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = B2.swift; path = Datapulter/Provider/B2.swift; sourceTree = "<group>"; };
 		9BC6C22D21BBFC6900D96D7A /* EditProviderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProviderViewController.swift; sourceTree = "<group>"; };
 		9BCE4AE121B7DB9600DECB10 /* Datapulter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Datapulter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BCE4AE421B7DB9600DECB10 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -93,7 +95,7 @@
 		9BCE4AD821B7DB9600DECB10 = {
 			isa = PBXGroup;
 			children = (
-				9BC163EC21B95263003272FF /* b2.swift */,
+				9BC163EC21B95263003272FF /* B2.swift */,
 				9BCE4AE321B7DB9600DECB10 /* Datapulter */,
 				9BCE4AF821B7DB9900DECB10 /* DatapulterTests */,
 				9BCE4AE221B7DB9600DECB10 /* Products */,
@@ -116,6 +118,7 @@
 			children = (
 				9BC6C22D21BBFC6900D96D7A /* EditProviderViewController.swift */,
 				9BD86B1921C2D8B300958EAD /* AutoUpload.swift */,
+				9B5B1ACF21C9D075002D9959 /* BasicAuthHandler.swift */,
 				9BCE4AE421B7DB9600DECB10 /* AppDelegate.swift */,
 				9BCE4AE621B7DB9600DECB10 /* AddProviderViewController.swift */,
 				9BCE4AE821B7DB9600DECB10 /* Main.storyboard */,
@@ -294,8 +297,9 @@
 			files = (
 				9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */,
 				9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */,
-				9BC163ED21B95263003272FF /* b2.swift in Sources */,
+				9BC163ED21B95263003272FF /* B2.swift in Sources */,
 				9BCE4AE721B7DB9600DECB10 /* AddProviderViewController.swift in Sources */,
+				9B5B1AD021C9D075002D9959 /* BasicAuthHandler.swift in Sources */,
 				9BC163E521B838D3003272FF /* ProviderTableViewController.swift in Sources */,
 				9BC163E721B844CD003272FF /* Provider.swift in Sources */,
 				9BC6C22E21BBFC6900D96D7A /* EditProviderViewController.swift in Sources */,

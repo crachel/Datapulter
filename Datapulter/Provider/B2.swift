@@ -1,5 +1,5 @@
 //
-//  b2.swift
+//  B2.swift
 //
 //
 //  Created by Craig Rachel on 12/5/18.
@@ -9,12 +9,12 @@ import UIKit
 import os.log
 import Alamofire
 
-final class b2: Provider {
+final class B2: Provider {
     
     //MARK: Properties
     
     struct const {
-        static let apiURL = "https://api.backblazeb2.com"
+        static let apiMainURL = "https://api.backblazeb2.com"
         static let headerPrefix = "x-bz-info-"
         static let timeKey = "src_last_modified_millis"
         static let timeHeader = headerPrefix + timeKey
@@ -35,39 +35,53 @@ final class b2: Provider {
     var bucket: String
     var versions: Bool
     var harddelete: Bool
+    var uploadList: [String: String] // Filename : fileId
     
     enum Router: URLRequestConvertible {
         
-        case b2_authorize_account(accountId: String, applicationKey: String)
-        case b2_get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
+        case authorize_account(accountId: String, applicationKey: String)
+        case list_buckets(apiUrl: String, accountId: String, accountAuthorizationToken: String, bucketName: String)
+        case get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
+        case get_file_info(apiUrl: String, accountAuthorizationToken: String, fileId: String)
+
         
         // MARK: URLRequestConvertible
         
         func asURLRequest() throws -> URLRequest {
-            let result: (path: String, method: String, parameters: Parameters, body: Data) = {
+            // build a URLRequest to be attached to Session
+            let result: (path: String, method: String, parameters: Parameters?, headers: String) = {
                 switch self {
-                case let .b2_authorize_account(accountId, applicationKey):
-                    let authNData = "\(accountId):\(applicationKey)".data(using: .utf8)
-                    return ("\(const.apiURL)/b2api/v2/b2_authorize_account",
+                case let .authorize_account(accountId, applicationKey):
+                    let authNData = "\(accountId):\(applicationKey)".data(using: .utf8)?.base64EncodedString()
+                    return ("\(const.apiMainURL)/b2api/v2/b2_authorize_account",
                             "GET",
-                            ["Authorization": "Basic \(String(describing: authNData?.base64EncodedString()))"],
-                            "".data(using: .utf8)!) // empty body
-                case let .b2_get_upload_url(apiUrl, accountAuthorizationToken, bucketId):
-                    let httpBody = "{\"bucketId\":\"\(bucketId)\"}".data(using: .utf8)
+                            nil, // empty body
+                            "Basic \(authNData!)")
+                case let .list_buckets(apiUrl, accountId, accountAuthorizationToken, bucketName):
+                    return ("\(apiUrl)/b2api/v2/b2_list_buckets",
+                            "POST",
+                            ["accountId":accountId,"bucketName":bucketName],
+                            accountAuthorizationToken)
+                case let .get_upload_url(apiUrl, accountAuthorizationToken, bucketId):
                     return("\(apiUrl)/b2api/v2/b2_get_upload_url",
                            "POST",
-                           ["Authorization": accountAuthorizationToken],
-                           httpBody!)
+                           ["bucketId":bucketId],
+                           accountAuthorizationToken)
+                case let .get_file_info(apiUrl, accountAuthorizationToken, fileId):
+                    return("\(apiUrl)/b2api/v2/b2_get_file_info",
+                            "POST",
+                            ["fileId":fileId],
+                            accountAuthorizationToken)
                 }
             }()
             
-            //let url = try result.path.asURL()
-            
-            var urlRequest = URLRequest(url: try result.path.asURL())
+            let url = try result.path.asURL()
+            var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = result.method
-            urlRequest.httpBody = result.body
+            urlRequest.setValue("\(result.headers)", forHTTPHeaderField: "Authorization")
+
         
-            return try URLEncoding.default.encode(urlRequest, with: result.parameters)
+            return try JSONEncoding.default.encode(urlRequest, with: result.parameters)
         }
     }
     
@@ -109,16 +123,30 @@ final class b2: Provider {
         static let bucket = "bucket"
         static let versions = "versions"
         static let harddelete = "harddelete"
+        static let uploadList = "uploadList"
     }
     
     //MARK: Initialization
     init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool) {
-        
+    // init for when user adds new provider
         self.account = account
         self.key = key
         self.bucket = bucket
         self.versions = versions
         self.harddelete = harddelete
+        self.uploadList = [:] // empty
+        
+        super.init(name: name, backend: .Backblaze)
+    }
+    
+    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, uploadList: Dictionary<String, String>) {
+    // init for decoding existing provider
+        self.account = account
+        self.key = key
+        self.bucket = bucket
+        self.versions = versions
+        self.harddelete = harddelete
+        self.uploadList = uploadList
         
         super.init(name: name, backend: .Backblaze)
     }
@@ -135,6 +163,7 @@ final class b2: Provider {
         aCoder.encode(bucket, forKey: PropertyKey.bucket)
         aCoder.encode(versions, forKey: PropertyKey.versions)
         aCoder.encode(harddelete, forKey: PropertyKey.harddelete)
+        aCoder.encode(uploadList, forKey: PropertyKey.uploadList)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -146,16 +175,17 @@ final class b2: Provider {
             let bucket = aDecoder.decodeObject(forKey: PropertyKey.bucket) as? String
         else
         {
-            os_log("Unable to decode a b2 object.", log: OSLog.default, type: .debug)
+            os_log("Unable to decode a B2 object.", log: OSLog.default, type: .debug)
             return nil
         }
         
         let versions = aDecoder.decodeBool(forKey: PropertyKey.versions)
         let harddelete = aDecoder.decodeBool(forKey: PropertyKey.harddelete)
+        let uploadList = aDecoder.decodeObject(forKey: PropertyKey.uploadList)
         
         
         // Must call designated initializer.
-        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete)
+        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, uploadList: uploadList as! Dictionary<String, String>)
     }
  
 }

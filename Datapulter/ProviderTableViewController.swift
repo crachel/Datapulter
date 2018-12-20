@@ -8,6 +8,7 @@
 
 import UIKit
 import os.log
+import Alamofire
 
 class ProviderTableViewController: UITableViewController {
     
@@ -15,15 +16,30 @@ class ProviderTableViewController: UITableViewController {
     
     var providers = [Provider]()
     var autoupload = AutoUpload()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
 
+
+        /*
+        //let test = B2.Router.list_buckets(apiUrl: "https://api000.backblazeb2.com", accountId: "bd9db9a329de", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketName: "datapulter")
+        let test = B2.Router.get_upload_url(apiUrl: "https://api000.backblazeb2.com", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketId: "db9d09bd1b19ba3362790d1e")
+        
+        
+        //print(autoupload.manager?.request(test))
+        autoupload.manager?.request(test).responseJSON {
+            response in
+            print(response)
+        }
+ */
+        
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
 
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
+        
         
         // Load any saved providers, otherwise load sample data.
         if let savedProviders = loadProviders() {
@@ -33,7 +49,7 @@ class ProviderTableViewController: UITableViewController {
             // Load the sample data.
             //loadSampleProviders()
         }
-        
+      
         //autoupload.start(providers)
     }
 
@@ -61,7 +77,6 @@ class ProviderTableViewController: UITableViewController {
 
         // Configure the cell...
         cell.providerLabel.text = provider.name
-        //cell.providerLabel.text = "\(autoupload.test())"
         cell.ringView.innerRingColor = provider.innerRing
         cell.ringView.outerRingWidth = 10
         cell.ringView.innerRingWidth = 10
@@ -102,11 +117,12 @@ class ProviderTableViewController: UITableViewController {
     }
     
     
-    
+    /*
     // Override to support rearranging the table view.
     override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
 
     }
+    */
     
 
     /*
@@ -169,8 +185,8 @@ class ProviderTableViewController: UITableViewController {
     }
     
     private func loadSampleProviders() {
-        let provider1 = b2(name: "My Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "mybucket", versions: true, harddelete: false)
-        let provider2 = b2(name: "My Second Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "myotherbucket", versions: false, harddelete: true)
+        let provider1 = B2(name: "My Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "mybucket", versions: true, harddelete: false)
+        let provider2 = B2(name: "My Second Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "myotherbucket", versions: false, harddelete: true)
 
         providers += [provider1, provider2]
     }
