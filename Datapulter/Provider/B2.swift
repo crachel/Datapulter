@@ -44,7 +44,6 @@ final class B2: Provider {
         case get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
         case get_file_info(apiUrl: String, accountAuthorizationToken: String, fileId: String)
 
-        
         // MARK: URLRequestConvertible
         
         func asURLRequest() throws -> URLRequest {

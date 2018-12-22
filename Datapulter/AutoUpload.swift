@@ -9,17 +9,39 @@
 import UIKit
 import Photos
 import Alamofire
+import PromiseKit
 
 class AutoUpload {
-    var providers: Provider?
     
-    var manager: Alamofire.Session?
+    //MARK: Properties
+    
+    //var providers: Provider?
+    typealias JSON = [String: Any]
+    var manager: Alamofire.Session
     
     init() {
         let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
         manager = Alamofire.Session(configuration: configuration)
     }
     
+    public func request(urlrequest: URLRequest) -> Promise<JSON> {
+        return Promise { seal in
+            manager.request(urlrequest).responseJSON { (response) in
+                switch response.result {
+                case .success(let json):
+                    // If there is not JSON data, cause an error (`reject` function)
+                    guard let json = json as? JSON else {
+                        return seal.reject(AFError.responseValidationFailed(reason: .dataFileNil))
+                    }
+                    // pass the JSON data into the fulfill function, so we can receive the value
+                    seal.fulfill(json)
+                case .failure(let error):
+                    // pass the error into the reject function, so we can check what causes the error
+                    seal.reject(error)
+                }
+            }
+        }
+    }
     
     func start() {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
