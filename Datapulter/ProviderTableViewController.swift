@@ -8,12 +8,11 @@
 
 import UIKit
 import os.log
-import Alamofire
+import UICircularProgressRing
 
 class ProviderTableViewController: UITableViewController {
     
     //MARK: Properties
-    
     var providers = [Provider]()
     var autoupload = AutoUpload()
     
@@ -21,16 +20,24 @@ class ProviderTableViewController: UITableViewController {
         super.viewDidLoad()
         
 
-
-        /*
+        
         //let test = B2.Router.list_buckets(apiUrl: "https://api000.backblazeb2.com", accountId: "bd9db9a329de", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketName: "datapulter")
-        let test = B2.Router.get_upload_url(apiUrl: "https://api000.backblazeb2.com", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketId: "db9d09bd1b19ba3362790d1e")
+        //let test = B2.Router.get_upload_url(apiUrl: "https://api000.backblazeb2.com", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketId: "db9d09bd1b19ba3362790d1e")
+        //let login = B2.Router.authorize_account(accountId: "000bd9db9a329de0000000002", applicationKey: "K0002N7fDPHf/MaFFITLUinf8//4qqc")
         
         
+        /*
         //print(autoupload.manager?.request(test))
-        autoupload.manager?.request(test).responseJSON {
+        autoupload.session.request(test).responseJSON {
             response in
             print(response)
+        }*/
+        
+        /*
+        autoupload.request(urlrequest: try! login.asURLRequest()).then { json -> Promise<JSON> in
+            return self.autoupload.request(urlrequest: try! B2.Router.get_upload_url(apiUrl: json["apiUrl"] as! String, accountAuthorizationToken: json["accountAuthorizationToken"] as! String, bucketId: json["bucketId"] as! String).asURLRequest())
+            }.catch { error in
+                // handle error
         }
     */
  
@@ -50,8 +57,23 @@ class ProviderTableViewController: UITableViewController {
             // Load the sample data.
             //loadSampleProviders()
         }
-      
-        //autoupload.start(providers)
+        //loadSampleProviders()
+        //let indexPath = IndexPath(item: 0, section: 0)
+        //let cell = tableView.cellForRow(at: 0) as! ProviderTableViewCell
+        //var cell = tableView.cellForRow(at: indexPath) as! ProviderTableViewCell
+        //cell.ringView.value = 55
+        /*
+        DispatchQueue.main.async {
+        if let cell = self.tableView.cellForRow(at: IndexPath(row: 0,
+                                                                section: 0)) as? ProviderTableViewCell {
+            cell.updateDisplay(value: 55)
+        }
+        }
+ */
+        
+        autoupload.start(providers: providers)
+        
+        
     }
 
     //MARK: - Table view data source
@@ -77,20 +99,27 @@ class ProviderTableViewController: UITableViewController {
         let provider = providers[indexPath.row]
 
         // Configure the cell...
+    
         cell.providerLabel.text = provider.name
+        
         cell.ringView.innerRingColor = provider.innerRing
         cell.ringView.outerRingWidth = 10
         cell.ringView.innerRingWidth = 10
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
-     
-        cell.ringView.startProgress(to: 25, duration: 0) {
+        cell.ringView.value = 0
+        provider.cell = cell
+        
+        /*
+        cell.ringView.startProgress(to: 25, duration: 6) {
             // This is called when it's finished animating!
             DispatchQueue.main.async {
                 // We can animate the ring back to another value here, and it does so fluidly
                 cell.ringView.startProgress(to: 100, duration: 2)
             }
         }
+ */
+
 
         return cell
     }

@@ -8,6 +8,7 @@
 import UIKit
 import os.log
 import Alamofire
+import PromiseKit
 
 final class B2: Provider {
     
@@ -37,8 +38,10 @@ final class B2: Provider {
     var harddelete: Bool
     var uploadList: [String: String] // Filename : fileId
     
-    enum Router: URLRequestConvertible {
-        
+    
+    // Return URLRequest for attaching to Session for each supported API operation
+    enum Router: Alamofire.URLRequestConvertible {
+       
         case authorize_account(accountId: String, applicationKey: String)
         case list_buckets(apiUrl: String, accountId: String, accountAuthorizationToken: String, bucketName: String)
         case get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
@@ -84,9 +87,17 @@ final class B2: Provider {
         }
     }
     
-    // Remote describes a b2 remote
-    struct Remote {
-        var root: String                       // the path we are working on if any
+    struct APIResponse {
+        var root: String // the path we are working on if any
+        
+        var accountId: String
+        var authorizationToken: String
+        var allowed: [String: Any]
+        var apiUrl: String
+        var downloadUrl: String
+        var uploadUrl: String
+        var recommendedPartSize: Int64
+        var absoluteMinimumPartSize: Int64
         //opt           Options                      // parsed config options
         //features      *fs.Features                 // optional features
         //srv           *rest.Client                 // the connection to the b2 server
@@ -151,7 +162,20 @@ final class B2: Provider {
     }
     
     //MARK: Public methods
-
+    
+    /*
+    public func login() {
+        //return try! Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest()
+        try! self.autoupload.request(urlrequest: Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest()).then
+        { json -> Promise<JSON> in
+            return try! self.autoupload.request(urlrequest: Router.list_buckets(apiUrl: json["apiUrl"] as! String, accountId: json["accountId"] as! String, accountAuthorizationToken: json["authorizationToken"] as! String, bucketName: self.bucket).asURLRequest())
+            //json["profileId"]
+        }.done { foo in
+            // handle successful request
+        }.catch { error in
+            // handle error
+        }
+    }*/
     
     //MARK: NSCoding
     

@@ -16,6 +16,9 @@ class Provider: NSObject, NSCoding {
     var name: String
     var backend: Site
     var innerRing: UIColor
+    var cell: ProviderTableViewCell?
+    
+    typealias JSON = [String: Any]
     
     enum Site {
         case Backblaze

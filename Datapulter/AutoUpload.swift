@@ -7,26 +7,26 @@
 //
 
 import UIKit
+import os.log
 import Photos
 import Alamofire
 import PromiseKit
 
+typealias JSON = [String: Any]
+
 class AutoUpload {
-    
-    //MARK: Properties
-    
-    //var providers: Provider?
-    typealias JSON = [String: Any]
-    var manager: Alamofire.Session
+    static let shared = AutoUpload()
+    var session: Alamofire.Session
     
     init() {
         let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
-        manager = Alamofire.Session(configuration: configuration)
+        configuration.allowsCellularAccess = false
+        session = Alamofire.Session(configuration: configuration)
     }
-    
+ 
     public func request(urlrequest: URLRequest) -> Promise<JSON> {
         return Promise { seal in
-            manager.request(urlrequest).responseJSON { (response) in
+            session.request(urlrequest).responseJSON { (response) in
                 switch response.result {
                 case .success(let json):
                     // If there is not JSON data, cause an error (`reject` function)
@@ -43,11 +43,22 @@ class AutoUpload {
         }
     }
     
-    func start() {
+    func start(providers: [Provider]) {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
-            
+            for provider in providers {
+                if let backblaze = provider as? B2 {
+                    // login, queue serial uploads
+                    print(backblaze.name)
+                    DispatchQueue.main.async {
+                        if(backblaze.name == "My Backblaze B2 Remote") {
+                        backblaze.cell?.ringView.startProgress(to: 25, duration: 6)
+                        }
+                        
+                    }
+                } // else if let s3, etc
+            }
         } else {
-            
+            // no photo permission
         }
     }
 

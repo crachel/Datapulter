@@ -10,7 +10,7 @@ import UIKit
 import UICircularProgressRing
 
 class ProviderTableViewCell: UITableViewCell {
-    
+
     //MARK: Properties
     @IBOutlet weak var ringView: UICircularProgressRing!
     @IBOutlet weak var providerLabel: UILabel!
