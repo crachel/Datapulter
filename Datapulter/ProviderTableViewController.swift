@@ -107,7 +107,8 @@ class ProviderTableViewController: UITableViewController {
         cell.ringView.innerRingWidth = 10
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
-        cell.ringView.value = 0
+        cell.ringView.valueIndicator = ""
+        cell.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
         provider.cell = cell
         
         /*

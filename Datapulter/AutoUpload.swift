@@ -11,12 +11,15 @@ import os.log
 import Photos
 import Alamofire
 import PromiseKit
+import UICircularProgressRing
 
 typealias JSON = [String: Any]
 
 class AutoUpload {
     static let shared = AutoUpload()
     var session: Alamofire.Session
+    var providers: [Provider]?
+
     
     init() {
         let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
@@ -44,36 +47,42 @@ class AutoUpload {
     }
     
     func start(providers: [Provider]) {
+        self.providers = providers
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
+            let assets = getCameraRollAssets()
+        
             for provider in providers {
-                if let backblaze = provider as? B2 {
-                    // login, queue serial uploads
-                    print(backblaze.name)
-                    DispatchQueue.main.async {
-                        if(backblaze.name == "My Backblaze B2 Remote") {
-                        backblaze.cell?.ringView.startProgress(to: 25, duration: 6)
-                        }
-                        
+               
+                //print(provider.name)
+                assets.enumerateObjects({ (object, _, _) in
+                    if(provider.remoteFileList[object] == nil) {
+                        provider.assetsToUpload.append(object)
                     }
-                } // else if let s3, etc
+                })
+   
+                DispatchQueue.main.async {
+                    //if(provider.name == "My Backblaze B2 Remote") {
+                    //provider.cell?.ringView.startProgress(to: 44, duration: 0)
+                    provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
+                    //}
+                }
+                test()
             }
         } else {
             // no photo permission
         }
     }
 
-    func test() -> String {
-        if(PHPhotoLibrary.authorizationStatus() == .authorized) {
-            let assets = getCameraRollAssets()
+    func test() {
+        let assets = getCameraRollAssets()
             if(assets.count > 0) {
-                print(assets[0])
-                return assets[0].value(forKey: "filename") as! String
+                print(assets[1].localIdentifier)
+                print(assets[1].value(forKey: "filename") as! String)
+                //return assets[0].value(forKey: "filename") as! String
             } else {
-                return "no camera roll assets"
+                return
             }
-        } else {
-            return "no photo permission"
-        }
+   
     }
     
     func uploadAssets() {
@@ -81,13 +90,16 @@ class AutoUpload {
     }
     
     func getCameraRollAssets() -> PHFetchResult<PHAsset> {
+        if(PHPhotoLibrary.authorizationStatus() == .authorized) {
+            // A smart album that groups all assets that originate in the user’s own library (as opposed to assets from iCloud Shared Albums)
+            let collection = PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
         
-        // A smart album that groups all assets that originate in the user’s own library (as opposed to assets from iCloud Shared Albums)
-        let collection  = PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
-        
-        //let fetchOptions = PHFetchOptions()
-        
-        return PHAsset.fetchAssets(in: collection[0], options: nil)
+            let assets = PHAsset.fetchAssets(in: collection.firstObject!, options: nil)
+            
+            return assets
+        } else {
+            return PHFetchResult<PHAsset>()
+        }
     }
     
 }

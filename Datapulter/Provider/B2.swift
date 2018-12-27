@@ -36,7 +36,6 @@ final class B2: Provider {
     var bucket: String
     var versions: Bool
     var harddelete: Bool
-    var uploadList: [String: String] // Filename : fileId
     
     
     // Return URLRequest for attaching to Session for each supported API operation
@@ -144,22 +143,11 @@ final class B2: Provider {
         self.bucket = bucket
         self.versions = versions
         self.harddelete = harddelete
-        self.uploadList = [:] // empty
         
         super.init(name: name, backend: .Backblaze)
     }
     
-    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, uploadList: Dictionary<String, String>) {
-    // init for decoding existing provider
-        self.account = account
-        self.key = key
-        self.bucket = bucket
-        self.versions = versions
-        self.harddelete = harddelete
-        self.uploadList = uploadList
-        
-        super.init(name: name, backend: .Backblaze)
-    }
+
     
     //MARK: Public methods
     
@@ -186,7 +174,6 @@ final class B2: Provider {
         aCoder.encode(bucket, forKey: PropertyKey.bucket)
         aCoder.encode(versions, forKey: PropertyKey.versions)
         aCoder.encode(harddelete, forKey: PropertyKey.harddelete)
-        aCoder.encode(uploadList, forKey: PropertyKey.uploadList)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -204,11 +191,10 @@ final class B2: Provider {
         
         let versions = aDecoder.decodeBool(forKey: PropertyKey.versions)
         let harddelete = aDecoder.decodeBool(forKey: PropertyKey.harddelete)
-        let uploadList = aDecoder.decodeObject(forKey: PropertyKey.uploadList)
         
         
         // Must call designated initializer.
-        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, uploadList: uploadList as! Dictionary<String, String>)
+        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete)
     }
  
 }
