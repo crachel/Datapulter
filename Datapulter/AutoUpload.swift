@@ -16,7 +16,15 @@ import UICircularProgressRing
 typealias JSON = [String: Any]
 
 class AutoUpload {
-    static let shared = AutoUpload()
+    
+    class var shared: AutoUpload {
+        struct Static {
+            static let shared: AutoUpload = AutoUpload()
+        }
+        return Static.shared
+    }
+    
+    //static let shared = AutoUpload()
     var session: Alamofire.Session
     var providers: [Provider]?
 
@@ -49,16 +57,19 @@ class AutoUpload {
     func start(providers: [Provider]) {
         self.providers = providers
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
+            
             let assets = getCameraRollAssets()
         
             for provider in providers {
                
-                //print(provider.name)
                 assets.enumerateObjects({ (object, _, _) in
-                    if(provider.remoteFileList[object] == nil) {
+                    if(provider.remoteFileList[object] == nil && !provider.assetsToUpload.contains(object)) {
+                        // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.append(object)
                     }
                 })
+                
+                //processuploadqueue
    
                 DispatchQueue.main.async {
                     //if(provider.name == "My Backblaze B2 Remote") {
@@ -66,15 +77,28 @@ class AutoUpload {
                     provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
                     //}
                 }
-                test()
+               
             }
+            test(providers: providers)
         } else {
             // no photo permission
         }
     }
 
-    func test() {
-        let assets = getCameraRollAssets()
+    func test(providers: [Provider]) {
+        //let assets = getCameraRollAssets()
+        
+        for provider in providers {
+            if(provider.name == "My Backblaze B2 Remote") {
+                //provider.cell?.ringView.startProgress(to: 44, duration: 0)
+                if let backblaze = provider as? B2 {
+                    //backblaze.login()
+                    backblaze.test()
+                }
+            }
+        }
+        
+        /*
             if(assets.count > 0) {
                 print(assets[1].localIdentifier)
                 print(assets[1].value(forKey: "filename") as! String)
@@ -82,24 +106,26 @@ class AutoUpload {
             } else {
                 return
             }
+ */
    
     }
     
-    func uploadAssets() {
+    func processUploadQueue() {
+        /*
+         provider.login
+         provider.upload
+        */
+        
     
     }
     
     func getCameraRollAssets() -> PHFetchResult<PHAsset> {
-        if(PHPhotoLibrary.authorizationStatus() == .authorized) {
-            // A smart album that groups all assets that originate in the user’s own library (as opposed to assets from iCloud Shared Albums)
-            let collection = PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
+        // A smart album that groups all assets that originate in the user’s own library (as opposed to assets from iCloud Shared Albums)
+        let collection = PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
+    
+        let assets = PHAsset.fetchAssets(in: collection.firstObject!, options: nil)
         
-            let assets = PHAsset.fetchAssets(in: collection.firstObject!, options: nil)
-            
-            return assets
-        } else {
-            return PHFetchResult<PHAsset>()
-        }
+        return assets
     }
     
 }

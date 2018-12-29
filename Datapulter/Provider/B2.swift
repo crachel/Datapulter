@@ -86,6 +86,23 @@ final class B2: Provider {
         }
     }
     
+    struct authorize_account_response: Codable {
+        var absoluteMinimumPartSize: Int64
+        var accountId: String
+        struct Allowed: Codable {
+            var capabilities: [String]
+            var bucketId: String?
+            var bucketName: String?
+            var namePrefix: String?
+        }
+        var apiUrl: String
+        var authorizationToken: String
+        var downloadUrl: String
+        var recommendedPartSize: Int64
+        let allowed: Allowed
+    }
+    
+    /*
     struct APIResponse {
         var root: String // the path we are working on if any
         
@@ -111,7 +128,7 @@ final class B2: Provider {
         //authMu        sync.Mutex                   // lock for authorizing the account
         //pacer         *pacer.Pacer                 // To pace and retry the API calls
         //bufferTokens  chan []byte                  // control concurrency of multipart uploads
-    }
+    }*/
     
     // Object describes a b2 object
     struct Object {
@@ -151,19 +168,50 @@ final class B2: Provider {
     
     //MARK: Public methods
     
-    /*
+    public func test() {
+        let jsonString = """
+        {
+          "absoluteMinimumPartSize": 5000000,
+          "accountId": "YOUR_ACCOUNT_ID",
+          "allowed": {
+            "bucketId": "BUCKET_ID",
+            "bucketName": "BUCKET_NAME",
+            "capabilities": [
+              "listBuckets",
+              "listFiles",
+              "readFiles",
+              "shareFiles",
+              "writeFiles",
+              "deleteFiles"
+            ],
+            "namePrefix": null
+          },
+          "apiUrl": "https://apiNNN.backblazeb2.com",
+          "authorizationToken": "4_0022623512fc8f80000000001_0186e431_d18d02_acct_tH7VW03boebOXayIc43-sxptpfA=",
+          "downloadUrl": "https://f002.backblazeb2.com",
+          "recommendedPartSize": 100000000
+        }
+        """
+        let jsonData = jsonString.data(using: .utf8)!
+        let user = try! JSONDecoder().decode(authorize_account_response.self, from: jsonData)
+        print (user)
+    }
+    
+    
     public func login() {
-        //return try! Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest()
-        try! self.autoupload.request(urlrequest: Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest()).then
-        { json -> Promise<JSON> in
-            return try! self.autoupload.request(urlrequest: Router.list_buckets(apiUrl: json["apiUrl"] as! String, accountId: json["accountId"] as! String, accountAuthorizationToken: json["authorizationToken"] as! String, bucketName: self.bucket).asURLRequest())
+        firstly {
+            try! AutoUpload.shared.request(urlrequest: Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest())
+        }.then { json -> Promise<JSON> in
+            try! AutoUpload.shared.request(urlrequest: Router.list_buckets(apiUrl: json["apiUrl"] as! String, accountId: json["accountId"] as! String, accountAuthorizationToken: json["authorizationToken"] as! String, bucketName: self.bucket).asURLRequest())
             //json["profileId"]
         }.done { foo in
+            print(foo)
             // handle successful request
         }.catch { error in
             // handle error
+            print(error)
         }
-    }*/
+    }
     
     //MARK: NSCoding
     

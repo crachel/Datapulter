@@ -14,7 +14,6 @@ class ProviderTableViewController: UITableViewController {
     
     //MARK: Properties
     var providers = [Provider]()
-    var autoupload = AutoUpload()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,23 +24,6 @@ class ProviderTableViewController: UITableViewController {
         //let test = B2.Router.get_upload_url(apiUrl: "https://api000.backblazeb2.com", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketId: "db9d09bd1b19ba3362790d1e")
         //let login = B2.Router.authorize_account(accountId: "000bd9db9a329de0000000002", applicationKey: "K0002N7fDPHf/MaFFITLUinf8//4qqc")
         
-        
-        /*
-        //print(autoupload.manager?.request(test))
-        autoupload.session.request(test).responseJSON {
-            response in
-            print(response)
-        }*/
-        
-        /*
-        autoupload.request(urlrequest: try! login.asURLRequest()).then { json -> Promise<JSON> in
-            return self.autoupload.request(urlrequest: try! B2.Router.get_upload_url(apiUrl: json["apiUrl"] as! String, accountAuthorizationToken: json["accountAuthorizationToken"] as! String, bucketId: json["bucketId"] as! String).asURLRequest())
-            }.catch { error in
-                // handle error
-        }
-    */
- 
-   
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
 
@@ -58,21 +40,9 @@ class ProviderTableViewController: UITableViewController {
             //loadSampleProviders()
         }
         //loadSampleProviders()
-        //let indexPath = IndexPath(item: 0, section: 0)
-        //let cell = tableView.cellForRow(at: 0) as! ProviderTableViewCell
-        //var cell = tableView.cellForRow(at: indexPath) as! ProviderTableViewCell
-        //cell.ringView.value = 55
-        /*
-        DispatchQueue.main.async {
-        if let cell = self.tableView.cellForRow(at: IndexPath(row: 0,
-                                                                section: 0)) as? ProviderTableViewCell {
-            cell.updateDisplay(value: 55)
-        }
-        }
- */
         
-        autoupload.start(providers: providers)
-        
+ 
+        AutoUpload.shared.start(providers: providers)
         
     }
 
@@ -107,7 +77,6 @@ class ProviderTableViewController: UITableViewController {
         cell.ringView.innerRingWidth = 10
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
-        cell.ringView.valueIndicator = ""
         cell.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
         provider.cell = cell
         
