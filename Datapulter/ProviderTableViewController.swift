@@ -18,31 +18,19 @@ class ProviderTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-
-        
-        //let test = B2.Router.list_buckets(apiUrl: "https://api000.backblazeb2.com", accountId: "bd9db9a329de", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketName: "datapulter")
-        //let test = B2.Router.get_upload_url(apiUrl: "https://api000.backblazeb2.com", accountAuthorizationToken: "4_000bd9db9a329de0000000002_018900ab_63f319_acct_5ubYrxE1BKReFalPbvom-LX6p1s=", bucketId: "db9d09bd1b19ba3362790d1e")
-        //let login = B2.Router.authorize_account(accountId: "000bd9db9a329de0000000002", applicationKey: "K0002N7fDPHf/MaFFITLUinf8//4qqc")
-        
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
+        // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
-        
         
         // Load any saved providers, otherwise load sample data.
         if let savedProviders = loadProviders() {
             providers += savedProviders
         }
-        else {
-            // Load the sample data.
-            //loadSampleProviders()
-        }
+        
         //loadSampleProviders()
         
- 
-        AutoUpload.shared.start(providers: providers)
+        DispatchQueue.global(qos: .userInitiated).async {
+            AutoUpload.shared.start(providers: self.providers)
+        }
         
     }
 
@@ -77,19 +65,8 @@ class ProviderTableViewController: UITableViewController {
         cell.ringView.innerRingWidth = 10
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
-        cell.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
-        provider.cell = cell
         
-        /*
-        cell.ringView.startProgress(to: 25, duration: 6) {
-            // This is called when it's finished animating!
-            DispatchQueue.main.async {
-                // We can animate the ring back to another value here, and it does so fluidly
-                cell.ringView.startProgress(to: 100, duration: 2)
-            }
-        }
- */
-
+        provider.cell = cell
 
         return cell
     }

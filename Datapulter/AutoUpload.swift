@@ -13,9 +13,9 @@ import Alamofire
 import PromiseKit
 import UICircularProgressRing
 
-typealias JSON = [String: Any]
-
 class AutoUpload {
+    
+    //MARK: Properties
     
     class var shared: AutoUpload {
         struct Static {
@@ -23,11 +23,10 @@ class AutoUpload {
         }
         return Static.shared
     }
-    
-    //static let shared = AutoUpload()
-    var session: Alamofire.Session
-    var providers: [Provider]?
 
+    var session: Alamofire.Session
+
+    //MARK: Initialization
     
     init() {
         let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
@@ -35,13 +34,15 @@ class AutoUpload {
         session = Alamofire.Session(configuration: configuration)
     }
  
-    public func request(urlrequest: URLRequest) -> Promise<JSON> {
+    //MARK: Public Methods
+    
+    public func request(urlrequest: URLRequest) -> Promise<[String: Any]> {
         return Promise { seal in
             session.request(urlrequest).responseJSON { (response) in
                 switch response.result {
                 case .success(let json):
                     // If there is not JSON data, cause an error (`reject` function)
-                    guard let json = json as? JSON else {
+                    guard let json = json as? [String: Any] else {
                         return seal.reject(AFError.responseValidationFailed(reason: .dataFileNil))
                     }
                     // pass the JSON data into the fulfill function, so we can receive the value
@@ -54,8 +55,7 @@ class AutoUpload {
         }
     }
     
-    func start(providers: [Provider]) {
-        self.providers = providers
+    public func start(providers: [Provider]) {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             
             let assets = getCameraRollAssets()
@@ -66,16 +66,21 @@ class AutoUpload {
                     if(provider.remoteFileList[object] == nil && !provider.assetsToUpload.contains(object)) {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.append(object)
+                        if (object.mediaType == .image) {
+                            //let image = self.fullResolutionImageData(asset: object)
+                            
+                        } else if (object.mediaType == .video) {
+                            
+                        }
                     }
                 })
+                
+                
                 
                 //processuploadqueue
    
                 DispatchQueue.main.async {
-                    //if(provider.name == "My Backblaze B2 Remote") {
-                    //provider.cell?.ringView.startProgress(to: 44, duration: 0)
                     provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
-                    //}
                 }
                
             }
@@ -85,9 +90,9 @@ class AutoUpload {
         }
     }
 
-    func test(providers: [Provider]) {
-        //let assets = getCameraRollAssets()
-        
+    //MARK: Private Methods
+    
+    private func test(providers: [Provider]) {
         for provider in providers {
             if(provider.name == "My Backblaze B2 Remote") {
                 //provider.cell?.ringView.startProgress(to: 44, duration: 0)
@@ -106,26 +111,41 @@ class AutoUpload {
             } else {
                 return
             }
- */
+         */
    
     }
     
-    func processUploadQueue() {
+    private func processUploadQueue() {
         /*
-         provider.login
-         provider.upload
+         for each asset in assetsToUpload: [PHAsset]
+            Router.upload_file(asset)
         */
         
     
     }
     
-    func getCameraRollAssets() -> PHFetchResult<PHAsset> {
+    private func getCameraRollAssets() -> PHFetchResult<PHAsset> {
         // A smart album that groups all assets that originate in the user’s own library (as opposed to assets from iCloud Shared Albums)
         let collection = PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
     
         let assets = PHAsset.fetchAssets(in: collection.firstObject!, options: nil)
         
         return assets
+    }
+    
+    private func fullResolutionImageData(asset: PHAsset) -> UIImage? {
+        let options = PHImageRequestOptions()
+        options.isSynchronous = true
+        options.resizeMode = .none
+        options.isNetworkAccessAllowed = false
+        options.version = .current
+        var image: UIImage? = nil
+        _ = PHCachingImageManager().requestImageData(for: asset, options: options) { (imageData, dataUTI, orientation, info) in
+            if let data = imageData {
+                image = UIImage(data: data)
+            }
+        }
+        return image
     }
     
 }

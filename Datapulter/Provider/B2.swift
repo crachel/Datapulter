@@ -26,8 +26,6 @@ final class B2: Provider {
         static let retryAfterHeader = "Retry-After"
         static let maxParts = 10000
         static let maxVersions = 100 // maximum number of versions we search in --b2-versions mode
-        static let minChunkSize = 5 * 1024 * 1024
-        static let defaultChunkSize = 96 * 1024 * 1024
         static let defaultUploadCutoff = 200 * 1024 * 1024
     }
 
@@ -36,6 +34,7 @@ final class B2: Provider {
     var bucket: String
     var versions: Bool
     var harddelete: Bool
+    var authResponse: authorizeResponse?
     
     
     // Return URLRequest for attaching to Session for each supported API operation
@@ -86,7 +85,7 @@ final class B2: Provider {
         }
     }
     
-    struct authorize_account_response: Codable {
+    struct authorizeResponse: Codable {
         var absoluteMinimumPartSize: Int64
         var accountId: String
         struct Allowed: Codable {
@@ -102,33 +101,6 @@ final class B2: Provider {
         let allowed: Allowed
     }
     
-    /*
-    struct APIResponse {
-        var root: String // the path we are working on if any
-        
-        var accountId: String
-        var authorizationToken: String
-        var allowed: [String: Any]
-        var apiUrl: String
-        var downloadUrl: String
-        var uploadUrl: String
-        var recommendedPartSize: Int64
-        var absoluteMinimumPartSize: Int64
-        //opt           Options                      // parsed config options
-        //features      *fs.Features                 // optional features
-        //srv           *rest.Client                 // the connection to the b2 server
-        //var bucket: String                       // the bucket we are working on
-        //bucketOKMu    sync.Mutex                   // mutex to protect bucket OK
-        //bucketOK      bool                         // true if we have created the bucket
-        //bucketIDMutex sync.Mutex                   // mutex to protect _bucketID
-        //var _bucketID: String                       // the ID of the bucket we are working on
-        //info          api.AuthorizeAccountResponse // result of authorize call
-        //uploadMu      sync.Mutex                   // lock for upload variable
-        //uploads       []*api.GetUploadURLResponse  // result of get upload URL calls
-        //authMu        sync.Mutex                   // lock for authorizing the account
-        //pacer         *pacer.Pacer                 // To pace and retry the API calls
-        //bufferTokens  chan []byte                  // control concurrency of multipart uploads
-    }*/
     
     // Object describes a b2 object
     struct Object {
@@ -193,7 +165,7 @@ final class B2: Provider {
         }
         """
         let jsonData = jsonString.data(using: .utf8)!
-        let user = try! JSONDecoder().decode(authorize_account_response.self, from: jsonData)
+        let user = try! JSONDecoder().decode(authorizeResponse.self, from: jsonData)
         print (user)
     }
     
@@ -201,7 +173,7 @@ final class B2: Provider {
     public func login() {
         firstly {
             try! AutoUpload.shared.request(urlrequest: Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest())
-        }.then { json -> Promise<JSON> in
+        }.then { json -> Promise<[String: Any]> in
             try! AutoUpload.shared.request(urlrequest: Router.list_buckets(apiUrl: json["apiUrl"] as! String, accountId: json["accountId"] as! String, accountAuthorizationToken: json["authorizationToken"] as! String, bucketName: self.bucket).asURLRequest())
             //json["profileId"]
         }.done { foo in
@@ -211,6 +183,11 @@ final class B2: Provider {
             // handle error
             print(error)
         }
+    }
+    
+    public func processUploadQueue() {
+        // basically take assetsToUpload and build the URLRequests and save in a queue/array
+    
     }
     
     //MARK: NSCoding

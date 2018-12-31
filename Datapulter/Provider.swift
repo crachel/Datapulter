@@ -16,12 +16,11 @@ class Provider: NSObject, NSCoding {
     
     var name: String
     var backend: Site
-    var innerRing: UIColor
-    var cell: ProviderTableViewCell?
     var remoteFileList: [PHAsset: Any]
     var assetsToUpload: [PHAsset]
-    
-    typealias JSON = [String: Any]
+    var uploadQueue: [URLRequest]?
+    var innerRing: UIColor
+    var cell: ProviderTableViewCell?
     
     enum Site {
         case Backblaze
@@ -41,6 +40,7 @@ class Provider: NSObject, NSCoding {
         static let backend = "backend"
         static let remoteFileList = "remoteFileList"
         static let assetsToUpload = "assetsToUpload"
+        static let uploadQueue = "uploadQueue"
     }
     
     //MARK: Initialization
@@ -52,15 +52,17 @@ class Provider: NSObject, NSCoding {
         self.innerRing = .blue
         self.remoteFileList = [:]
         self.assetsToUpload = []
+        self.uploadQueue = []
     }
     
-    init(name: String, backend: Site, remoteFileList: [PHAsset: Any], assetsToUpload: [PHAsset]) {
+    init(name: String, backend: Site, remoteFileList: [PHAsset: Any], assetsToUpload: [PHAsset], uploadQueue: [URLRequest]) {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
         self.innerRing = .blue
         self.remoteFileList = remoteFileList
         self.assetsToUpload = assetsToUpload
+        self.uploadQueue = uploadQueue
     }
     
     //MARK: NSCoding
@@ -70,6 +72,7 @@ class Provider: NSObject, NSCoding {
         aCoder.encode(backend, forKey: PropertyKey.backend)
         aCoder.encode(remoteFileList, forKey: PropertyKey.backend)
         aCoder.encode(assetsToUpload, forKey: PropertyKey.assetsToUpload)
+        aCoder.encode(uploadQueue, forKey: PropertyKey.uploadQueue)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -82,9 +85,10 @@ class Provider: NSObject, NSCoding {
         let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
         let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [PHAsset: Any]
         let assetsToUpload = aDecoder.decodeObject(forKey: PropertyKey.assetsToUpload) as! [PHAsset]
+        let uploadQueue = aDecoder.decodeObject(forKey: PropertyKey.uploadQueue) as! [URLRequest]
         
         // Must call designated initializer.
-        self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload)
+        self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload, uploadQueue: uploadQueue)
     }
     
 }
