@@ -45,10 +45,10 @@ class AutoUpload {
                     guard let json = json as? [String: Any] else {
                         return seal.reject(AFError.responseValidationFailed(reason: .dataFileNil))
                     }
-                    // pass the JSON data into the fulfill function, so we can receive the value
+                    // Pass the JSON data into the fulfill function, so we can receive the value
                     seal.fulfill(json)
                 case .failure(let error):
-                    // pass the error into the reject function, so we can check what causes the error
+                    // Pass the error into the reject function, so we can check what causes the error
                     seal.reject(error)
                 }
             }
@@ -67,8 +67,10 @@ class AutoUpload {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.append(object)
                         if (object.mediaType == .image) {
-                            //let image = self.fullResolutionImageData(asset: object)
-                            
+                            //object.requestContentEditingInput(with: PHContentEditingInputRequestOptions()) { (input, _) in
+                              //  let fileURL = input!.fullSizeImageURL?.standardizedFileURL
+                                //let data = NSData(contentsOfFile: fileURL!.path)!
+                            //}
                         } else if (object.mediaType == .video) {
                             
                         }
@@ -86,7 +88,7 @@ class AutoUpload {
             }
             test(providers: providers)
         } else {
-            // no photo permission
+            // No photo permission
         }
     }
 
@@ -98,7 +100,7 @@ class AutoUpload {
                 //provider.cell?.ringView.startProgress(to: 44, duration: 0)
                 if let backblaze = provider as? B2 {
                     //backblaze.login()
-                    backblaze.test()
+                    //backblaze.test()
                 }
             }
         }
@@ -133,11 +135,11 @@ class AutoUpload {
         return assets
     }
     
-    private func fullResolutionImageData(asset: PHAsset) -> UIImage? {
+    private func fullResolutionImageData(asset: PHAsset) -> Data? {
         let options = PHImageRequestOptions()
         options.isSynchronous = true
         options.resizeMode = .none
-        options.isNetworkAccessAllowed = false
+        options.isNetworkAccessAllowed = false // No iCloud
         options.version = .current
         var image: UIImage? = nil
         _ = PHCachingImageManager().requestImageData(for: asset, options: options) { (imageData, dataUTI, orientation, info) in
@@ -145,7 +147,11 @@ class AutoUpload {
                 image = UIImage(data: data)
             }
         }
-        return image
+        guard let imageJPEG = image?.jpegData(compressionQuality: 1.0) else {
+            print("Could not get JPEG representation of UIImage")
+            return nil
+        }
+        return imageJPEG // Full quality jpeg image data
     }
     
 }

@@ -21,7 +21,7 @@ class ProviderTableViewController: UITableViewController {
         // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
-        // Load any saved providers, otherwise load sample data.
+        // Load any saved providers
         if let savedProviders = loadProviders() {
             providers += savedProviders
         }

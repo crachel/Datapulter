@@ -44,6 +44,7 @@ final class B2: Provider {
         case list_buckets(apiUrl: String, accountId: String, accountAuthorizationToken: String, bucketName: String)
         case get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
         case get_file_info(apiUrl: String, accountAuthorizationToken: String, fileId: String)
+        //case upload_file(apiUrl: String, accountAuthorizationToken: String, fileName: String, contentType: String, sha1: String)
 
         // MARK: URLRequestConvertible
         
@@ -78,8 +79,8 @@ final class B2: Provider {
             let url = try result.path.asURL()
             var urlRequest = URLRequest(url: url)
             urlRequest.httpMethod = result.method
+            
             urlRequest.setValue("\(result.headers)", forHTTPHeaderField: "Authorization")
-
         
             return try JSONEncoding.default.encode(urlRequest, with: result.parameters)
         }

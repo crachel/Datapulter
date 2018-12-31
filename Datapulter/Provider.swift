@@ -17,7 +17,11 @@ class Provider: NSObject, NSCoding {
     var name: String
     var backend: Site
     var remoteFileList: [PHAsset: Any]
-    var assetsToUpload: [PHAsset]
+    var assetsToUpload: [PHAsset] {
+        didSet {
+            print("asset added")
+        }
+    }
     var uploadQueue: [URLRequest]?
     var innerRing: UIColor
     var cell: ProviderTableViewCell?
