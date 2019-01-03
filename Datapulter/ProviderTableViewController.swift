@@ -14,9 +14,7 @@ import UICircularProgressRing
 class ProviderTableViewController: UITableViewController {
     
     //MARK: Properties
-    var providers = [Provider]()
-    
-    //var assets: PHFetchResult<PHAsset>!
+    //var providers = [Provider]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,24 +24,21 @@ class ProviderTableViewController: UITableViewController {
         
         // Load any saved providers
         if let savedProviders = loadProviders() {
-            providers += savedProviders
+            //providers += savedProviders
+            AutoUpload.shared.providers += savedProviders
         }
         
         //loadSampleProviders()
         
-        //assets = Utility.getCameraRollAssets()
-        //userCollections = PHCollectionList.fetchTopLevelUserCollections(with: nil)
-        
-        
-        
         DispatchQueue.global(qos: .userInitiated).async {
-            for provider in self.providers {
+            for provider in AutoUpload.shared.providers {
                 if let backblaze = provider as? B2 {
                     AutoUpload.shared.start(provider: backblaze)
                 } // else if let digitalocean = provider as? DO
             }
         }
         
+        // Register to receive photo library change messages
         PHPhotoLibrary.shared().register(self)
         
     }
@@ -61,7 +56,8 @@ class ProviderTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return providers.count
+        //return providers.count
+        return AutoUpload.shared.providers.count
     }
 
     
@@ -74,7 +70,8 @@ class ProviderTableViewController: UITableViewController {
         }
         
         // Fetches the appropriate provider for the data source layout.
-        let provider = providers[indexPath.row]
+        //let provider = providers[indexPath.row]
+        let provider = AutoUpload.shared.providers[indexPath.row]
 
         // Configure the cell...
     
@@ -106,7 +103,8 @@ class ProviderTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             // Delete the row from the data source
-            providers.remove(at: indexPath.row)
+            //providers.remove(at: indexPath.row)
+            AutoUpload.shared.providers.remove(at: indexPath.row)
             saveProviders()
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
@@ -156,7 +154,8 @@ class ProviderTableViewController: UITableViewController {
                 fatalError("The selected cell is not being displayed by the table")
             }
             
-            let selectedProvider = providers[indexPath.row]
+            //let selectedProvider = providers[indexPath.row]
+            let selectedProvider = AutoUpload.shared.providers[indexPath.row]
             providerDetailViewController.provider = selectedProvider
 
 
@@ -172,7 +171,8 @@ class ProviderTableViewController: UITableViewController {
 
     
     private func saveProviders() {
-        let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(providers, toFile: Provider.ArchiveURL.path)
+        //let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(providers, toFile: Provider.ArchiveURL.path)
+        let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(AutoUpload.shared.providers, toFile: Provider.ArchiveURL.path)
         if isSuccessfulSave {
             os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
         } else {
@@ -188,7 +188,8 @@ class ProviderTableViewController: UITableViewController {
         let provider1 = B2(name: "My Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "mybucket", versions: true, harddelete: false)
         let provider2 = B2(name: "My Second Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "myotherbucket", versions: false, harddelete: true)
 
-        providers += [provider1, provider2]
+        //providers += [provider1, provider2]
+        AutoUpload.shared.providers += [provider1, provider2]
     }
     
     //MARK: Actions
@@ -198,7 +199,8 @@ class ProviderTableViewController: UITableViewController {
             
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
                 // Update an existing provider.
-                providers[selectedIndexPath.row] = provider
+                //providers[selectedIndexPath.row] = provider
+                AutoUpload.shared.providers[selectedIndexPath.row] = provider
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
         } // add else for AddProviderViewController
@@ -232,9 +234,9 @@ extension ProviderTableViewController: PHPhotoLibraryChangeObserver {
             
             AutoUpload.shared.assets = (fetchResultChangeDetails?.fetchResultAfterChanges)!
             
-            let insertedObjects = fetchResultChangeDetails?.insertedObjects
+            //let insertedObjects = fetchResultChangeDetails?.insertedObjects
             
-            print("insertedObjects\(String(describing: insertedObjects?.description))")
+            print("autoupload assets\(String(describing: AutoUpload.shared.assets.count))")
             
             let removedObjects = fetchResultChangeDetails?.removedObjects
             

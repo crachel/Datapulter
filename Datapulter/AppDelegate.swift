@@ -27,8 +27,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         
-        // Fetch data once every 4 hours.
-        UIApplication.shared.setMinimumBackgroundFetchInterval(14400)
+        // Fetch data once every 8 hours.
+        UIApplication.shared.setMinimumBackgroundFetchInterval(28800)
         
         // Other initialization…
         return true

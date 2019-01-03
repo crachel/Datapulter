@@ -9,30 +9,23 @@
 import UIKit
 import os.log
 import Photos
-import Alamofire
-import PromiseKit
 import UICircularProgressRing
 
 class AutoUpload {
     
     //MARK: Properties
     static let shared = AutoUpload()
-
-    var sessionB2: Alamofire.Session
     
     var assets: PHFetchResult<PHAsset>!
     
-    //typealias completionHandler = (Data?, URLResponse?, Error?) -> Void
-    
-    //var tasks = [URL: [completionHandler]]()
+    var providers = [Provider]()
 
     //MARK: Initialization
     
     private init() {
-        let configurationB2 = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.B2.background")
-        configurationB2.allowsCellularAccess = false
-        sessionB2 = Alamofire.Session(configuration: configurationB2)
+        
         assets = Utility.getCameraRollAssets()
+        
     }
  
     //MARK: Public Methods
@@ -48,6 +41,7 @@ class AutoUpload {
                     provider.assetsToUpload.append(object)
                     //provider.assetsToUpload.foreach
                     if (object.mediaType == .image) {
+                       
                         /*
                         object.requestContentEditingInput(with: PHContentEditingInputRequestOptions()) { (input, _) in
                             let fileURL = input!.fullSizeImageURL?.standardizedFileURL
@@ -71,23 +65,5 @@ class AutoUpload {
             // No photo permission
         }
     }
-    
-    public func request(urlrequest: URLRequest) -> Promise<[String: Any]> {
-        return Promise { seal in
-            sessionB2.request(urlrequest).responseJSON { (response) in
-                switch response.result {
-                case .success(let json):
-                    // If there is not JSON data, cause an error (`reject` function)
-                    guard let json = json as? [String: Any] else {
-                        return seal.reject(AFError.responseValidationFailed(reason: .dataFileNil))
-                    }
-                    // Pass the JSON data into the fulfill function, so we can receive the value
-                    seal.fulfill(json)
-                case .failure(let error):
-                    // Pass the error into the reject function, so we can check what causes the error
-                    seal.reject(error)
-                }
-            }
-        }
-    }
+
 }

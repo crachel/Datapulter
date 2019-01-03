@@ -109,22 +109,13 @@ final class B2: Provider {
         super.init(name: name, backend: .Backblaze)
     }
     
-
-    
     //MARK: Public methods
-    
-    public func authorize_account(_ accountId: String,_ applicationKey: String) -> Promise<[String: Any]> {
-        return try! AutoUpload.shared.request(urlrequest: Router.authorize_account(accountId, applicationKey).asURLRequest())
-    }
-    
-    public func list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String) -> Promise<[String: Any]> {
-        return try! AutoUpload.shared.request(urlrequest: Router.list_buckets(apiUrl, accountId, accountAuthorizationToken, bucketName).asURLRequest())
-    }
-    
+
     public func login() {
         firstly {
             return self.authorize_account(self.account, self.key)
         }.then { json -> Promise<[String: Any]> in
+            print(json)
             return self.list_buckets(json["apiUrl"] as! String, json["accountId"] as! String, json["authorizationToken"] as! String, self.bucket)
         }.done { foo in
             print(foo)
@@ -133,21 +124,15 @@ final class B2: Provider {
         }
     }
     
-    /*
-    public func login() {
-        firstly {
-            try! B2AutoUpload.shared.request(urlrequest: Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest())
-        }.then { json -> Promise<[String: Any]> in
-            print(json)
-            return try! B2AutoUpload.shared.request(urlrequest: Router.list_buckets(apiUrl: json["apiUrl"] as! String, accountId: json["accountId"] as! String, accountAuthorizationToken: json["authorizationToken"] as! String, bucketName: self.bucket).asURLRequest())
-        }.done { foo in
-            print(foo)
-            // handle successful request
-        }.catch { error in
-            // handle error
-            print(error)
-        }
-    }*/
+    //MARK: Private methods
+    
+    private func authorize_account(_ accountId: String,_ applicationKey: String) -> Promise<[String: Any]> {
+        return try! Client.shared.requestB2(urlrequest: Router.authorize_account(accountId, applicationKey).asURLRequest())
+    }
+    
+    private func list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String) -> Promise<[String: Any]> {
+        return try! Client.shared.requestB2(urlrequest: Router.list_buckets(apiUrl, accountId, accountAuthorizationToken, bucketName).asURLRequest())
+    }
     
     //MARK: NSCoding
     

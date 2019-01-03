@@ -17,7 +17,7 @@ class B2AuthHandler: RequestAdapter, RequestRetrier {
     private let sessionManager: Alamofire.Session = {
         let configuration = URLSessionConfiguration.default
         configuration.httpHeaders = HTTPHeaders.default
-
+        
         return Alamofire.Session(configuration: configuration)
     }()
     
@@ -90,17 +90,17 @@ class B2AuthHandler: RequestAdapter, RequestRetrier {
         
         firstly {
             try! request(urlrequest: B2.Router.authorize_account(self.account, self.key).asURLRequest())
-        }.then { json -> Promise<[String: Any]> in
-            self.authorizationToken = json["authorizationToken"] as? String
-            return try! self.request(urlrequest: B2.Router.list_buckets(json["apiUrl"] as! String, json["accountId"] as! String, json["authorizationToken"] as! String, self.bucketName).asURLRequest())
-        }.then { json -> Promise<[String: Any]> in
-            return try! self.request(urlrequest: B2.Router.get_upload_url(apiUrl: json["apiUrl"] as! String, accountAuthorizationToken: self.authorizationToken!, bucketId: json["bucketId"] as! String).asURLRequest())
-        }.done { json in
-            completion(true, json["authorizationToken"] as? String)
-        }.catch { error in
-            completion(false, nil)
-        }.finally {
-            self.isRefreshing = false
+            }.then { json -> Promise<[String: Any]> in
+                self.authorizationToken = json["authorizationToken"] as? String
+                return try! self.request(urlrequest: B2.Router.list_buckets(json["apiUrl"] as! String, json["accountId"] as! String, json["authorizationToken"] as! String, self.bucketName).asURLRequest())
+            }.then { json -> Promise<[String: Any]> in
+                return try! self.request(urlrequest: B2.Router.get_upload_url(apiUrl: json["apiUrl"] as! String, accountAuthorizationToken: self.authorizationToken!, bucketId: json["bucketId"] as! String).asURLRequest())
+            }.done { json in
+                completion(true, json["authorizationToken"] as? String)
+            }.catch { error in
+                completion(false, nil)
+            }.finally {
+                self.isRefreshing = false
         }
     }
     

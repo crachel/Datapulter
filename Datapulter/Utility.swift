@@ -9,18 +9,15 @@
 import UIKit
 import Photos
 
-//class Utility: PHPhotoLibraryChangeObserver {
 class Utility {
+    
     public static func getCameraRollAssets() -> PHFetchResult<PHAsset> {
         
-        let collection = getCameraRollCollections()
-        
-        let assets = PHAsset.fetchAssets(in: collection.firstObject!, options: nil)
-        
-        return assets
+        return PHAsset.fetchAssets(in: getCameraRollCollections().firstObject!, options: nil)
     }
     
     public static func getCameraRollCollections() -> PHFetchResult<PHAssetCollection> {
+        
         // A smart album that groups all assets that originate in the user’s own library (as opposed to assets from iCloud Shared Albums)
         return PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
     }
