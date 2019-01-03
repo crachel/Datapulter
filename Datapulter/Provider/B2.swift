@@ -28,23 +28,23 @@ final class B2: Provider {
         static let maxVersions = 100 // maximum number of versions we search in --b2-versions mode
         static let defaultUploadCutoff = 200 * 1024 * 1024
     }
-
+    
+    //private let manager: Alamofire.Session
+    
     var account: String
     var key: String
     var bucket: String
     var versions: Bool
     var harddelete: Bool
-    var authResponse: authorizeResponse?
     
     
     // Return URLRequest for attaching to Session for each supported API operation
     enum Router: Alamofire.URLRequestConvertible {
        
-        case authorize_account(accountId: String, applicationKey: String)
-        case list_buckets(apiUrl: String, accountId: String, accountAuthorizationToken: String, bucketName: String)
+        case authorize_account(_ accountId: String,_ applicationKey: String)
+        case list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String)
         case get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
         case get_file_info(apiUrl: String, accountAuthorizationToken: String, fileId: String)
-        //case upload_file(apiUrl: String, accountAuthorizationToken: String, fileName: String, contentType: String, sha1: String)
 
         // MARK: URLRequestConvertible
         
@@ -86,34 +86,6 @@ final class B2: Provider {
         }
     }
     
-    struct authorizeResponse: Codable {
-        var absoluteMinimumPartSize: Int64
-        var accountId: String
-        struct Allowed: Codable {
-            var capabilities: [String]
-            var bucketId: String?
-            var bucketName: String?
-            var namePrefix: String?
-        }
-        var apiUrl: String
-        var authorizationToken: String
-        var downloadUrl: String
-        var recommendedPartSize: Int64
-        let allowed: Allowed
-    }
-    
-    
-    // Object describes a b2 object
-    struct Object {
-        //fs       *Fs          // what this object is part of
-        var remote: String      // The remote path
-        var id: String          // b2 id of the file
-        var modTime: Date       // The modified time of the object if known
-        var sha1: String        // SHA-1 hash if known
-        var size: Int64         // Size of the object
-        var mimeType: String    // Content-Type of the object
-    }
-    
     //MARK: Types
     
     struct PropertyKey {
@@ -141,42 +113,33 @@ final class B2: Provider {
     
     //MARK: Public methods
     
-    public func test() {
-        let jsonString = """
-        {
-          "absoluteMinimumPartSize": 5000000,
-          "accountId": "YOUR_ACCOUNT_ID",
-          "allowed": {
-            "bucketId": "BUCKET_ID",
-            "bucketName": "BUCKET_NAME",
-            "capabilities": [
-              "listBuckets",
-              "listFiles",
-              "readFiles",
-              "shareFiles",
-              "writeFiles",
-              "deleteFiles"
-            ],
-            "namePrefix": null
-          },
-          "apiUrl": "https://apiNNN.backblazeb2.com",
-          "authorizationToken": "4_0022623512fc8f80000000001_0186e431_d18d02_acct_tH7VW03boebOXayIc43-sxptpfA=",
-          "downloadUrl": "https://f002.backblazeb2.com",
-          "recommendedPartSize": 100000000
-        }
-        """
-        let jsonData = jsonString.data(using: .utf8)!
-        let user = try! JSONDecoder().decode(authorizeResponse.self, from: jsonData)
-        print (user)
+    public func authorize_account(_ accountId: String,_ applicationKey: String) -> Promise<[String: Any]> {
+        return try! AutoUpload.shared.request(urlrequest: Router.authorize_account(accountId, applicationKey).asURLRequest())
     }
     
+    public func list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String) -> Promise<[String: Any]> {
+        return try! AutoUpload.shared.request(urlrequest: Router.list_buckets(apiUrl, accountId, accountAuthorizationToken, bucketName).asURLRequest())
+    }
     
     public func login() {
         firstly {
-            try! AutoUpload.shared.request(urlrequest: Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest())
+            return self.authorize_account(self.account, self.key)
         }.then { json -> Promise<[String: Any]> in
-            try! AutoUpload.shared.request(urlrequest: Router.list_buckets(apiUrl: json["apiUrl"] as! String, accountId: json["accountId"] as! String, accountAuthorizationToken: json["authorizationToken"] as! String, bucketName: self.bucket).asURLRequest())
-            //json["profileId"]
+            return self.list_buckets(json["apiUrl"] as! String, json["accountId"] as! String, json["authorizationToken"] as! String, self.bucket)
+        }.done { foo in
+            print(foo)
+        }.catch { error in
+            print(error)
+        }
+    }
+    
+    /*
+    public func login() {
+        firstly {
+            try! B2AutoUpload.shared.request(urlrequest: Router.authorize_account(accountId: self.account, applicationKey: self.key).asURLRequest())
+        }.then { json -> Promise<[String: Any]> in
+            print(json)
+            return try! B2AutoUpload.shared.request(urlrequest: Router.list_buckets(apiUrl: json["apiUrl"] as! String, accountId: json["accountId"] as! String, accountAuthorizationToken: json["authorizationToken"] as! String, bucketName: self.bucket).asURLRequest())
         }.done { foo in
             print(foo)
             // handle successful request
@@ -184,12 +147,7 @@ final class B2: Provider {
             // handle error
             print(error)
         }
-    }
-    
-    public func processUploadQueue() {
-        // basically take assetsToUpload and build the URLRequests and save in a queue/array
-    
-    }
+    }*/
     
     //MARK: NSCoding
     

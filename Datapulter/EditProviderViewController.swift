@@ -22,6 +22,14 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
         if let backblaze = provider as? B2 {
             form
             +++ Section("REQUIRED")
+            <<< AccountRow("tagName"){ row in
+                row.title = "Name"
+                row.placeholder = "My Backlaze B2 Remote"
+                row.value = backblaze.name
+                row.add(rule: RuleRequired())
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+            }
             <<< AccountRow("tagKeyID"){ row in
                 row.title = "Key ID"
                 row.placeholder = "Your account key ID"
@@ -95,6 +103,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
         case "unwindToProviderList": // Save button has been clicked
             let valuesDictionary = form.values()
             if let backblaze = provider as? B2 {
+                backblaze.name = valuesDictionary["tagName"] as! String
                 backblaze.account = valuesDictionary["tagKeyID"] as! String
                 backblaze.key = valuesDictionary["tagKey"] as! String
                 backblaze.bucket = valuesDictionary["tagBucket"] as! String

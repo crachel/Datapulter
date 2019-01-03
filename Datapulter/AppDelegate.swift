@@ -12,10 +12,25 @@ import UIKit
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-
+    
+    func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        
+        /*
+        // Check for new data.
+        if let fetchResultChangeDetails = changeInstance.changeDetails(for: AutoUpload.shared.assets) {
+            //addDataToFeed(newData: newData)
+            completionHandler(.newData)
+        }
+        completionHandler(.noData)*/
+    }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        
+        // Fetch data once every 4 hours.
+        UIApplication.shared.setMinimumBackgroundFetchInterval(14400)
+        
+        // Other initialization…
         return true
     }
 

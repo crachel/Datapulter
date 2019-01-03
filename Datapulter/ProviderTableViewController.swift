@@ -8,12 +8,15 @@
 
 import UIKit
 import os.log
+import Photos
 import UICircularProgressRing
 
 class ProviderTableViewController: UITableViewController {
     
     //MARK: Properties
     var providers = [Provider]()
+    
+    //var assets: PHFetchResult<PHAsset>!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,9 +31,26 @@ class ProviderTableViewController: UITableViewController {
         
         //loadSampleProviders()
         
+        //assets = Utility.getCameraRollAssets()
+        //userCollections = PHCollectionList.fetchTopLevelUserCollections(with: nil)
+        
+        
+        
         DispatchQueue.global(qos: .userInitiated).async {
-            AutoUpload.shared.start(providers: self.providers)
+            for provider in self.providers {
+                if let backblaze = provider as? B2 {
+                    AutoUpload.shared.start(provider: backblaze)
+                } // else if let digitalocean = provider as? DO
+            }
         }
+        
+        PHPhotoLibrary.shared().register(self)
+        
+    }
+    
+    deinit {
+        
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
         
     }
 
@@ -65,6 +85,7 @@ class ProviderTableViewController: UITableViewController {
         cell.ringView.innerRingWidth = 10
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
+        cell.ringView.value = 77
         
         provider.cell = cell
 
@@ -148,6 +169,8 @@ class ProviderTableViewController: UITableViewController {
     
     //MARK: Private Methods
     
+
+    
     private func saveProviders() {
         let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(providers, toFile: Provider.ArchiveURL.path)
         if isSuccessfulSave {
@@ -182,6 +205,43 @@ class ProviderTableViewController: UITableViewController {
         
         // Save the providers.
         saveProviders()
+    }
+    
+}
+
+// MARK: PHPhotoLibraryChangeObserver
+
+extension ProviderTableViewController: PHPhotoLibraryChangeObserver {
+    
+    
+    
+    func photoLibraryDidChange(_ changeInstance: PHChange) {
+  
+        DispatchQueue.main.sync {
+            let fetchResultChangeDetails = changeInstance.changeDetails(for: AutoUpload.shared.assets)
+            
+            guard (fetchResultChangeDetails) != nil else {
+                
+                print("No change in fetchResultChangeDetails")
+                
+                return;
+                
+            }
+            
+            print("Contains changes")
+            
+            AutoUpload.shared.assets = (fetchResultChangeDetails?.fetchResultAfterChanges)!
+            
+            let insertedObjects = fetchResultChangeDetails?.insertedObjects
+            
+            print("insertedObjects\(String(describing: insertedObjects?.description))")
+            
+            let removedObjects = fetchResultChangeDetails?.removedObjects
+            
+            print("removedObjects\(String(describing: removedObjects?.count))")
+            
+        }
+        
     }
     
 }
