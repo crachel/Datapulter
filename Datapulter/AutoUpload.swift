@@ -53,7 +53,7 @@ class AutoUpload {
                 }
             })
             
-            //provider.login()
+            provider.test()
             
             
 

@@ -10,9 +10,13 @@ import os.log
 import Alamofire
 import PromiseKit
 
-final class B2: Provider {
+//public typealias Parameters = [String : Any]
+
+class B2: Provider, URLSessionDelegate {
+    
     
     //MARK: Properties
+    
     
     struct const {
         static let apiMainURL = "https://api.backblazeb2.com"
@@ -29,24 +33,62 @@ final class B2: Provider {
         static let defaultUploadCutoff = 200 * 1024 * 1024
     }
     
-    //private let manager: Alamofire.Session
     
     var account: String
     var key: String
     var bucket: String
     var versions: Bool
     var harddelete: Bool
+    var authorization: AuthorizeAccountResponse?
+    var listbucketsresponse: ListBucketsResponse?
+    
+    struct AuthorizeAccountResponse: Codable {
+        var absoluteMinimumPartSize: Int64
+        var accountId: String
+        struct Allowed: Codable {
+            var capabilities: [String]
+            var bucketId: String?
+            var bucketName: String?
+            var namePrefix: String?
+        }
+        var apiUrl: String
+        var authorizationToken: String
+        var downloadUrl: String
+        var recommendedPartSize: Int64
+        let allowed: Allowed
+    }
+    
+    struct Bucket: Codable {
+        var accountId: String
+        var bucketId: String
+        struct BucketInfo: Codable {
+            
+        }
+        var bucketName: String
+        var bucketType: String
+        var corsRules: [String]?
+        var lifecycleRules: [String]
+        var revision: Int?
+        let bucketInfo: BucketInfo
+    }
+    
+    struct ListBucketsResponse: Codable {
+        var buckets: [Bucket]
+    }
     
     
     // Return URLRequest for attaching to Session for each supported API operation
     enum Router: Alamofire.URLRequestConvertible {
+    
        
         case authorize_account(_ accountId: String,_ applicationKey: String)
         case list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String)
         case get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
         case get_file_info(apiUrl: String, accountAuthorizationToken: String, fileId: String)
 
+        
         // MARK: URLRequestConvertible
+        
         
         func asURLRequest() throws -> URLRequest {
             // build a URLRequest to be attached to Session
@@ -86,7 +128,9 @@ final class B2: Provider {
         }
     }
     
+    
     //MARK: Types
+    
     
     struct PropertyKey {
         static let account = "account"
@@ -97,7 +141,10 @@ final class B2: Provider {
         static let uploadList = "uploadList"
     }
     
+    
     //MARK: Initialization
+    
+    
     init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool) {
     // init for when user adds new provider
         self.account = account
@@ -109,32 +156,76 @@ final class B2: Provider {
         super.init(name: name, backend: .Backblaze)
     }
     
+    
     //MARK: Public methods
+    
+    
+    public func test() {
+        let json = """
+{
+    "buckets": [
+    {
+        "accountId": "30f20426f0b1",
+        "bucketId": "4a48fe8875c6214145260818",
+        "bucketInfo": {},
+        "bucketName" : "Kitten-Videos",
+        "bucketType": "allPrivate",
+        "lifecycleRules": []
+    },
+    {
+        "accountId": "30f20426f0b1",
+        "bucketId" : "5b232e8875c6214145260818",
+        "bucketInfo": {},
+        "bucketName": "Puppy-Videos",
+        "bucketType": "allPublic",
+        "lifecycleRules": []
+    },
+    {
+        "accountId": "30f20426f0b1",
+        "bucketId": "87ba238875c6214145260818",
+        "bucketInfo": {},
+        "bucketName": "Vacation-Pictures",
+        "bucketType" : "allPrivate",
+        "lifecycleRules": []
+    } ]
+}
+"""
+        let data = json.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        let response = try! decoder.decode(ListBucketsResponse.self, from: data)
+        print (response.buckets[0].bucketId)
+        
+    }
 
+    
     public func login() {
         firstly {
             return self.authorize_account(self.account, self.key)
-        }.then { json -> Promise<[String: Any]> in
-            print(json)
-            return self.list_buckets(json["apiUrl"] as! String, json["accountId"] as! String, json["authorizationToken"] as! String, self.bucket)
-        }.done { foo in
-            print(foo)
-        }.catch { error in
-            print(error)
+            }.then { data -> Promise<Data> in
+                self.authorization = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+                return self.list_buckets((self.authorization?.apiUrl)!, (self.authorization?.accountId)!, (self.authorization?.authorizationToken)!, self.bucket)
+            }.done { data in
+                self.listbucketsresponse = try! JSONDecoder().decode(ListBucketsResponse.self, from: data)
+            }.catch { error in
+                print(error)
         }
     }
     
+    
     //MARK: Private methods
     
-    private func authorize_account(_ accountId: String,_ applicationKey: String) -> Promise<[String: Any]> {
+    
+    private func authorize_account(_ accountId: String,_ applicationKey: String) -> Promise<Data> {
         return try! Client.shared.requestB2(urlrequest: Router.authorize_account(accountId, applicationKey).asURLRequest())
     }
     
-    private func list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String) -> Promise<[String: Any]> {
+    private func list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String) -> Promise<Data> {
         return try! Client.shared.requestB2(urlrequest: Router.list_buckets(apiUrl, accountId, accountAuthorizationToken, bucketName).asURLRequest())
     }
     
+    
     //MARK: NSCoding
+    
     
     override func encode(with aCoder: NSCoder) {
         aCoder.encode(name, forKey: PropertyKey.name)

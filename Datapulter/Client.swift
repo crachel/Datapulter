@@ -16,32 +16,39 @@ class Client {
     static let shared = Client()
     
     var sessionB2: Alamofire.Session
+    //var session: URLSession
     
     //MARK: Initialization
     
     private init() {
+        
         let configurationB2 = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.B2.background")
         configurationB2.allowsCellularAccess = false
         sessionB2 = Alamofire.Session(configuration: configurationB2)
+        //let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
+        //configuration.allowsCellularAccess = false
+        //session = URLSession(configuration: configuration)
     }
     
     //MARK: Public Methods
     
+    
+    public func requestB2(urlrequest: URLRequest) -> Promise<Data> {
+        return Promise { seal in
+            sessionB2.request(urlrequest).responseData { (response) in
+                switch response.result {
+                case .success(let data):
+                    // Pass the data into the fulfill function, so we can receive the value
+                    seal.fulfill(data)
+                case .failure(let error):
+                    // Pass the error into the reject function, so we can check what causes the error
+                    seal.reject(error)
+                }
+            }
+        }
+    }
+    /*
     public func requestB2(urlrequest: URLRequest) -> Promise<[String: Any]> {
-        /*
-        var session: Alamofire.Session
-        
-        switch(site) {
-        case .Backblaze:
-            session = self.sessionB2
-        case .Amazon:
-            print("Amazon S3")
-            // let session = self.sessionS3
-        case .DigitalOcean:
-            print("DigitalOcean")
-            // let session = self.sessionD)
-        }*/
-        
         return Promise { seal in
             sessionB2.request(urlrequest).responseJSON { (response) in
                 switch response.result {
@@ -58,6 +65,6 @@ class Client {
                 }
             }
         }
-    }
-
+    }*/
+    
 }

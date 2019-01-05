@@ -6,6 +6,7 @@
 //  Copyright © 2018 Craig Rachel. All rights reserved.
 //
 
+/*
 import UIKit
 import Alamofire
 import PromiseKit
@@ -125,4 +126,4 @@ class B2AuthHandler: RequestAdapter, RequestRetrier {
             }
         }
     }
-}
+}*/
