@@ -7,64 +7,107 @@
 //
 
 import UIKit
-import Alamofire
-import PromiseKit
+import Promises
 
-class Client {
+class Client: NSObject {
     
     //MARK: Properties
-    static let shared = Client()
     
-    var sessionB2: Alamofire.Session
-    //var session: URLSession
+    var backgroundCompletionHandler: (() -> Void)?
+    
+    private var session: URLSession!
+    private var activeTaskIds: NSMutableSet?
+    
+    let decoder = JSONDecoder()
+    
+    //MARK: Singleton
+    
+    static let shared = Client()
     
     //MARK: Initialization
     
-    private init() {
+    private override init() {
         
-        let configurationB2 = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.B2.background")
-        configurationB2.allowsCellularAccess = false
-        sessionB2 = Alamofire.Session(configuration: configurationB2)
-        //let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
-        //configuration.allowsCellularAccess = false
-        //session = URLSession(configuration: configuration)
+        super.init()
+        
+        let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
+        configuration.allowsCellularAccess = false
+        configuration.waitsForConnectivity = true
+        
+        session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+        
     }
     
-    //MARK: Public Methods
-    
-    
-    public func requestB2(urlrequest: URLRequest) -> Promise<Data> {
-        return Promise { seal in
-            sessionB2.request(urlrequest).responseData { (response) in
-                switch response.result {
-                case .success(let data):
-                    // Pass the data into the fulfill function, so we can receive the value
-                    seal.fulfill(data)
-                case .failure(let error):
-                    // Pass the error into the reject function, so we can check what causes the error
-                    seal.reject(error)
-                }
-            }
-        }
+    func upload(_ urlrequest: URLRequest,_ data: Data) {
+        session.uploadTask(with: urlrequest, from: data).resume()
     }
-    /*
-    public func requestB2(urlrequest: URLRequest) -> Promise<[String: Any]> {
-        return Promise { seal in
-            sessionB2.request(urlrequest).responseJSON { (response) in
-                switch response.result {
-                case .success(let json):
-                    // If there is not JSON data, cause an error (`reject` function)
-                    guard let json = json as? [String: Any] else {
-                        return seal.reject(AFError.responseValidationFailed(reason: .dataFileNil))
-                    }
-                    // Pass the JSON data into the fulfill function, so we can receive the value
-                    seal.fulfill(json)
-                case .failure(let error):
-                    // Pass the error into the reject function, so we can check what causes the error
-                    seal.reject(error)
-                }
-            }
-        }
-    }*/
+        
+    public func test(_ urlrequest: URLRequest) {
+        
+        session.dataTask(with: urlrequest)
+    }
     
 }
+
+
+//MARK: - URLSessionDelegate
+
+
+extension Client: URLSessionDelegate {
+    
+    func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
+        DispatchQueue.main.async {
+            self.backgroundCompletionHandler?()
+            self.backgroundCompletionHandler = nil
+        }
+    }
+    
+}
+
+
+//MARK: - URLSessionDataDelegate
+
+
+extension Client: URLSessionDataDelegate {
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        // this SHOULD be the response json
+        print("urlSession -> didReceiveData")
+        //let response = try! decoder.decode(UploadFileResponse.self, from: data)
+        do {
+            let json = try JSONSerialization.jsonObject(with: data)
+            
+            print("\(json)")
+            // do something with json
+        } catch {
+            print("\(error.localizedDescription)")
+        }
+
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        print("urlSession -> didCompleteWithError")
+        
+        if let error = error {
+            // handle failure here
+            print("\(error.localizedDescription)")
+        } else {
+            /* remove from activeTaskIds
+                make sure still logged in
+                start another task
+             */
+        }
+        
+        
+        /*
+ // other stuff
+ [activeTaskIds removeObject:@([task taskIdentifier])]
+ 
+ if ([activeTaskIds count] < NUMBER) {
+ // add more tasks
+ }*/
+    }
+    
+}
+
+

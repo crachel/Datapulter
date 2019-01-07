@@ -53,8 +53,8 @@ class AutoUpload {
                 }
             })
             
-            provider.test()
-            
+            //provider.test2()
+            //print(provider.uploadurl?.uploadUrl)
             
 
             DispatchQueue.main.async {

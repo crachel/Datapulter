@@ -1,36 +1,32 @@
 PODS:
   - Alamofire (5.0.0.beta.1)
   - Eureka (4.3.0)
-  - PromiseKit (6.7.0):
-    - PromiseKit/CorePromise (= 6.7.0)
-    - PromiseKit/Foundation (= 6.7.0)
-    - PromiseKit/UIKit (= 6.7.0)
-  - PromiseKit/CorePromise (6.7.0)
-  - PromiseKit/Foundation (6.7.0):
-    - PromiseKit/CorePromise
-  - PromiseKit/UIKit (6.7.0):
-    - PromiseKit/CorePromise
+  - PromisesObjC (1.2.4)
+  - PromisesSwift (1.2.4):
+    - PromisesObjC (= 1.2.4)
   - UICircularProgressRing (4.1.0)
 
 DEPENDENCIES:
   - Alamofire (~> 5.0.0.beta.1)
   - Eureka
-  - PromiseKit (~> 6.0)
+  - PromisesSwift (~> 1.2.4)
   - UICircularProgressRing
 
 SPEC REPOS:
   https://github.com/cocoapods/specs.git:
     - Alamofire
     - Eureka
-    - PromiseKit
+    - PromisesObjC
+    - PromisesSwift
     - UICircularProgressRing
 
 SPEC CHECKSUMS:
   Alamofire: 2ef6d6c984c5d21c366e9b41a9ae7dfee2b67a44
   Eureka: 6d711cb30ca333b4bc893110285a722ae3840114
-  PromiseKit: 453ddcc947fe7b302f3ef41882b81d31c554df7f
+  PromisesObjC: 4a3f2e30a0eb793e9bbb32cd367b625d4a14de5a
+  PromisesSwift: 8e1d2cdbc3cafb4f09d4b82df12f645bc19ab64e
   UICircularProgressRing: 5a32c01f54474571b1e66e8fa050c0f83d6d981b
 
-PODFILE CHECKSUM: 25d98009d608caa4b953151abe97214ff6a094cb
+PODFILE CHECKSUM: 7f1e462cc20ac448b6ef9638bf584df453fe8498
 
 COCOAPODS: 1.5.3

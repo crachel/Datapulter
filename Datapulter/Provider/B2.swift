@@ -8,11 +8,10 @@
 import UIKit
 import os.log
 import Alamofire
-import PromiseKit
+import Promises
 
-//public typealias Parameters = [String : Any]
 
-class B2: Provider, URLSessionDelegate {
+class B2: Provider {
     
     
     //MARK: Properties
@@ -40,41 +39,8 @@ class B2: Provider, URLSessionDelegate {
     var versions: Bool
     var harddelete: Bool
     var authorization: AuthorizeAccountResponse?
-    var listbucketsresponse: ListBucketsResponse?
-    
-    struct AuthorizeAccountResponse: Codable {
-        var absoluteMinimumPartSize: Int64
-        var accountId: String
-        struct Allowed: Codable {
-            var capabilities: [String]
-            var bucketId: String?
-            var bucketName: String?
-            var namePrefix: String?
-        }
-        var apiUrl: String
-        var authorizationToken: String
-        var downloadUrl: String
-        var recommendedPartSize: Int64
-        let allowed: Allowed
-    }
-    
-    struct Bucket: Codable {
-        var accountId: String
-        var bucketId: String
-        struct BucketInfo: Codable {
-            
-        }
-        var bucketName: String
-        var bucketType: String
-        var corsRules: [String]?
-        var lifecycleRules: [String]
-        var revision: Int?
-        let bucketInfo: BucketInfo
-    }
-    
-    struct ListBucketsResponse: Codable {
-        var buckets: [Bucket]
-    }
+    var buckets: ListBucketsResponse?
+    var uploadurl: GetUploadURLResponse?
     
     
     // Return URLRequest for attaching to Session for each supported API operation
@@ -83,7 +49,7 @@ class B2: Provider, URLSessionDelegate {
        
         case authorize_account(_ accountId: String,_ applicationKey: String)
         case list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String)
-        case get_upload_url(apiUrl: String, accountAuthorizationToken: String, bucketId: String)
+        case get_upload_url(_ apiUrl: String,_ accountAuthorizationToken: String,_ bucketId: String)
         case get_file_info(apiUrl: String, accountAuthorizationToken: String, fileId: String)
 
         
@@ -163,64 +129,55 @@ class B2: Provider, URLSessionDelegate {
     public func test() {
         let json = """
 {
-    "buckets": [
-    {
-        "accountId": "30f20426f0b1",
-        "bucketId": "4a48fe8875c6214145260818",
-        "bucketInfo": {},
-        "bucketName" : "Kitten-Videos",
-        "bucketType": "allPrivate",
-        "lifecycleRules": []
-    },
-    {
-        "accountId": "30f20426f0b1",
-        "bucketId" : "5b232e8875c6214145260818",
-        "bucketInfo": {},
-        "bucketName": "Puppy-Videos",
-        "bucketType": "allPublic",
-        "lifecycleRules": []
-    },
-    {
-        "accountId": "30f20426f0b1",
-        "bucketId": "87ba238875c6214145260818",
-        "bucketInfo": {},
-        "bucketName": "Vacation-Pictures",
-        "bucketType" : "allPrivate",
-        "lifecycleRules": []
-    } ]
+    "fileId" : "4_h4a48fe8875c6214145260818_f000000000000472a_d20140104_m032022_c001_v0000123_t0104",
+    "fileName" : "typing_test.txt",
+    "accountId" : "d522aa47a10f",
+    "bucketId" : "4a48fe8875c6214145260818",
+    "contentLength" : 46,
+    "contentSha1" : "bae5ed658ab3546aee12f23f36392f35dba1ebdd",
+    "contentType" : "text/plain",
+    "fileInfo" : {
+       "author" : "unknown"
+    }
 }
 """
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
-        let response = try! decoder.decode(ListBucketsResponse.self, from: data)
-        print (response.buckets[0].bucketId)
+        let response = try! decoder.decode(UploadFileResponse.self, from: data)
+        print (response)
         
-    }
-
+    }    
     
     public func login() {
-        firstly {
-            return self.authorize_account(self.account, self.key)
-            }.then { data -> Promise<Data> in
-                self.authorization = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-                return self.list_buckets((self.authorization?.apiUrl)!, (self.authorization?.accountId)!, (self.authorization?.authorizationToken)!, self.bucket)
-            }.done { data in
-                self.listbucketsresponse = try! JSONDecoder().decode(ListBucketsResponse.self, from: data)
-            }.catch { error in
-                print(error)
+        authorize_account().then { data, response -> Promise<(Data?, URLResponse?)> in
+            self.authorization = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
+            return self.list_buckets()
+        }.then { data, response in
+            self.buckets = try! JSONDecoder().decode(ListBucketsResponse.self, from: data!)
+            print(self.buckets?.buckets[0].bucketId as Any)
+        }.catch { error in
+            print("Encountered error: \(error)")
         }
+    }
+    
+    public func test2() {
+    
     }
     
     
     //MARK: Private methods
     
     
-    private func authorize_account(_ accountId: String,_ applicationKey: String) -> Promise<Data> {
-        return try! Client.shared.requestB2(urlrequest: Router.authorize_account(accountId, applicationKey).asURLRequest())
+    public func fetch(_ urlrequest: URLRequest) -> Promise<(Data?, URLResponse?)> {
+        return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
     }
     
-    private func list_buckets(_ apiUrl: String,_ accountId: String,_ accountAuthorizationToken: String,_ bucketName: String) -> Promise<Data> {
-        return try! Client.shared.requestB2(urlrequest: Router.list_buckets(apiUrl, accountId, accountAuthorizationToken, bucketName).asURLRequest())
+    private func authorize_account() -> Promise<(Data?, URLResponse?)> {
+        return try! fetch(Router.authorize_account(self.account, self.key).asURLRequest())
+    }
+    
+    private func list_buckets() -> Promise<(Data?, URLResponse?)> {
+        return try! fetch(Router.list_buckets((self.authorization?.apiUrl)!, (self.authorization?.accountId)!, (self.authorization?.authorizationToken)!, self.bucket).asURLRequest())
     }
     
     
