@@ -15,8 +15,11 @@ class Client: NSObject {
     
     var backgroundCompletionHandler: (() -> Void)?
     
+    static let maxActiveTasks = 5
+    
     private var session: URLSession!
-    private var activeTaskIds: NSMutableSet?
+    private var activeTaskIds: Set<Int>?
+    
     
     let decoder = JSONDecoder()
     
@@ -38,12 +41,16 @@ class Client: NSObject {
         
     }
     
-    func upload(_ urlrequest: URLRequest,_ data: Data) {
-        session.uploadTask(with: urlrequest, from: data).resume()
+    //MARK: Public methods
+    
+    public func upload(_ urlrequest: URLRequest,_ data: Data) {
+        let task = session.uploadTask(with: urlrequest, from: data)
+        activeTaskIds?.insert(task.taskIdentifier)
+        task.resume()
     }
         
     public func test(_ urlrequest: URLRequest) {
-        
+       
         session.dataTask(with: urlrequest)
     }
     
@@ -88,24 +95,39 @@ extension Client: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         print("urlSession -> didCompleteWithError")
         
+        let httpResponse = task.response as? HTTPURLResponse
+        
+        activeTaskIds?.remove(task.taskIdentifier)
+        
+        //let something = task.originalRequest?.allHTTPHeaderFields
+        
         if let error = error {
             // handle failure here
+            //
+            
             print("\(error.localizedDescription)")
         } else {
-            /* remove from activeTaskIds
-                make sure still logged in
-                start another task
-             */
+            
+            if (httpResponse?.statusCode == 401 || httpResponse?.statusCode == 503) {
+                print("urlSession -> STATUS 401 or 503")
+                // prob unauthorized
+                // get new url & token.
+                // get image data somehow
+                // AutoUpload.reauthorizeRequest(newRequest, data)
+                
+                var newRequest = task.originalRequest
+                newRequest?.setValue("newgoodtoken", forHTTPHeaderField: "Authorization")
+                
+            } else if (httpResponse?.statusCode == 200) {
+                print("urlSession -> STATUS 200")
+                if ((activeTaskIds?.count)! < Client.maxActiveTasks) {
+                 // add more tasks, if any exist
+                }
+            } else {
+                print("urlSession -> UNHANDLED ERROR")
+                // very bad
+            }
         }
-        
-        
-        /*
- // other stuff
- [activeTaskIds removeObject:@([task taskIdentifier])]
- 
- if ([activeTaskIds count] < NUMBER) {
- // add more tasks
- }*/
     }
     
 }

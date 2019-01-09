@@ -34,20 +34,23 @@ class AutoUpload {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             
             let assets = Utility.getCameraRollAssets()
-        
-            assets.enumerateObjects({ (object, _, _) in
-                if(provider.remoteFileList[object] == nil && !provider.assetsToUpload.contains(object)) {
+            
+            assets.enumerateObjects({ (asset, _, _) in
+                if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                     // object has not been uploaded & is not already in upload queue
-                    provider.assetsToUpload.append(object)
-                    //provider.assetsToUpload.foreach
-                    if (object.mediaType == .image) {
-                       
+                    provider.assetsToUpload.append(asset)
+                    
+                    if (asset.mediaType == .image) {
+                        Utility.getImageDataFromAsset(asset) { data in
+                            //create upload task. need image metadata
+                            print(data.description)
+                        }
                         /*
                         object.requestContentEditingInput(with: PHContentEditingInputRequestOptions()) { (input, _) in
                             let fileURL = input!.fullSizeImageURL?.standardizedFileURL
                             let data = NSData(contentsOfFile: fileURL!.path)!
                         }*/
-                    } else if (object.mediaType == .video) {
+                    } else if (asset.mediaType == .video) {
                         
                     }
                 }
