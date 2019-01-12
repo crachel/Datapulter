@@ -137,7 +137,8 @@ class B2: Provider {
     "contentSha1" : "bae5ed658ab3546aee12f23f36392f35dba1ebdd",
     "contentType" : "text/plain",
     "fileInfo" : {
-       "author" : "unknown"
+       "author" : "unknown",
+       "fileID" : "12345"
     }
 }
 """

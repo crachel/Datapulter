@@ -56,10 +56,52 @@ struct UploadFileResponse: Codable {
     var contentSha1: String
     var contentType: String
     var fileId: String
-    struct FileInfo: Codable {
-        
-    }
     var fileName: String
     var uploadTimestamp: String?
-    let fileInfo: FileInfo?
+    let fileInfo: [String: String]?
+    
+    private enum CodingKeys: String, CodingKey {
+        case accountId
+        case action
+        case bucketId
+        case contentLength
+        case contentSha1
+        case contentType
+        case fileId
+        case fileName
+        case uploadTimestamp
+        case fileInfo
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        accountId = try container.decode(String.self, forKey: .accountId)
+        action? = try container.decode(String.self, forKey: .action)
+        bucketId = try container.decode(String.self, forKey: .bucketId)
+        contentLength = try container.decode(Int64.self, forKey: .contentLength)
+        contentSha1 = try container.decode(String.self, forKey: .contentSha1)
+        contentType = try container.decode(String.self, forKey: .contentType)
+        fileId = try container.decode(String.self, forKey: .fileId)
+        fileName = try container.decode(String.self, forKey: .fileName)
+        uploadTimestamp? = try container.decode(String.self, forKey: .uploadTimestamp)
+        
+        fileInfo = [String: String]()
+        let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
+        for key in subContainer.allKeys {
+            fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
+        }
+        
+    }
+}
+
+struct GenericCodingKeys: CodingKey {
+    var intValue: Int?
+    var stringValue: String
+    
+    init?(intValue: Int) { self.intValue = intValue; self.stringValue = "\(intValue)" }
+    init?(stringValue: String) { self.stringValue = stringValue }
+    
+    static func makeKey(name: String) -> GenericCodingKeys {
+        return GenericCodingKeys(stringValue: name)!
+    }
 }

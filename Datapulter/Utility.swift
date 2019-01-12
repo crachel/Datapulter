@@ -23,47 +23,48 @@ class Utility {
         return PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
         
     }
-    
-    public static func getImageDataFromAsset(_ asset: PHAsset, completion:@escaping (_ data: Data) -> Void) {
-    
-        let imageRequestOptions = PHImageRequestOptions()
         
-        imageRequestOptions.version = .current
-        imageRequestOptions.isSynchronous = true
+    public static func getDataFromAsset(_ asset: PHAsset, completion:@escaping (_ data: Data) -> Void) {
         
-        PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
-            if let data = data {
-
-                completion(data)
-                
-                // do I want to convert HEIC to JPEG?
-                //completion(UIImage(data: data)!.jpegData(compressionQuality: 1)!)
-            }
-        }
-    
-    }
-    
-    public static func getVideoDataFromAsset(_ asset: PHAsset, completion:@escaping (_ data: Data) -> Void) {
-        
-        let videoRequestOptions = PHVideoRequestOptions()
-        
-        videoRequestOptions.version = .current
-        
-        PHImageManager.default().requestAVAsset(forVideo: asset, options: videoRequestOptions) { (data, _, _) in
-            if let data = data {
-                // https://developer.apple.com/documentation/mobilecoreservices/uttype
-                let asset = data as? AVURLAsset
-                do {
-                    let videoData = try Data(contentsOf: (asset?.url)!)
+        if (asset.mediaType == .image) {
+            
+            let imageRequestOptions = PHImageRequestOptions()
+            
+            imageRequestOptions.version = .current
+            imageRequestOptions.isSynchronous = true
+            
+            PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
+                if let data = data {
                     
-                    completion(videoData)
-                } catch  {
-                    print("exception catch at block - while uploading video")
+                    completion(data)
+                    
+                    // do I want to convert HEIC to JPEG?
+                    //completion(UIImage(data: data)!.jpegData(compressionQuality: 1)!)
                 }
-                
             }
+            
+        } else if (asset.mediaType == .video) {
+            
+            let videoRequestOptions = PHVideoRequestOptions()
+            
+            videoRequestOptions.version = .current
+            
+            PHImageManager.default().requestAVAsset(forVideo: asset, options: videoRequestOptions) { (data, _, _) in
+                if let data = data {
+                    // https://developer.apple.com/documentation/mobilecoreservices/uttype
+                    let asset = data as? AVURLAsset
+                    do {
+                        let videoData = try Data(contentsOf: (asset?.url)!)
+                        
+                        completion(videoData)
+                    } catch  {
+                        print("exception catch at block - while uploading video")
+                    }
+                    
+                }
+            }
+            
         }
-        
     }
     
 }
@@ -77,3 +78,5 @@ extension Date {
         self = Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
     }
 }
+
+

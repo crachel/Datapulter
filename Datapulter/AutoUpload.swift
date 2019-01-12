@@ -30,49 +30,33 @@ class AutoUpload {
  
     //MARK: Public Methods
     
-    public func start(provider: B2) {
+    public func start() {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             
             let assets = Utility.getCameraRollAssets()
             
-            assets.enumerateObjects({ (asset, _, _) in
-                if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
-                    // object has not been uploaded & is not already in upload queue
-                    
-                    provider.assetsToUpload.append(asset)
-                    
-                    let assetResources = PHAssetResource.assetResources(for: asset) // [PHAssetResource]
-                    
-                    print(asset.creationDate?.millisecondsSince1970)
-                    print(assetResources.first!.originalFilename)
-                    
-                    
-                    
-                    if (asset.mediaType == .image) {
-                        Utility.getImageDataFromAsset(asset) { data in
-                            //print(SHA1.hexString(from: &data))
-                            self.createUploadTask()
+            for provider in providers {
+                
+                assets.enumerateObjects({ (asset, _, _) in
+                    if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
+                        // object has not been uploaded & is not already in upload queue
+                        
+                        provider.assetsToUpload.append(asset)
+                        
+                        Utility.getDataFromAsset(asset) { data in
+                            self.createUploadTask(data)
                         }
-                        /*
-                        object.requestContentEditingInput(with: PHContentEditingInputRequestOptions()) { (input, _) in
-                            let fileURL = input!.fullSizeImageURL?.standardizedFileURL
-                            let data = NSData(contentsOfFile: fileURL!.path)!
-                        }*/
-                    } else if (asset.mediaType == .video) {
-                        Utility.getVideoDataFromAsset(asset) { data in
-                            
-                            self.createUploadTask()
-                        }
+                        
                     }
+                })
+                
+                DispatchQueue.main.async {
+                    provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
                 }
-            })
-            
-            //provider.test2()
-            //print(provider.uploadurl?.uploadUrl)
-            
-
-            DispatchQueue.main.async {
-                provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
+                if let backblaze = provider as? B2 {
+                     backblaze.test()
+                }
+               
             }
             
         } else {
@@ -80,8 +64,12 @@ class AutoUpload {
         }
     }
     
-    private func createUploadTask() {
+    private func createUploadTask(_ data: Data) {
         
+        //let assetResources = PHAssetResource.assetResources(for: asset) // [PHAssetResource]
+        //print(asset.creationDate?.millisecondsSince1970)
+        //print(assetResources.first!.originalFilename)
+        //print(data.hashWithRSA2048Asn1Header(.sha1))
     }
 
 }

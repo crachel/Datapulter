@@ -13,9 +13,6 @@ import UICircularProgressRing
 
 class ProviderTableViewController: UITableViewController {
     
-    //MARK: Properties
-    //var providers = [Provider]()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -24,19 +21,13 @@ class ProviderTableViewController: UITableViewController {
         
         // Load any saved providers
         if let savedProviders = loadProviders() {
-            //providers += savedProviders
             AutoUpload.shared.providers += savedProviders
         }
         
         //loadSampleProviders()
-        
-        //remove all this. no logic here. just pass providers to autoupload.start and let it work
+
         DispatchQueue.global(qos: .userInitiated).async {
-            for provider in AutoUpload.shared.providers {
-                if let backblaze = provider as? B2 {
-                    AutoUpload.shared.start(provider: backblaze)
-                } // else if let digitalocean = provider as? DO
-            }
+            AutoUpload.shared.start()
         }
         
         // Register to receive photo library change messages
@@ -174,6 +165,14 @@ class ProviderTableViewController: UITableViewController {
     private func saveProviders() {
         //let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(providers, toFile: Provider.ArchiveURL.path)
         let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(AutoUpload.shared.providers, toFile: Provider.ArchiveURL.path)
+        
+        /*
+        do {
+            try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: true)
+        } catch {
+            print(error)
+        }*/
+        
         if isSuccessfulSave {
             os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
         } else {
@@ -182,7 +181,9 @@ class ProviderTableViewController: UITableViewController {
     }
     
     private func loadProviders() -> [Provider]?  {
+        
         return NSKeyedUnarchiver.unarchiveObject(withFile: Provider.ArchiveURL.path) as? [Provider]
+        
     }
     
     private func loadSampleProviders() {

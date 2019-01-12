@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import Promises
+//import Promises
 
 class Client: NSObject {
     
@@ -119,6 +119,7 @@ extension Client: URLSessionDataDelegate {
                 newRequest?.setValue("newgoodtoken", forHTTPHeaderField: "Authorization")
                 
             } else if (httpResponse?.statusCode == 200) {
+                
                 print("urlSession -> STATUS 200")
                 if ((activeTaskIds?.count)! < Client.maxActiveTasks) {
                  // add more tasks, if any exist
