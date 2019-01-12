@@ -38,12 +38,20 @@ class AutoUpload {
             assets.enumerateObjects({ (asset, _, _) in
                 if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                     // object has not been uploaded & is not already in upload queue
+                    
                     provider.assetsToUpload.append(asset)
+                    
+                    let assetResources = PHAssetResource.assetResources(for: asset) // [PHAssetResource]
+                    
+                    print(asset.creationDate?.millisecondsSince1970)
+                    print(assetResources.first!.originalFilename)
+                    
+                    
                     
                     if (asset.mediaType == .image) {
                         Utility.getImageDataFromAsset(asset) { data in
-                            //create upload task. need image metadata
-                            print(data.description)
+                            //print(SHA1.hexString(from: &data))
+                            self.createUploadTask()
                         }
                         /*
                         object.requestContentEditingInput(with: PHContentEditingInputRequestOptions()) { (input, _) in
@@ -51,7 +59,10 @@ class AutoUpload {
                             let data = NSData(contentsOfFile: fileURL!.path)!
                         }*/
                     } else if (asset.mediaType == .video) {
-                        
+                        Utility.getVideoDataFromAsset(asset) { data in
+                            
+                            self.createUploadTask()
+                        }
                     }
                 }
             })
@@ -67,6 +78,10 @@ class AutoUpload {
         } else {
             // No photo permission
         }
+    }
+    
+    private func createUploadTask() {
+        
     }
 
 }

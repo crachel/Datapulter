@@ -19,7 +19,7 @@ class Provider: NSObject, NSCoding {
     var remoteFileList: [PHAsset: Any]
     var assetsToUpload: [PHAsset] {
         didSet {
-            print("asset added")
+            // possibly do something here
         }
     }
     var uploadQueue: [URLRequest]?

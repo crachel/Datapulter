@@ -30,6 +30,7 @@ class ProviderTableViewController: UITableViewController {
         
         //loadSampleProviders()
         
+        //remove all this. no logic here. just pass providers to autoupload.start and let it work
         DispatchQueue.global(qos: .userInitiated).async {
             for provider in AutoUpload.shared.providers {
                 if let backblaze = provider as? B2 {
@@ -70,7 +71,6 @@ class ProviderTableViewController: UITableViewController {
         }
         
         // Fetches the appropriate provider for the data source layout.
-        //let provider = providers[indexPath.row]
         let provider = AutoUpload.shared.providers[indexPath.row]
 
         // Configure the cell...
@@ -103,9 +103,10 @@ class ProviderTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             // Delete the row from the data source
-            //providers.remove(at: indexPath.row)
             AutoUpload.shared.providers.remove(at: indexPath.row)
+            
             saveProviders()
+            
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
@@ -199,7 +200,7 @@ class ProviderTableViewController: UITableViewController {
             
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
                 // Update an existing provider.
-                //providers[selectedIndexPath.row] = provider
+                
                 AutoUpload.shared.providers[selectedIndexPath.row] = provider
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
