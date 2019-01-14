@@ -16,9 +16,16 @@ class B2: Provider {
     
     //MARK: Properties
     
+    private lazy var session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.waitsForConnectivity = true
+        return URLSession(configuration: configuration,
+                          delegate: self, delegateQueue: nil)
+    }()
     
     struct const {
-        static let apiMainURL = "https://api.backblazeb2.com"
+        static let apiMainURL = "https://api.backblazeb2.com/b2api/v2/b2_authorize_account"
+        static let authorizeAccountUrl = URL(string: const.apiMainURL)
         static let headerPrefix = "x-bz-info-"
         static let timeKey = "src_last_modified_millis"
         static let timeHeader = headerPrefix + timeKey
@@ -145,6 +152,10 @@ class B2: Provider {
         let data = json.data(using: .utf8)!
         let decoder = JSONDecoder()
         let response = try! decoder.decode(UploadFileResponse.self, from: data)
+        
+        for (key, value) in response.fileInfo! {
+            print("key \(key) value \(value)")
+        }
         print (response)
         
     }    
@@ -161,8 +172,63 @@ class B2: Provider {
         }
     }
     
-    public func test2() {
     
+    public func createAuthToken(completion:@escaping (_ authorizationToken: String,_ apiUrl: String,_ bucketId: String) -> Void) {
+        
+        guard let url = URL(string: const.apiMainURL) else {
+            return
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "GET"
+ 
+        let task = session.dataTask(with: urlRequest) { data, response, error in
+            if let error = error {
+                print ("error: \(error)")
+                return
+            }
+            guard let response = response as? HTTPURLResponse,
+                (200...299).contains(response.statusCode) else {
+                    print ("server error")
+                    return
+            }
+            if let mimeType = response.mimeType,
+                mimeType == "application/json",
+                let data = data {
+                
+                self.authorization = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+                
+                completion((self.authorization?.authorizationToken)!, (self.authorization?.apiUrl)!, (self.authorization?.allowed.bucketId)!)
+            }
+        }
+        task.resume()
+    }
+    
+    public func getUploadURL(completion:@escaping (_ url: URL,_ uploadAuthorizationToken: String) -> Void) {
+        // need auth token, apiurl, bucketid
+        
+        let request = try! Router.get_upload_url((authorization?.apiUrl)!, (authorization?.authorizationToken)!, (authorization?.allowed.bucketId)!).asURLRequest()
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print ("error: \(error)")
+                return
+            }
+            guard let response = response as? HTTPURLResponse,
+                (200...299).contains(response.statusCode) else {
+                    print ("server error")
+                    self.login()
+                    self.getUploadURL() { url, toke in }
+                    return
+            }
+            if let mimeType = response.mimeType,
+                mimeType == "application/json",
+                let data = data {
+                self.uploadurl = try! JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+                completion(try! (self.uploadurl?.uploadUrl.asURL())!, (self.uploadurl?.authorizationToken)!)
+            }
+        }
+        task.resume()
     }
     
     
@@ -170,15 +236,24 @@ class B2: Provider {
     
     
     public func fetch(_ urlrequest: URLRequest) -> Promise<(Data?, URLResponse?)> {
-        return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
+        return wrap { self.session.dataTask(with: urlrequest, completionHandler: $0).resume() }
     }
     
     private func authorize_account() -> Promise<(Data?, URLResponse?)> {
-        return try! fetch(Router.authorize_account(self.account, self.key).asURLRequest())
+    
+        var urlRequest = URLRequest(url: const.authorizeAccountUrl!)
+        
+        urlRequest.httpMethod = "GET"
+        
+        return fetch(urlRequest)
     }
     
     private func list_buckets() -> Promise<(Data?, URLResponse?)> {
         return try! fetch(Router.list_buckets((self.authorization?.apiUrl)!, (self.authorization?.accountId)!, (self.authorization?.authorizationToken)!, self.bucket).asURLRequest())
+    }
+    
+    private func get_upload_url() -> Promise<(Data?, URLResponse?)> {
+        return try! fetch(Router.get_upload_url((self.authorization?.apiUrl)!, (self.authorization?.authorizationToken)!, (self.buckets?.buckets[0].bucketId)!).asURLRequest())
     }
     
     
@@ -215,4 +290,47 @@ class B2: Provider {
         self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete)
     }
  
+}
+
+
+//MARK: Extensions
+
+
+extension B2: URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession,
+                    task: URLSessionTask,
+                    didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+    
+        // limit amount of retries
+        guard challenge.previousFailureCount < 5 else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+        
+        let authMethod = challenge.protectionSpace.authenticationMethod
+        
+        // confirm challenge method is Basic Auth else return
+        guard authMethod == NSURLAuthenticationMethodHTTPBasic else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        
+        // retrieve username & password
+        guard let credential = credentialsFromObject() else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+        
+        completionHandler(.useCredential, credential)
+        
+    }
+    
+    func credentialsFromObject() -> URLCredential? {
+        let username = self.account
+        let password = self.key
+        
+        return URLCredential(user: username, password: password,
+                             persistence: .forSession)
+    }
 }

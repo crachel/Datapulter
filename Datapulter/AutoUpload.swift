@@ -45,6 +45,7 @@ class AutoUpload {
                         
                         Utility.getDataFromAsset(asset) { data in
                             self.createUploadTask(data)
+                            //provider.createUploadTask(data) -> URLRequest
                         }
                         
                     }
@@ -53,8 +54,14 @@ class AutoUpload {
                 DispatchQueue.main.async {
                     provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
                 }
+                
                 if let backblaze = provider as? B2 {
-                     backblaze.test()
+                    backblaze.login()
+                    /*
+                    backblaze.getUploadURL() { url, token in
+                        print("url \(url) token \(token)")
+                        
+                    }*/
                 }
                
             }
@@ -73,3 +80,5 @@ class AutoUpload {
     }
 
 }
+
+

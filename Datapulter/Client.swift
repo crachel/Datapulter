@@ -43,10 +43,14 @@ class Client: NSObject {
     
     //MARK: Public methods
     
-    public func upload(_ urlrequest: URLRequest,_ data: Data) {
+    public func upload(_ urlrequest: URLRequest,_ data: Data) -> Int {
+        
         let task = session.uploadTask(with: urlrequest, from: data)
         activeTaskIds?.insert(task.taskIdentifier)
         task.resume()
+        
+        return (task.taskIdentifier)
+        
     }
         
     public func test(_ urlrequest: URLRequest) {
@@ -80,6 +84,8 @@ extension Client: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         // this SHOULD be the response json
         print("urlSession -> didReceiveData")
+        
+        //let httpResponse = dataTask.response as? HTTPURLResponse
         //let response = try! decoder.decode(UploadFileResponse.self, from: data)
         do {
             let json = try JSONSerialization.jsonObject(with: data)
