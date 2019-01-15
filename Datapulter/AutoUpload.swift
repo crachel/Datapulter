@@ -56,10 +56,11 @@ class AutoUpload {
                 }
                 
                 if let backblaze = provider as? B2 {
-                    backblaze.login()
+                    backblaze.list_buckets()
+                    
                     /*
-                    backblaze.getUploadURL() { url, token in
-                        print("url \(url) token \(token)")
+                    backblaze.createAuthToken() { token, url, bucket in
+                        print("url \(url) token \(token) bucket \(bucket)")
                         
                     }*/
                 }
