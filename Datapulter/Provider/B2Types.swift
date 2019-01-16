@@ -88,6 +88,10 @@ struct GetUploadURLResponse: Codable {
     var authorizationToken: String
 }
 
+struct GetUploadURLRequest: Codable {
+    var bucketId: String
+}
+
 struct JSONError: Codable {
     var status: Int
     var code: String

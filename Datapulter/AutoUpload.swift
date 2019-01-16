@@ -37,6 +37,7 @@ class AutoUpload {
             
             for provider in providers {
                 
+                /*
                 assets.enumerateObjects({ (asset, _, _) in
                     if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
@@ -49,14 +50,14 @@ class AutoUpload {
                         }
                         
                     }
-                })
+                })*/
                 
                 DispatchQueue.main.async {
                     provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
                 }
                 
                 if let backblaze = provider as? B2 {
-                    backblaze.list_buckets()
+                    backblaze.listBuckets()
                     
                     /*
                     backblaze.createAuthToken() { token, url, bucket in
