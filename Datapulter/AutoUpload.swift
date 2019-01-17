@@ -33,7 +33,7 @@ class AutoUpload {
     public func start() {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             
-            let assets = Utility.getCameraRollAssets()
+            //let assets = Utility.getCameraRollAssets()
             
             for provider in providers {
                 
@@ -57,14 +57,12 @@ class AutoUpload {
                 }
                 
                 if let backblaze = provider as? B2 {
-                    backblaze.listBuckets()
-                    
-                    /*
-                    backblaze.createAuthToken() { token, url, bucket in
-                        print("url \(url) token \(token) bucket \(bucket)")
-                        
-                    }*/
+                    backblaze.getUploadUrl()
+                    //backblaze.listBuckets()
+                    //backblaze.createAuthToken()
+                    //print(UserDefaults.standard.string(forKey: "authorizationToken"))
                 }
+                
                
             }
             

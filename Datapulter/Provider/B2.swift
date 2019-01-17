@@ -14,14 +14,7 @@ class B2: Provider {
     
     
     //MARK: Properties
-    
-    /*
-    private lazy var session: URLSession = {
-        let configuration = URLSessionConfiguration.default
-        configuration.waitsForConnectivity = true
-        //return URLSession(configuration: configuration,delegate: self, delegateQueue: nil)
-        return URLSession(configuration: configuration)
-    }()*/
+
     
     struct const {
         static let apiMainURL = "https://api.backblazeb2.com"
@@ -44,10 +37,12 @@ class B2: Provider {
     var bucket: String
     var accountId: String
     var bucketId: String
-    var authorizationToken: String = "4_000bd9db9a329de0000000002_01899d11_2de77d_acct_1zmYZinB8pkycmYx6I3bqJe3zt0="
     
+    let authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken")
     var versions: Bool
     var harddelete: Bool
+    
+    //let defaults:UserDefaults = UserDefaults.standard
     
     
     //MARK: API Responses
@@ -55,7 +50,8 @@ class B2: Provider {
     
     var authorizeAccountResponse: AuthorizeAccountResponse? {
         didSet {
-            print("authorization set")
+            //authorizationToken = (authorizeAccountResponse?.authorizationToken)!
+            UserDefaults.standard.set(authorizeAccountResponse!.authorizationToken, forKey: "authorizationToken")
         }
     }
     var listBucketsResponse: ListBucketsResponse?
@@ -142,13 +138,20 @@ class B2: Provider {
         }.recover { error -> Void in
             switch error {
             case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                print("it's bad_auth_token again")
+                print("bad or expired auth token. attempting refresh then retrying API call.")
+                self.authorizeAccount().then { data, response in
+                    return self.parseAuthorizeAccount(data!)
+                }.then { parsedResult in
+                    self.authorizeAccountResponse = parsedResult
+                }.then {
+                    self.getUploadUrl() // recursive call can create infinite loop. need to fix
+                }
             default:
-                print("something else")
+                print("unhandled error: \(error)")
             }
             //print("error in recover: \(error)")
         }.catch { error in
-            print("should be here if error in request")
+            print("unhandled error: \(error)")
         }
     }
     
@@ -220,9 +223,19 @@ class B2: Provider {
         }
     }
     
-    private func parseGetUploadUrl(_ data: Data) -> Promise<GetUploadURLResponse?> {
-        return Promise { () -> GetUploadURLResponse in
-            let response = try! JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+    private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
+        let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString()
+        
+        var urlRequest = URLRequest(url: const.authorizeAccountUrl!)
+        urlRequest.httpMethod = "GET"
+        urlRequest.setValue("Basic \(authNData!)", forHTTPHeaderField: "Authorization")
+        
+        return get(urlRequest)
+    }
+    
+    private func parseAuthorizeAccount(_ data: Data) -> Promise<AuthorizeAccountResponse> {
+        return Promise { () -> AuthorizeAccountResponse in
+            let response = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
             
             return response
         }
@@ -236,19 +249,17 @@ class B2: Provider {
         let url = URL(string: "https://api000.backblazeb2.com/b2api/v2/b2_get_upload_url")
         var urlRequest = URLRequest(url: url!)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(self.authorizationToken, forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
         
         return post(urlRequest, uploadData!)
     }
-
-    private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
-        let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString()
-        
-        var urlRequest = URLRequest(url: const.authorizeAccountUrl!)
-        urlRequest.httpMethod = "GET"
-        urlRequest.setValue("Basic \(authNData!)", forHTTPHeaderField: "Authorization")
-        
-        return get(urlRequest)
+    
+    private func parseGetUploadUrl(_ data: Data) -> Promise<GetUploadURLResponse?> {
+        return Promise { () -> GetUploadURLResponse in
+            let response = try! JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+            
+            return response
+        }
     }
 
     private func listBuckets() -> Promise<(Data?, URLResponse?)> {
@@ -263,7 +274,7 @@ class B2: Provider {
         var urlRequest = URLRequest(url: url!)
        
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(self.authorizationToken, forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
         
         return post(urlRequest, uploadData!)
     }
@@ -275,6 +286,7 @@ class B2: Provider {
             return response
         }
     }
+    
     
     //MARK: NSCoding
     
