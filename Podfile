@@ -4,6 +4,5 @@ target 'Datapulter' do
 
     pod 'UICircularProgressRing'
     pod 'Eureka'
-    pod 'Alamofire', '~> 5.0.0.beta.1'
     pod 'PromisesSwift', '~> 1.2.4'
 end

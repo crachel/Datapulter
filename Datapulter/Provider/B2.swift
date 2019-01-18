@@ -39,19 +39,18 @@ class B2: Provider {
     var bucketId: String
     
     let authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken")
+    let apiUrl = UserDefaults.standard.string(forKey: "apiUrl")
     var versions: Bool
     var harddelete: Bool
-    
-    //let defaults:UserDefaults = UserDefaults.standard
-    
+
     
     //MARK: API Responses
     
     
     var authorizeAccountResponse: AuthorizeAccountResponse? {
         didSet {
-            //authorizationToken = (authorizeAccountResponse?.authorizationToken)!
             UserDefaults.standard.set(authorizeAccountResponse!.authorizationToken, forKey: "authorizationToken")
+            UserDefaults.standard.set(authorizeAccountResponse!.apiUrl, forKey: "apiUrl")
         }
     }
     var listBucketsResponse: ListBucketsResponse?
@@ -112,39 +111,42 @@ class B2: Provider {
     }
     
     
-    public func listBuckets() {
-     listBuckets().then { data, response in
-        return self.parseListBuckets(data!)
-     }.then { parsedResult in
-        print(parsedResult!)
-     }.recover { error -> Void in
-         switch error {
+    public func listBuckets(_ attempts: Int = 1) {
+        if (attempts > 5) { return } // avoid infinite loop
+        
+        listBuckets().then { data, response in
+            try self.parseListBuckets(data!)
+        }.then { parsedResult in
+            print(parsedResult!)
+        }.recover { error -> Void in
+            switch error {
             case B2Error.bad_auth_token, B2Error.expired_auth_token:
-         print("it's bad_auth_token again")
+                print("it's bad_auth_token again")
             default:
-         print("something else")
-     }
-     //print("error in recover: \(error)")
-     }.catch { error in
-        print("should be here if error in request")
-     }
+                print("unhandled error: \(error)")
+            }
+        }.catch { error in
+            print("unhandled error: \(error)")
+        }
     }
     
-    public func getUploadUrl() {
+    public func getUploadUrl(_ attempts: Int = 1) {
+        if (attempts > 5) { return } // avoid infinite loop
+        
         getUploadUrl().then { data, response in
-            return self.parseGetUploadUrl(data!)
+            try self.parseGetUploadUrl(data!) // force unwrap but should be safe?
         }.then { parsedResult in
             print(parsedResult!)
         }.recover { error -> Void in
             switch error {
             case B2Error.bad_auth_token, B2Error.expired_auth_token:
                 print("bad or expired auth token. attempting refresh then retrying API call.")
-                self.authorizeAccount().then { data, response in
-                    return self.parseAuthorizeAccount(data!)
+                self.authorizeAccount().then { data, response in // need to add recover/catch here which would (likely) require user input
+                    try self.parseAuthorizeAccount(data!)
                 }.then { parsedResult in
                     self.authorizeAccountResponse = parsedResult
                 }.then {
-                    self.getUploadUrl() // recursive call can create infinite loop. need to fix
+                    self.getUploadUrl((attempts + 1)) // recursive call
                 }
             default:
                 print("unhandled error: \(error)")
@@ -193,10 +195,14 @@ class B2: Provider {
         return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
     }
     
+    private func get2(_ urlrequest: URLRequest) -> Promise<(Data?, URLResponse?)> {
+        return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
+    }
+    
     private func post(_ urlRequest: URLRequest,_ uploadData: Data) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
-            let dataTask = URLSession.shared.uploadTask(with: urlRequest, from:uploadData) { data, response, error in
+            let uploadTask = URLSession.shared.uploadTask(with: urlRequest, from:uploadData) { data, response, error in
                 if let error = error {
                     print ("error: \(error)")
                     reject(error)
@@ -211,15 +217,18 @@ class B2: Provider {
                     if (response.statusCode == 200) {
                         fulfill((data, response))
                     } else if (400...401).contains(response.statusCode) {
-                        let jsonerror = try! JSONDecoder().decode(JSONError.self, from: data)
-                        
-                        reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unknown)
+                        do {
+                            let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
+                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unknown) // handled status code
+                        } catch {
+                            reject (error) // handled status code but problem decoding JSON
+                        }
                     } else {
                         reject (B2Error.unknown) // unhandled status code
                     }
                 }
             }
-            dataTask.resume()
+            uploadTask.resume()
         }
     }
     
@@ -233,32 +242,46 @@ class B2: Provider {
         return get(urlRequest)
     }
     
-    private func parseAuthorizeAccount(_ data: Data) -> Promise<AuthorizeAccountResponse> {
+    private func parseAuthorizeAccount(_ data: Data) throws -> Promise<AuthorizeAccountResponse> {
         return Promise { () -> AuthorizeAccountResponse in
-            let response = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-            
-            return response
+            do {
+                return try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+            } catch {
+                throw error
+            }
         }
     }
     
     private func getUploadUrl() -> Promise<(Data?, URLResponse?)> {
+        var urlRequest: URLRequest
+        var uploadData: Data
         
         let request = GetUploadURLRequest(bucketId: bucketId)
-        let uploadData = try? JSONEncoder().encode(request)
         
-        let url = URL(string: "https://api000.backblazeb2.com/b2api/v2/b2_get_upload_url")
-        var urlRequest = URLRequest(url: url!)
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            return Promise(error)
+        }
+        
+        guard let url = URL(string: "https://api000.backblazeb2.com/b2api/v2/b2_get_upload_url") else {
+            return Promise(B2Error.unknown)
+        }
+        
+        urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
         
-        return post(urlRequest, uploadData!)
+        return post(urlRequest, uploadData)
     }
     
-    private func parseGetUploadUrl(_ data: Data) -> Promise<GetUploadURLResponse?> {
+    private func parseGetUploadUrl(_ data: Data) throws -> Promise<GetUploadURLResponse?> {
         return Promise { () -> GetUploadURLResponse in
-            let response = try! JSONDecoder().decode(GetUploadURLResponse.self, from: data)
-            
-            return response
+            do {
+                return try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+            } catch {
+                throw error
+            }
         }
     }
 
@@ -272,18 +295,19 @@ class B2: Provider {
         let url = URL(string: "https://api000.backblazeb2.com/b2api/v2/b2_list_buckets")
         
         var urlRequest = URLRequest(url: url!)
-       
         urlRequest.httpMethod = "POST"
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
         
         return post(urlRequest, uploadData!)
     }
     
-    private func parseListBuckets(_ data: Data) -> Promise<ListBucketsResponse?> {
+    private func parseListBuckets(_ data: Data) throws -> Promise<ListBucketsResponse?> {
         return Promise { () -> ListBucketsResponse in
-            let response = try! JSONDecoder().decode(ListBucketsResponse.self, from: data)
-            
-            return response
+            do {
+                return try JSONDecoder().decode(ListBucketsResponse.self, from: data)
+            } catch {
+                throw error
+            }
         }
     }
     
