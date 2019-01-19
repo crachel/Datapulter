@@ -132,11 +132,11 @@ class B2: Provider {
     
     public func getUploadUrl(_ attempts: Int = 1) {
         if (attempts > 5) { return } // avoid infinite loop
-        
+    
         getUploadUrl().then { data, response in
             try self.parseGetUploadUrl(data!) // force unwrap but should be safe?
         }.then { parsedResult in
-            print(parsedResult!)
+           print(parsedResult!) // successful chain ends here
         }.recover { error -> Void in
             switch error {
             case B2Error.bad_auth_token, B2Error.expired_auth_token:
@@ -151,7 +151,6 @@ class B2: Provider {
             default:
                 print("unhandled error: \(error)")
             }
-            //print("error in recover: \(error)")
         }.catch { error in
             print("unhandled error: \(error)")
         }
@@ -190,7 +189,7 @@ class B2: Provider {
     
     //MARK: Private methods
     
-    
+ 
     private func get(_ urlrequest: URLRequest) -> Promise<(Data?, URLResponse?)> {
         return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
     }
@@ -264,7 +263,7 @@ class B2: Provider {
             return Promise(error)
         }
         
-        guard let url = URL(string: "https://api000.backblazeb2.com/b2api/v2/b2_get_upload_url") else {
+        guard let url = URL(string: "\(String(describing: apiUrl!))/b2api/v2/b2_get_upload_url") else {
             return Promise(B2Error.unknown)
         }
         
@@ -292,7 +291,7 @@ class B2: Provider {
         
         let uploadData = try? JSONEncoder().encode(request)
 
-        let url = URL(string: "https://api000.backblazeb2.com/b2api/v2/b2_list_buckets")
+        let url = URL(string: "\(String(describing: apiUrl!))/b2api/v2/b2_list_buckets")
         
         var urlRequest = URLRequest(url: url!)
         urlRequest.httpMethod = "POST"
@@ -306,7 +305,7 @@ class B2: Provider {
             do {
                 return try JSONDecoder().decode(ListBucketsResponse.self, from: data)
             } catch {
-                throw error
+                throw (error)
             }
         }
     }
