@@ -10,6 +10,7 @@ import UIKit
 import os.log
 import Photos
 import UICircularProgressRing
+import Promises
 
 class AutoUpload {
     
@@ -57,7 +58,11 @@ class AutoUpload {
                 }
                 
                 if let backblaze = provider as? B2 {
+                    //UserDefaults.standard.removeObject(forKey: "authorizationToken")
                     backblaze.getUploadUrl()
+                    /*backblaze.getUploadUrl2().then { result in
+                        print(result.uploadUrl)
+                    }*/
                     //backblaze.listBuckets()
                     //backblaze.createAuthToken()
                     //print(UserDefaults.standard.string(forKey: "authorizationToken"))

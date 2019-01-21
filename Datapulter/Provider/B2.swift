@@ -37,20 +37,28 @@ class B2: Provider {
     var bucket: String
     var accountId: String
     var bucketId: String
-    
-    let authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken")
-    let apiUrl = UserDefaults.standard.string(forKey: "apiUrl")
     var versions: Bool
     var harddelete: Bool
-
+    
+    var authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken") ?? "" {
+        didSet {
+            UserDefaults.standard.set(authorizationToken, forKey: "authorizationToken")
+        }
+    }
+    var apiUrl = UserDefaults.standard.string(forKey: "apiUrl") ?? "" {
+        didSet {
+            UserDefaults.standard.set(apiUrl, forKey: "apiUrl")
+        }
+    }
+   
     
     //MARK: API Responses
     
     
     var authorizeAccountResponse: AuthorizeAccountResponse? {
         didSet {
-            UserDefaults.standard.set(authorizeAccountResponse!.authorizationToken, forKey: "authorizationToken")
-            UserDefaults.standard.set(authorizeAccountResponse!.apiUrl, forKey: "apiUrl")
+            authorizationToken = authorizeAccountResponse!.authorizationToken
+            apiUrl = authorizeAccountResponse!.apiUrl
         }
     }
     var listBucketsResponse: ListBucketsResponse?
@@ -263,7 +271,7 @@ class B2: Provider {
             return Promise(error)
         }
         
-        guard let url = URL(string: "\(String(describing: apiUrl!))/b2api/v2/b2_get_upload_url") else {
+        guard let url = URL(string: "\(String(describing: apiUrl))/b2api/v2/b2_get_upload_url") else {
             return Promise(B2Error.unknown)
         }
         
@@ -291,7 +299,7 @@ class B2: Provider {
         
         let uploadData = try? JSONEncoder().encode(request)
 
-        let url = URL(string: "\(String(describing: apiUrl!))/b2api/v2/b2_list_buckets")
+        let url = URL(string: "\(String(describing: apiUrl))/b2api/v2/b2_list_buckets")
         
         var urlRequest = URLRequest(url: url!)
         urlRequest.httpMethod = "POST"
