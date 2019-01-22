@@ -59,10 +59,10 @@ class AutoUpload {
                 
                 if let backblaze = provider as? B2 {
                     //UserDefaults.standard.removeObject(forKey: "authorizationToken")
-                    backblaze.getUploadUrl()
-                    /*backblaze.getUploadUrl2().then { result in
+                    //backblaze.getUploadUrl()
+                    backblaze.getUploadUrl().then { result in
                         print(result.uploadUrl)
-                    }*/
+                    }
                     //backblaze.listBuckets()
                     //backblaze.createAuthToken()
                     //print(UserDefaults.standard.string(forKey: "authorizationToken"))

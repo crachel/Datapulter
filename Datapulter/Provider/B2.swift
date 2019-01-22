@@ -71,10 +71,13 @@ class B2: Provider {
     enum B2Error: String, Error {
         case none
         case downcast
-        case bad_request // 400
+        case connectionError
+        case badRequest // 400
         case unauthorized // 401
-        case bad_auth_token // 401
-        case expired_auth_token // 401
+        case badAuthToken // 401
+        case expiredAuthToken // 401
+        case invalidResponse
+        case serverError
         case unknown
     }
     
@@ -110,15 +113,6 @@ class B2: Provider {
     //MARK: Public methods
     
 
-    public func login() {
-        authorizeAccount().then { data, response in
-            self.authorizeAccountResponse = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
-        }.catch { error in
-            print("Encountered error: \(error)")
-        }
-    }
-    
-    
     public func listBuckets(_ attempts: Int = 1) {
         if (attempts > 5) { return } // avoid infinite loop
         
@@ -128,7 +122,7 @@ class B2: Provider {
             print(parsedResult!)
         }.recover { error -> Void in
             switch error {
-            case B2Error.bad_auth_token, B2Error.expired_auth_token:
+            case B2Error.badAuthToken, B2Error.expiredAuthToken:
                 print("it's bad_auth_token again")
             default:
                 print("unhandled error: \(error)")
@@ -138,29 +132,32 @@ class B2: Provider {
         }
     }
     
-    public func getUploadUrl(_ attempts: Int = 1) {
-        if (attempts > 5) { return } // avoid infinite loop
-    
-        getUploadUrl().then { data, response in
-            try self.parseGetUploadUrl(data!) // force unwrap but should be safe?
-        }.then { parsedResult in
-           print(parsedResult!) // successful chain ends here
-        }.recover { error -> Void in
-            switch error {
-            case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                print("bad or expired auth token. attempting refresh then retrying API call.")
-                self.authorizeAccount().then { data, response in // need to add recover/catch here which would (likely) require user input
-                    try self.parseAuthorizeAccount(data!)
-                }.then { parsedResult in
-                    self.authorizeAccountResponse = parsedResult
-                }.then {
-                    self.getUploadUrl((attempts + 1)) // recursive call
+    public func getUploadUrl() -> Promise<GetUploadURLResponse> {
+        return Promise {
+            self.getUploadUrl().recover { error -> Promise<(Data?, URLResponse?)> in
+                switch error {
+                case B2Error.badAuthToken, B2Error.expiredAuthToken:
+                    print("bad or expired auth token. attempting refresh then retrying API call.")
+                    return self.authorizeAccount().then { data, response in
+                        try self.parseAuthorizeAccount(data!)
+                    }.then { parsedResult in
+                        self.authorizeAccountResponse = parsedResult
+                    }.then {
+                        self.getUploadUrl() // retry call
+                    }.catch { error in
+                        print("unhandled error: \(error)")
+                    }
+                default:
+                    print("unhandled error: \(error)")
+                    return Promise(error)
                 }
-            default:
+            }.then { data, response in
+                try self.parseGetUploadUrl(data!) // force unwrap but should be safe?
+            }.then { parsedResult in
+                return parsedResult // successful chain ends here
+            }.catch { error in
                 print("unhandled error: \(error)")
             }
-        }.catch { error in
-            print("unhandled error: \(error)")
         }
     }
     
@@ -202,10 +199,6 @@ class B2: Provider {
         return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
     }
     
-    private func get2(_ urlrequest: URLRequest) -> Promise<(Data?, URLResponse?)> {
-        return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
-    }
-    
     private func post(_ urlRequest: URLRequest,_ uploadData: Data) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
@@ -226,12 +219,12 @@ class B2: Provider {
                     } else if (400...401).contains(response.statusCode) {
                         do {
                             let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
-                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unknown) // handled status code
+                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.invalidResponse) // handled status code
                         } catch {
                             reject (error) // handled status code but problem decoding JSON
                         }
                     } else {
-                        reject (B2Error.unknown) // unhandled status code
+                        reject (B2Error.invalidResponse) // unhandled status code
                     }
                 }
             }
@@ -271,7 +264,7 @@ class B2: Provider {
             return Promise(error)
         }
         
-        guard let url = URL(string: "\(String(describing: apiUrl))/b2api/v2/b2_get_upload_url") else {
+        guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_get_upload_url") else {
             return Promise(B2Error.unknown)
         }
         
@@ -299,7 +292,7 @@ class B2: Provider {
         
         let uploadData = try? JSONEncoder().encode(request)
 
-        let url = URL(string: "\(String(describing: apiUrl))/b2api/v2/b2_list_buckets")
+        let url = URL(string: "\(apiUrl)/b2api/v2/b2_list_buckets")
         
         var urlRequest = URLRequest(url: url!)
         urlRequest.httpMethod = "POST"
