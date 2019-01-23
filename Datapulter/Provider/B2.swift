@@ -72,10 +72,11 @@ class B2: Provider {
         case none
         case downcast
         case connectionError
-        case badRequest // 400
+        case bad_request // 400
         case unauthorized // 401
-        case badAuthToken // 401
-        case expiredAuthToken // 401
+        case bad_auth_token // 401
+        case expired_auth_token // 401
+        case service_unavailable // 503
         case invalidResponse
         case serverError
         case unknown
@@ -122,7 +123,7 @@ class B2: Provider {
             print(parsedResult!)
         }.recover { error -> Void in
             switch error {
-            case B2Error.badAuthToken, B2Error.expiredAuthToken:
+            case B2Error.bad_auth_token, B2Error.expired_auth_token:
                 print("it's bad_auth_token again")
             default:
                 print("unhandled error: \(error)")
@@ -136,9 +137,9 @@ class B2: Provider {
         return Promise {
             self.getUploadUrl().recover { error -> Promise<(Data?, URLResponse?)> in
                 switch error {
-                case B2Error.badAuthToken, B2Error.expiredAuthToken:
+                case B2Error.bad_auth_token, B2Error.expired_auth_token:
                     print("bad or expired auth token. attempting refresh then retrying API call.")
-                    return self.authorizeAccount().then { data, response in
+                    return self.authorizeAccount().then { data, _ in
                         try self.parseAuthorizeAccount(data!)
                     }.then { parsedResult in
                         self.authorizeAccountResponse = parsedResult
@@ -151,8 +152,8 @@ class B2: Provider {
                     print("unhandled error: \(error)")
                     return Promise(error)
                 }
-            }.then { data, response in
-                try self.parseGetUploadUrl(data!) // force unwrap but should be safe?
+            }.then { data, _ in
+                try self.parseGetUploadUrl(data!) // force unwrap should be safe
             }.then { parsedResult in
                 return parsedResult // successful chain ends here
             }.catch { error in
@@ -161,37 +162,7 @@ class B2: Provider {
         }
     }
     
-    public func createAuthToken() {
 
-        var urlRequest = URLRequest(url: const.authorizeAccountUrl!)
-        urlRequest.httpMethod = "GET"
-        
-        let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString()
-        
-        urlRequest.setValue("Basic \(authNData!)", forHTTPHeaderField: "Authorization")
-        
-        let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
-            if let error = error {
-                print ("error: \(error)")
-                return
-            }
-            guard let response = response as? HTTPURLResponse,
-                (200...299).contains(response.statusCode) else {
-                    print ("server error")
-                    return
-            }
-            if let mimeType = response.mimeType,
-                mimeType == "application/json",
-                let data = data {
-                
-                self.authorizeAccountResponse = try! JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-                print(self.authorizeAccountResponse!)
-            }
-        }
-        task.resume()
-    }
-    
-    
     //MARK: Private methods
     
  

@@ -43,9 +43,9 @@ class Client: NSObject {
     
     //MARK: Public methods
     
-    public func upload(_ urlrequest: URLRequest,_ data: Data) -> Int {
+    public func upload(_ urlrequest: URLRequest,_ url: URL) -> Int {
         
-        let task = session.uploadTask(with: urlrequest, from: data)
+        let task = session.uploadTask(with: urlrequest, fromFile: url)
         activeTaskIds?.insert(task.taskIdentifier)
         task.resume()
         
@@ -80,6 +80,10 @@ extension Client: URLSessionDelegate {
 
 
 extension Client: URLSessionDataDelegate {
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        
+    }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         // this SHOULD be the response json

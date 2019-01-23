@@ -38,20 +38,12 @@ class AutoUpload {
             
             for provider in providers {
                 
-                /*
                 assets.enumerateObjects({ (asset, _, _) in
                     if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
-                        
-                        provider.assetsToUpload.append(asset)
-                        
-                        Utility.getDataFromAsset(asset) { data in
-                            self.createUploadTask(data)
-                            //provider.createUploadTask(data) -> URLRequest
-                        }
-                        
+                        provider.assetsToUpload.insert(asset)
                     }
-                })*/
+                })
                 
                 DispatchQueue.main.async {
                     provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
@@ -59,15 +51,24 @@ class AutoUpload {
                 
                 if let backblaze = provider as? B2 {
                     //UserDefaults.standard.removeObject(forKey: "authorizationToken")
-                    //backblaze.getUploadUrl()
-                    backblaze.getUploadUrl().then { result in
-                        print(result.uploadUrl)
+                    if (!backblaze.assetsToUpload.isEmpty) {
+                        for asset in backblaze.assetsToUpload {
+                            /*
+                             Utility.getDataFromAsset(asset) { data in
+                             self.createUploadTask(data)
+                             //provider.createUploadTask(data) -> URLRequest
+                             }*/
+                           // backblaze.assetsToUpload.remove(asset)
+                            Utility.getUrlFromAsset(asset) { url in
+                                print(url!)
+                            }
+                        }
+                        
+                        backblaze.getUploadUrl().then { result in
+                            print(result.uploadUrl)
+                        }
                     }
-                    //backblaze.listBuckets()
-                    //backblaze.createAuthToken()
-                    //print(UserDefaults.standard.string(forKey: "authorizationToken"))
-                }
-                
+                }                
                
             }
             
