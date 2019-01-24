@@ -131,9 +131,10 @@ extension Client: URLSessionDataDelegate {
             } else if (httpResponse?.statusCode == 200) {
                 
                 print("urlSession -> STATUS 200")
+                /*
                 if ((activeTaskIds?.count)! < Client.maxActiveTasks) {
                  // add more tasks, if any exist
-                }
+                }*/
             } else {
                 print("urlSession -> UNHANDLED ERROR")
                 // very bad

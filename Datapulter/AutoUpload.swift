@@ -49,17 +49,41 @@ class AutoUpload {
                 
                 if let backblaze = provider as? B2 {
                     if (!backblaze.assetsToUpload.isEmpty) {
+                        /*
                         for asset in backblaze.assetsToUpload {
                             print(Utility.getSizeFromAsset(asset))
-                            //Utility.getSizeFromAsset(asset) { fileSize in
-                              //  print("filesize \(fileSize)")
-                            //}
-                           // Utility.getUrlFromAsset(asset) { url in
-                              //  print(url!)
-                          //  }
-                        }
+                            Utility.getSizeFromAsset(asset) { fileSize in
+                                print("filesize \(fileSize)")
+                            }
+                            Utility.getUrlFromAsset(asset) { url in
+                                print(url!)
+                            }
+                        }*/
+                        
+                        
                         
                         backblaze.getUploadUrl().then { result in
+                            var urlRequest: URLRequest
+                            let assetResources = PHAssetResource.assetResources(for: backblaze.assetsToUpload.first!)
+                            
+                            urlRequest = URLRequest(url: result.uploadUrl)
+                            urlRequest.httpMethod = "POST"
+                            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: "Authorization")
+                            urlRequest.setValue(String(Utility.getSizeFromAsset(backblaze.assetsToUpload.first!)), forHTTPHeaderField: "Content-Length")
+                            urlRequest.setValue("b2/x-auto", forHTTPHeaderField: "Content-Type")
+                            urlRequest.setValue(assetResources.first!.originalFilename, forHTTPHeaderField: "X-Bz-File-Name")
+                            urlRequest.setValue(String(backblaze.assetsToUpload.first!.creationDate!.millisecondsSince1970), forHTTPHeaderField: "X-Bz-Info-src_last_modified_millis")
+                            
+                            Utility.getDataFromAsset(backblaze.assetsToUpload.first!) { data in
+                                urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: "X-Bz-Content-Sha1")
+                                
+                                Utility.getUrlFromAsset(backblaze.assetsToUpload.first!) { url in
+                                    _ = Client.shared.upload(urlRequest, url!)
+                                }
+                                
+                            }
+                            
+                            
                             print(result.uploadUrl)
                         }
                     }
@@ -78,6 +102,7 @@ class AutoUpload {
         //print(asset.creationDate?.millisecondsSince1970)
         //print(assetResources.first!.originalFilename)
         //print(data.hashWithRSA2048Asn1Header(.sha1))
+        
     }
 
 }
