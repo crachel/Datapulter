@@ -34,8 +34,6 @@ class AutoUpload {
     public func start() {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             
-            //let assets = Utility.getCameraRollAssets()
-            
             for provider in providers {
                 
                 assets.enumerateObjects({ (asset, _, _) in
@@ -50,25 +48,22 @@ class AutoUpload {
                 }
                 
                 if let backblaze = provider as? B2 {
-                    //UserDefaults.standard.removeObject(forKey: "authorizationToken")
                     if (!backblaze.assetsToUpload.isEmpty) {
                         for asset in backblaze.assetsToUpload {
-                            /*
-                             Utility.getDataFromAsset(asset) { data in
-                             self.createUploadTask(data)
-                             //provider.createUploadTask(data) -> URLRequest
-                             }*/
-                           // backblaze.assetsToUpload.remove(asset)
-                            Utility.getUrlFromAsset(asset) { url in
-                                print(url!)
-                            }
+                            print(Utility.getSizeFromAsset(asset))
+                            //Utility.getSizeFromAsset(asset) { fileSize in
+                              //  print("filesize \(fileSize)")
+                            //}
+                           // Utility.getUrlFromAsset(asset) { url in
+                              //  print(url!)
+                          //  }
                         }
                         
                         backblaze.getUploadUrl().then { result in
                             print(result.uploadUrl)
                         }
                     }
-                }                
+                }
                
             }
             

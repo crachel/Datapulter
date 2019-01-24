@@ -24,6 +24,15 @@ struct AuthorizeAccountResponse: Codable {
     let allowed: Allowed
 }
 
+struct AssetMetaData {
+    var fileName: String
+    var contentType: String
+    var contentLength: Int64
+    var contentSha1: String
+    var lastModified: Int64
+    var fileInfo: [String: String]
+}
+
 struct Bucket: Codable {
     var accountId: String
     var bucketId: String
