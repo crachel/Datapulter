@@ -54,6 +54,10 @@ class Client: NSObject {
         session.dataTask(with: urlrequest)
     }
     
+    public func isActive() -> Bool {
+        return ((activeTaskIds?.count) != nil)
+    }
+    
 }
 
 
@@ -86,15 +90,7 @@ extension Client: URLSessionDataDelegate {
         
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
         
-        do {
-            let json = try JSONSerialization.jsonObject(with: data)
-            print("\(json)")
-            
-            AutoUpload.shared.handler(json, httpResponse, dataTask.taskIdentifier)
-        } catch {
-            print("\(error.localizedDescription)")
-        }
-
+        AutoUpload.shared.handler(data, httpResponse, dataTask.taskIdentifier)
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {

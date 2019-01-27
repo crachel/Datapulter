@@ -20,7 +20,12 @@ class B2: Provider {
     struct const {
         static let apiMainURL = "https://api.backblazeb2.com"
         static let authorizeAccountUrl = URL(string: "\(const.apiMainURL)/b2api/v2/b2_authorize_account")
-        static let headerPrefix = "x-bz-info-"
+        static let headerPrefix = "X-Bz-Info-"
+        static let authorizationHeader = "Authorization"
+        static let fileNameHeader = "X-Bz-File-Name"
+        static let contentLengthHeader = "Content-Length"
+        static let contentType = "b2/x-auto"
+        static let contentTypeHeader = "Content-Type"
         static let timeKey = "src_last_modified_millis"
         static let timeHeader = headerPrefix + timeKey
         static let sha1Key = "large_file_sha1"
@@ -166,35 +171,49 @@ class B2: Provider {
     public func startUploadTask() {
         if (!assetsToUpload.isEmpty) {
             getUploadUrl().then { result in
-                var urlRequest: URLRequest
-                let assetResources = PHAssetResource.assetResources(for: self.assetsToUpload.first!)
-                
-                urlRequest = URLRequest(url: result.uploadUrl)
-                urlRequest.httpMethod = "POST"
-                urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: "Authorization")
-                urlRequest.setValue(String(Utility.getSizeFromAsset(self.assetsToUpload.first!)), forHTTPHeaderField: "Content-Length")
-                urlRequest.setValue("b2/x-auto", forHTTPHeaderField: "Content-Type")
-                urlRequest.setValue(assetResources.first!.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed), forHTTPHeaderField: "X-Bz-File-Name")
-                urlRequest.setValue(String(self.assetsToUpload.first!.creationDate!.millisecondsSince1970), forHTTPHeaderField: "X-Bz-Info-src_last_modified_millis")
-                
-                autoreleasepool(invoking: { () -> () in
-                    Utility.getDataFromAsset(self.assetsToUpload.first!) { data in
-                        
-                        urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: "X-Bz-Content-Sha1")
-                        
-                        Utility.getUrlFromAsset(self.assetsToUpload.first!) { url in
-                            let taskId = Client.shared.upload(urlRequest, url!)
-                            AutoUpload.shared.uploadingAssets = [taskId: self.assetsToUpload.first!]
+                if let asset = self.assetsToUpload.first {
+                    var urlRequest: URLRequest
+                    
+                    urlRequest = URLRequest(url: result.uploadUrl)
+                    urlRequest.httpMethod = "POST"
+                    
+                    // Header: Authorization
+                    urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+                    
+                    // Header: Content Type
+                    urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
+                    
+                    // Header: Content Length
+                    urlRequest.setValue(String(Utility.getSizeFromAsset(asset)), forHTTPHeaderField: const.contentLengthHeader)
+                    
+                    // Header: File Name
+                    if let assetResources = PHAssetResource.assetResources(for: asset).first {
+                        if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
+                            urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
                         }
-                        
                     }
-                })
-                
-                print(result.uploadUrl)
+                    
+                    // Header: Last Modified
+                    if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
+                        urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
+                    }
+                    
+                    Utility.getDataFromAsset(asset) { data in
+                        // Header: SHA-1 Checksum
+                        urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+                        
+                        Utility.getUrlFromAsset(asset) { url in
+                            if let url = url {
+                                let taskId = Client.shared.upload(urlRequest, url)
+                                AutoUpload.shared.uploadingAssets = [taskId: asset]
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-    
+
 
     //MARK: Private methods
     

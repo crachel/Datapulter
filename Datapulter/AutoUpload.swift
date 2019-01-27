@@ -51,44 +51,42 @@ class AutoUpload {
                 assetsToUploadCount = provider.assetsToUpload.count
                 
                 if let backblaze = provider as? B2 {
-                    if (!backblaze.assetsToUpload.isEmpty) {
-    
+                    if (!backblaze.assetsToUpload.isEmpty && !Client.shared.isActive()) {
                         backblaze.startUploadTask()
-                        
                     }
                 }
-               
             }
-            
         } else {
             // No photo permission
         }
     }
     
-    public func handler(_ json: Any,_ response: HTTPURLResponse,_ task: Int) {
-        var asset: PHAsset
-        // called by URLSession didReceive data delegate
-        if (response.statusCode == 200) {
-            //remove from assetstoupload
-            //add to remotefilelist
-            //asset = PHAsset.fetchAssets(withLocalIdentifiers: [uploadingAssets![task]!], options: nil)
-           
-                asset = uploadingAssets![task]!
-            
-            
-            for provider in providers {
-                if let backblaze = provider as? B2 {
-                    if (!backblaze.assetsToUpload.isEmpty) {
-                        backblaze.assetsToUpload.remove(asset)
-                        
-                        DispatchQueue.main.async {
-                            backblaze.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
+    public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: Int) {
+        if let asset = uploadingAssets?[task] {
+            if (response.statusCode == 200) {
+                for provider in providers {
+                    if let backblaze = provider as? B2 {
+                        do {
+                            let json = try JSONSerialization.jsonObject(with: data)
+                            print("\(json)")
+                        } catch {
+                            print("\(error.localizedDescription)")
                         }
+                        
+                        
+                        if (!backblaze.assetsToUpload.isEmpty) {
+                            backblaze.assetsToUpload.remove(asset)
+                            //add to remotefilelist
+                            
+                            DispatchQueue.main.async {
+                                backblaze.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
+                            }
+                        }
+                        //backblaze.startUploadTask()
+                        print("wouldve looped")
                     }
-                    backblaze.startUploadTask()
-                    //print("wouldve looped")
                 }
-            }
+            } // else if response 401 etc
         }
     }
 }

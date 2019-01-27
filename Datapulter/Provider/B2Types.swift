@@ -109,14 +109,14 @@ struct JSONError: Codable {
 
 struct UploadFileResponse: Codable {
     var accountId: String
-    var action: String?
+    var action: String
     var bucketId: String
     var contentLength: Int64
     var contentSha1: String
     var contentType: String
     var fileId: String
     var fileName: String
-    var uploadTimestamp: String?
+    var uploadTimestamp: String
     let fileInfo: [String: String]?
     
     private enum CodingKeys: String, CodingKey {
@@ -135,14 +135,14 @@ struct UploadFileResponse: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         accountId = try container.decode(String.self, forKey: .accountId)
-        action? = try container.decode(String.self, forKey: .action)
+        action = try container.decode(String.self, forKey: .action)
         bucketId = try container.decode(String.self, forKey: .bucketId)
         contentLength = try container.decode(Int64.self, forKey: .contentLength)
         contentSha1 = try container.decode(String.self, forKey: .contentSha1)
         contentType = try container.decode(String.self, forKey: .contentType)
         fileId = try container.decode(String.self, forKey: .fileId)
         fileName = try container.decode(String.self, forKey: .fileName)
-        uploadTimestamp? = try container.decode(String.self, forKey: .uploadTimestamp)
+        uploadTimestamp = try container.decode(String.self, forKey: .uploadTimestamp)
         
         fileInfo = [String: String]()
         let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
