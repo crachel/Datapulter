@@ -8,6 +8,7 @@
 import UIKit
 import os.log
 import Promises
+import Photos
 
 
 class B2: Provider {
@@ -135,7 +136,7 @@ class B2: Provider {
     
     public func getUploadUrl() -> Promise<GetUploadURLResponse> {
         return Promise {
-            self.getUploadUrl().recover { error -> Promise<(Data?, URLResponse?)> in
+            self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
                 switch error {
                 case B2Error.bad_auth_token, B2Error.expired_auth_token:
                     print("bad or expired auth token. attempting refresh then retrying API call.")
@@ -144,7 +145,7 @@ class B2: Provider {
                     }.then { parsedResult in
                         self.authorizeAccountResponse = parsedResult
                     }.then {
-                        self.getUploadUrl() // retry call
+                        self.getUploadUrlApi() // retry call
                     }.catch { error in
                         print("unhandled error: \(error)")
                     }
@@ -158,6 +159,38 @@ class B2: Provider {
                 return parsedResult // successful chain ends here
             }.catch { error in
                 print("unhandled error: \(error)")
+            }
+        }
+    }
+    
+    public func startUploadTask() {
+        if (!assetsToUpload.isEmpty) {
+            getUploadUrl().then { result in
+                var urlRequest: URLRequest
+                let assetResources = PHAssetResource.assetResources(for: self.assetsToUpload.first!)
+                
+                urlRequest = URLRequest(url: result.uploadUrl)
+                urlRequest.httpMethod = "POST"
+                urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: "Authorization")
+                urlRequest.setValue(String(Utility.getSizeFromAsset(self.assetsToUpload.first!)), forHTTPHeaderField: "Content-Length")
+                urlRequest.setValue("b2/x-auto", forHTTPHeaderField: "Content-Type")
+                urlRequest.setValue(assetResources.first!.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed), forHTTPHeaderField: "X-Bz-File-Name")
+                urlRequest.setValue(String(self.assetsToUpload.first!.creationDate!.millisecondsSince1970), forHTTPHeaderField: "X-Bz-Info-src_last_modified_millis")
+                
+                autoreleasepool(invoking: { () -> () in
+                    Utility.getDataFromAsset(self.assetsToUpload.first!) { data in
+                        
+                        urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: "X-Bz-Content-Sha1")
+                        
+                        Utility.getUrlFromAsset(self.assetsToUpload.first!) { url in
+                            let taskId = Client.shared.upload(urlRequest, url!)
+                            AutoUpload.shared.uploadingAssets = [taskId: self.assetsToUpload.first!]
+                        }
+                        
+                    }
+                })
+                
+                print(result.uploadUrl)
             }
         }
     }
@@ -223,7 +256,7 @@ class B2: Provider {
         }
     }
     
-    private func getUploadUrl() -> Promise<(Data?, URLResponse?)> {
+    private func getUploadUrlApi() -> Promise<(Data?, URLResponse?)> {
         var urlRequest: URLRequest
         var uploadData: Data
         

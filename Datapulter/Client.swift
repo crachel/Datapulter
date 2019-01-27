@@ -7,7 +7,6 @@
 //
 
 import UIKit
-//import Promises
 
 class Client: NSObject {
     
@@ -19,9 +18,6 @@ class Client: NSObject {
     
     private var session: URLSession!
     private var activeTaskIds: Set<Int>?
-    
-    
-    let decoder = JSONDecoder()
     
     //MARK: Singleton
     
@@ -52,7 +48,7 @@ class Client: NSObject {
         return (task.taskIdentifier)
         
     }
-        
+    
     public func test(_ urlrequest: URLRequest) {
        
         session.dataTask(with: urlrequest)
@@ -82,20 +78,19 @@ extension Client: URLSessionDelegate {
 extension Client: URLSessionDataDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
-        
+        //print(totalBytesSent)
     }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        // this SHOULD be the response json
         print("urlSession -> didReceiveData")
         
-        //let httpResponse = dataTask.response as? HTTPURLResponse
-        //let response = try! decoder.decode(UploadFileResponse.self, from: data)
+        guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
+        
         do {
             let json = try JSONSerialization.jsonObject(with: data)
-            
             print("\(json)")
-            // do something with json
+            
+            AutoUpload.shared.handler(json, httpResponse, dataTask.taskIdentifier)
         } catch {
             print("\(error.localizedDescription)")
         }
@@ -105,11 +100,9 @@ extension Client: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         print("urlSession -> didCompleteWithError")
         
-        let httpResponse = task.response as? HTTPURLResponse
+        guard let httpResponse = task.response as? HTTPURLResponse else { return }
         
         activeTaskIds?.remove(task.taskIdentifier)
-        
-        //let something = task.originalRequest?.allHTTPHeaderFields
         
         if let error = error {
             // handle failure here
@@ -118,26 +111,32 @@ extension Client: URLSessionDataDelegate {
             print("\(error.localizedDescription)")
         } else {
             
-            if (httpResponse?.statusCode == 401 || httpResponse?.statusCode == 503) {
-                print("urlSession -> STATUS 401 or 503")
+            if (httpResponse.statusCode == 401) {
+                
+                print("urlSession -> STATUS 401")
+                
                 // prob unauthorized
                 // get new url & token.
                 // get image data somehow
                 // AutoUpload.reauthorizeRequest(newRequest, data)
+                /*
+                 unlikely to see this since getuploadurl call should rectify 401 shortly before uploadfile call
+ */
                 
-                var newRequest = task.originalRequest
-                newRequest?.setValue("newgoodtoken", forHTTPHeaderField: "Authorization")
+                //var newRequest = task.originalRequest
+                //newRequest?.setValue("newgoodtoken", forHTTPHeaderField: "Authorization")
+                //AutoUpload.reauthorize(newRequest)
+            } else if (httpResponse.statusCode == 503) {
                 
-            } else if (httpResponse?.statusCode == 200) {
+                print("urlSession -> STATUS 503")
+                
+            } else if (httpResponse.statusCode == 200) {
                 
                 print("urlSession -> STATUS 200")
-                /*
-                if ((activeTaskIds?.count)! < Client.maxActiveTasks) {
-                 // add more tasks, if any exist
-                }*/
+                print("task \(task.taskIdentifier) finished successfully.")
+                
             } else {
                 print("urlSession -> UNHANDLED ERROR")
-                // very bad
             }
         }
     }
