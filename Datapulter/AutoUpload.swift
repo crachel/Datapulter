@@ -53,6 +53,7 @@ class AutoUpload {
                 if let backblaze = provider as? B2 {
                     if (!backblaze.assetsToUpload.isEmpty && !Client.shared.isActive()) {
                         backblaze.startUploadTask()
+                        
                     }
                 }
             }
@@ -82,8 +83,8 @@ class AutoUpload {
                                 backblaze.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
                             }
                         }
-                        //backblaze.startUploadTask()
-                        print("wouldve looped")
+                        backblaze.startUploadTask()
+                        //print("wouldve looped")
                     }
                 }
             } // else if response 401 etc

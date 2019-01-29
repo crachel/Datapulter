@@ -176,30 +176,22 @@ class B2: Provider {
                     
                     urlRequest = URLRequest(url: result.uploadUrl)
                     urlRequest.httpMethod = "POST"
-                    
-                    // Header: Authorization
                     urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-                    
-                    // Header: Content Type
                     urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
                     
-                    // Header: Content Length
                     urlRequest.setValue(String(Utility.getSizeFromAsset(asset)), forHTTPHeaderField: const.contentLengthHeader)
                     
-                    // Header: File Name
                     if let assetResources = PHAssetResource.assetResources(for: asset).first {
                         if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
                             urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
                         }
                     }
                     
-                    // Header: Last Modified
                     if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
                         urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
                     }
                     
                     Utility.getDataFromAsset(asset) { data in
-                        // Header: SHA-1 Checksum
                         urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
                         
                         Utility.getUrlFromAsset(asset) { url in

@@ -17,7 +17,7 @@ class Client: NSObject {
     static let maxActiveTasks = 5
     
     private var session: URLSession!
-    private var activeTaskIds: Set<Int>?
+    public var activeTaskIds: Set<Int>?
     
     //MARK: Singleton
     
