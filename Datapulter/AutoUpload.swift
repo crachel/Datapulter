@@ -52,6 +52,7 @@ class AutoUpload {
                 
                 if let backblaze = provider as? B2 {
                     if (!backblaze.assetsToUpload.isEmpty && !Client.shared.isActive()) {
+                        
                         backblaze.startUploadTask()
                         
                     }
@@ -65,26 +66,31 @@ class AutoUpload {
     public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: Int) {
         if let asset = uploadingAssets?[task] {
             if (response.statusCode == 200) {
+                
                 for provider in providers {
                     if let backblaze = provider as? B2 {
+                       
                         do {
                             let json = try JSONSerialization.jsonObject(with: data)
+                            backblaze.remoteFileList[asset] = json
                             print("\(json)")
                         } catch {
                             print("\(error.localizedDescription)")
                         }
                         
-                        
+                        print("active tasks \(String(describing: Client.shared.activeTaskIds?.count))")
                         if (!backblaze.assetsToUpload.isEmpty) {
+                            //uploadingAssets?.remove(at: task)
                             backblaze.assetsToUpload.remove(asset)
+                            //
                             //add to remotefilelist
                             
                             DispatchQueue.main.async {
                                 backblaze.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
                             }
                         }
-                        backblaze.startUploadTask()
-                        //print("wouldve looped")
+                        //backblaze.startUploadTask()
+                        print("wouldve looped")
                     }
                 }
             } // else if response 401 etc

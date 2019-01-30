@@ -164,26 +164,55 @@ class ProviderTableViewController: UITableViewController {
     
     private func saveProviders() {
         //let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(providers, toFile: Provider.ArchiveURL.path)
-        let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(AutoUpload.shared.providers, toFile: Provider.ArchiveURL.path)
+        //let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(AutoUpload.shared.providers, toFile: Provider.ArchiveURL.path)
         
+        
+        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
+        
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: false)
+            try data.write(to: fullPath)
+            os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
+        } catch {
+            os_log("Failed to save providers...", log: OSLog.default, type: .error)
+        }
         /*
         do {
             try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: true)
         } catch {
             print(error)
         }*/
-        
+        /*
         if isSuccessfulSave {
             os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
         } else {
             os_log("Failed to save providers...", log: OSLog.default, type: .error)
-        }
+        }*/
     }
     
     private func loadProviders() -> [Provider]?  {
         
-        return NSKeyedUnarchiver.unarchiveObject(withFile: Provider.ArchiveURL.path) as? [Provider]
-        
+        //return NSKeyedUnarchiver.unarchiveObject(withFile: Provider.ArchiveURL.path) as? [Provider]
+        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
+        if let nsData = NSData(contentsOf: fullPath) {
+            do {
+                
+                let data = Data(referencing:nsData)
+                
+                if let loadedProviders = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? Array<Provider> {
+                    return loadedProviders
+                }
+            } catch {
+                print("Couldn't read file.")
+                return nil
+            }
+        }
+        return nil
+    }
+    
+    private func getDocumentsDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0]
     }
     
     private func loadSampleProviders() {
