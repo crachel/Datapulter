@@ -27,7 +27,7 @@ class ProviderTableViewController: UITableViewController {
         //loadSampleProviders()
 
         DispatchQueue.global(qos: .userInitiated).async {
-            AutoUpload.shared.start()
+            //AutoUpload.shared.start()
         }
         
         // Register to receive photo library change messages
