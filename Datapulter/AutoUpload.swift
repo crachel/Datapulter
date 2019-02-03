@@ -23,7 +23,7 @@ class AutoUpload {
     var providers = [Provider]()
     var uploadingAssets: [TaskId: PHAsset]? // URLSessionTask associated with each PHAsset
     
-    var assetsToUploadCount: Int?
+    var totalAssetsToUpload: Int = 0
 
     //MARK: Initialization
     
@@ -32,7 +32,8 @@ class AutoUpload {
         assets = Utility.getCameraRollAssets()
         
     }
- 
+
+    
     //MARK: Public Methods
     
     public func start() {
@@ -45,15 +46,22 @@ class AutoUpload {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.insert(asset)
                         
+                    
+                        // get all metadata here
+                        //Utility.getSizeFromAsset(asset))
+                        
+                       
+ 
                     }
                 })
                 
-                assetsToUploadCount = provider.assetsToUpload.count
+                totalAssetsToUpload = provider.assetsToUpload.count
                 
                 if let backblaze = provider as? B2 {
                     if (!backblaze.assetsToUpload.isEmpty && !Client.shared.isActive()) {
                         
                         backblaze.startUploadTask()
+                        
                         
                     }
                 }
@@ -71,29 +79,35 @@ class AutoUpload {
                     if let backblaze = provider as? B2 {
                        
                         do {
-                            let json = try JSONSerialization.jsonObject(with: data)
+                            let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
                             backblaze.remoteFileList[asset] = json
-                            print("\(json)")
                         } catch {
                             print("\(error.localizedDescription)")
                         }
                         
-                        print("active tasks \(String(describing: Client.shared.activeTaskIds?.count))")
                         if (!backblaze.assetsToUpload.isEmpty) {
-                            //uploadingAssets?.remove(at: task)
                             backblaze.assetsToUpload.remove(asset)
-                            //
-                            //add to remotefilelist
-                            
-                            DispatchQueue.main.async {
-                                backblaze.cell?.ringView.value = UICircularProgressRing.ProgressValue(provider.assetsToUpload.count)
-                            }
                         }
-                        //backblaze.startUploadTask()
-                        print("wouldve looped")
+                        let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
+                        hud("uploaded \(totalUploads)")
+                        backblaze.startUploadTask()
+                        //print("wouldve looped")
                     }
                 }
             } // else if response 401 etc
+        }
+    }
+    
+    public func hud (_ totalBytesSent: Float,_ totalBytesExpectedToSend: Float) {
+        DispatchQueue.main.async {
+            let value = (totalBytesSent / totalBytesExpectedToSend * 100)
+            self.providers[0].cell?.ringView.value = UICircularProgressRing.ProgressValue(value)
+        }
+    }
+    
+    public func hud (_ text: String) {
+        DispatchQueue.main.async {
+            self.providers[0].cell?.hudLabel.text = text
         }
     }
 }

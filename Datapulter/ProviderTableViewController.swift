@@ -27,12 +27,11 @@ class ProviderTableViewController: UITableViewController {
         //loadSampleProviders()
 
         DispatchQueue.global(qos: .userInitiated).async {
-            //AutoUpload.shared.start()
+            AutoUpload.shared.start()
         }
         
         // Register to receive photo library change messages
         PHPhotoLibrary.shared().register(self)
-        
     }
     
     deinit {
@@ -69,11 +68,11 @@ class ProviderTableViewController: UITableViewController {
         cell.providerLabel.text = provider.name
         
         cell.ringView.innerRingColor = provider.innerRing
-        cell.ringView.outerRingWidth = 10
-        cell.ringView.innerRingWidth = 10
+        cell.ringView.outerRingWidth = 8
+        cell.ringView.innerRingWidth = 8
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
-        cell.ringView.value = 77
+        cell.ringView.valueKnobSize = 10
         
         provider.cell = cell
 

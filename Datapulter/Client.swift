@@ -16,7 +16,7 @@ class Client: NSObject {
     
     static let maxActiveTasks = 5
     
-    private var session: URLSession!
+    public var session: URLSession!
     public var activeTaskIds: Set<Int>?
     
     //MARK: Singleton
@@ -82,7 +82,7 @@ extension Client: URLSessionDelegate {
 extension Client: URLSessionDataDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
-        //print(totalBytesSent)
+        AutoUpload.shared.hud(Float(totalBytesSent), Float(totalBytesExpectedToSend))
     }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {

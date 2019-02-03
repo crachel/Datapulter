@@ -35,7 +35,8 @@ class B2: Provider {
         static let retryAfterHeader = "Retry-After"
         static let maxParts = 10000
         static let maxVersions = 100 // maximum number of versions we search in --b2-versions mode
-        static let defaultUploadCutoff = 200 * 1024 * 1024
+        static let defaultUploadCutoff = 200 * 1_024 * 1_024
+        static let defaultChunkSize = 96 * 1_024 * 1_024
     }
     
     var account: String
@@ -69,6 +70,7 @@ class B2: Provider {
     }
     var listBucketsResponse: ListBucketsResponse?
     var getUploadUrlResponse: GetUploadURLResponse?
+    var getUploadPartUrlResponse: GetUploadPartURLResponse?
     
     
     //MARK: Types
@@ -119,25 +121,6 @@ class B2: Provider {
     
     //MARK: Public methods
     
-
-    public func listBuckets(_ attempts: Int = 1) {
-        if (attempts > 5) { return } // avoid infinite loop
-        
-        listBuckets().then { data, response in
-            try self.parseListBuckets(data!)
-        }.then { parsedResult in
-            print(parsedResult!)
-        }.recover { error -> Void in
-            switch error {
-            case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                print("it's bad_auth_token again")
-            default:
-                print("unhandled error: \(error)")
-            }
-        }.catch { error in
-            print("unhandled error: \(error)")
-        }
-    }
     
     public func getUploadUrl() -> Promise<GetUploadURLResponse> {
         return Promise {
@@ -152,10 +135,10 @@ class B2: Provider {
                     }.then {
                         self.getUploadUrlApi() // retry call
                     }.catch { error in
-                        print("unhandled error: \(error)")
+                        print("unhandled error (authorizeAccount): \(error)")
                     }
                 default:
-                    print("unhandled error: \(error)")
+                    print("unhandled error (getUploadUrlApi): \(error)")
                     return Promise(error)
                 }
             }.then { data, _ in
@@ -163,41 +146,129 @@ class B2: Provider {
             }.then { parsedResult in
                 return parsedResult // successful chain ends here
             }.catch { error in
-                print("unhandled error: \(error)")
+                print("unhandled error (getUploadUrlApi): \(error)")
+            }
+        }
+    }
+    
+    public func startLargeFile(_ fileName: String) -> Promise<GetUploadPartURLResponse> {
+        return Promise {
+            self.startLargeFileApi(fileName).recover { error -> Promise<(Data?, URLResponse?)> in
+                switch error {
+                case B2Error.bad_auth_token, B2Error.expired_auth_token:
+                    print("bad or expired auth token. attempting refresh then retrying API call.")
+                    return self.authorizeAccount().then { data, _ in
+                        try self.parseAuthorizeAccount(data!)
+                        }.then { parsedResult in
+                            self.authorizeAccountResponse = parsedResult
+                        }.then {
+                            self.startLargeFileApi(fileName) // retry call
+                        }.catch { error in
+                            print("unhandled error (authorizeAccount): \(error)")
+                    }
+                default:
+                    print("unhandled error (startLargeFileApi): \(error.localizedDescription)")
+                    return Promise(error)
+                }
+                }.then { data, _ in
+                    try self.parseStartLargeFile(data!) // force unwrap should be safe
+                }.then { parsedResult in
+                    return self.getUploadPartUrlApi(parsedResult["fileId"] as! String) // successful chain ends here
+                }.then { data, _ in
+                    try self.parseGetUploadPartUrl(data!) // force unwrap should be safe
+                }.then { parsedResult in
+                    return parsedResult // successful chain ends here
+                }.catch { error in
+                    print("unhandled error (startLargeFile): \(error)")
             }
         }
     }
     
     public func startUploadTask() {
         if (!assetsToUpload.isEmpty) {
-            getUploadUrl().then { result in
-                if let asset = self.assetsToUpload.first {
-                    var urlRequest: URLRequest
-                    
-                    urlRequest = URLRequest(url: result.uploadUrl)
-                    urlRequest.httpMethod = "POST"
-                    urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-                    urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
-                    
-                    urlRequest.setValue(String(Utility.getSizeFromAsset(asset)), forHTTPHeaderField: const.contentLengthHeader)
-                    
-                    if let assetResources = PHAssetResource.assetResources(for: asset).first {
-                        if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
-                            urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
+            if let asset = self.assetsToUpload.first {
+                
+                let size = Utility.getSizeFromAsset(asset) // < const.defaultUploadCutoff
+                
+                if (size < const.defaultUploadCutoff ) {
+                    getUploadUrl().then { result in
+                        var urlRequest: URLRequest
+                        
+                        urlRequest = URLRequest(url: result.uploadUrl)
+                        urlRequest.httpMethod = "POST"
+                        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+                        urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
+                        
+                        urlRequest.setValue(String(size), forHTTPHeaderField: const.contentLengthHeader)
+                        
+                        if let assetResources = PHAssetResource.assetResources(for: asset).first {
+                            if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
+                                urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
+                                
+                            }
+                        }
+                        
+                        if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
+                            urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
+                        }
+                        
+                        Utility.getDataFromAsset(asset) { data in
+                            urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+                            
+                            Utility.getUrlFromAsset(asset) { url in
+                                if let url = url {
+                                    let taskId = Client.shared.upload(urlRequest, url)
+                                    AutoUpload.shared.uploadingAssets = [taskId: asset]
+                                }
+                            }
                         }
                     }
+                } else {
+                    // handle large upload
+                    let payloadFileURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                        .appendingPathComponent(UUID().uuidString)
                     
-                    if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
-                        urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
+                    //open temp dir for writing from stream. means user needs const.defaultchunksize
+                    //available space. could be problem. need to check for this eventually
+                    guard let outputStream = OutputStream(url: payloadFileURL, append: false) else {
+                        return
                     }
                     
-                    Utility.getDataFromAsset(asset) { data in
-                        urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
-                        
-                        Utility.getUrlFromAsset(asset) { url in
-                            if let url = url {
-                                let taskId = Client.shared.upload(urlRequest, url)
-                                AutoUpload.shared.uploadingAssets = [taskId: asset]
+                    Utility.getUrlFromAsset(asset) { url in
+                        if let url = url {
+                            if let inputStream = InputStream.init(url: url) {
+                                inputStream.open()
+                                var buffer = [UInt8](repeating: 0, count: B2.const.defaultChunkSize)
+                                var bytes = 0
+                                var totalBytes = 0
+                                repeat {
+                                    bytes = inputStream.read(&buffer, maxLength: B2.const.defaultChunkSize)
+                                    if bytes > 0 {
+                                        let data = Data(bytes: buffer, count: bytes)
+                                        
+                                        print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
+                                        print("data.count \(data.count)")
+                                        print("bytes \(String(bytes))")
+                                        
+                                       
+                                        outputStream.write(buffer, maxLength: bytes)
+                                        
+                                        if let assetResources = PHAssetResource.assetResources(for: asset).first {
+                                            if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
+                                                //urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
+                                                self.startLargeFile(fileName).then { result in
+                                                    print(result.uploadUrl)
+                                                }
+                                            }
+                                        }
+                                        
+                                        
+                                        
+                                        totalBytes += bytes
+                                    }
+                                } while bytes > 0
+                                
+                                inputStream.close()
                             }
                         }
                     }
@@ -209,7 +280,7 @@ class B2: Provider {
 
     //MARK: Private methods
     
- 
+    
     private func get(_ urlrequest: URLRequest) -> Promise<(Data?, URLResponse?)> {
         return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
     }
@@ -267,6 +338,44 @@ class B2: Provider {
         }
     }
     
+    private func getUploadPartUrlApi(_ fileId: String) -> Promise<(Data?, URLResponse?)> {
+        var urlRequest: URLRequest
+        var uploadData: Data
+        
+        let request = GetUploadPartURLRequest(fileId: fileId)
+        
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            return Promise(error)
+        }
+        
+        guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_get_upload_part_url") else {
+            return Promise(B2Error.unknown)
+        }
+        
+        urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
+        
+        return post(urlRequest, uploadData)
+    }
+    
+    private func parseGetUploadPartUrl(_ data: Data) throws -> Promise<GetUploadPartURLResponse?> {
+        return Promise { () -> GetUploadPartURLResponse in
+            do {
+                self.getUploadPartUrlResponse = try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+                if let response = self.getUploadPartUrlResponse {
+                    return response
+                } else {
+                    throw B2Error.unknown
+                }
+            } catch {
+                throw error
+            }
+        }
+    }
+    
     private func getUploadUrlApi() -> Promise<(Data?, URLResponse?)> {
         var urlRequest: URLRequest
         var uploadData: Data
@@ -293,8 +402,52 @@ class B2: Provider {
     private func parseGetUploadUrl(_ data: Data) throws -> Promise<GetUploadURLResponse?> {
         return Promise { () -> GetUploadURLResponse in
             do {
-                return try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+                self.getUploadUrlResponse = try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+                if let response = self.getUploadUrlResponse {
+                    return response
+                } else {
+                    throw B2Error.unknown
+                }
             } catch {
+                throw error
+            }
+        }
+    }
+    
+    
+    
+    private func startLargeFileApi(_ fileName: String) -> Promise<(Data?, URLResponse?)> {
+        var urlRequest: URLRequest
+        var uploadData: Data
+        
+        let request = StartLargeFileRequest(bucketId: bucketId,
+                                            fileName: fileName,
+                                            contentType: const.contentType)
+        
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            return Promise(error)
+        }
+        
+        guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_start_large_file") else {
+            return Promise(B2Error.unknown)
+        }
+        
+        urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
+        
+        return post(urlRequest, uploadData)
+    }
+    
+    private func parseStartLargeFile(_ data: Data) throws -> Promise<[String?: Any?]> {
+        return Promise { () -> [String: Any] in
+            do {
+                let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+                return json
+            } catch {
+                print("\(error.localizedDescription)")
                 throw error
             }
         }

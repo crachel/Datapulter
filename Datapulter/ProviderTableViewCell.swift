@@ -14,6 +14,8 @@ class ProviderTableViewCell: UITableViewCell {
     //MARK: Properties
     @IBOutlet weak var ringView: UICircularProgressRing!
     @IBOutlet weak var providerLabel: UILabel!
+    @IBOutlet weak var progressLine: UIProgressView!
+    @IBOutlet weak var hudLabel: UILabel!
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -25,5 +27,5 @@ class ProviderTableViewCell: UITableViewCell {
 
         // Configure the view for the selected state
     }
-
+    
 }

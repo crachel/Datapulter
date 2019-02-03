@@ -101,6 +101,69 @@ struct GetUploadURLRequest: Codable {
     var bucketId: String
 }
 
+struct GetUploadPartURLRequest: Codable {
+    var fileId: String
+}
+
+struct GetUploadPartURLResponse: Codable {
+    var fileId: String
+    var uploadUrl: String
+    var authorizationToken: String
+}
+
+struct StartLargeFileRequest: Codable {
+    var bucketId: String
+    var fileName: String
+    var contentType: String
+}
+
+struct StartLargeFileResponse: Codable {
+    var accountId: String
+    var action: String
+    var bucketId: String
+    var contentLength: Int64
+    var contentSha1: String
+    var contentType: String
+    var fileId: String
+    var fileName: String
+    var uploadTimestamp: String
+    let fileInfo: [String: String]?
+    
+    private enum CodingKeys: String, CodingKey {
+        case accountId
+        case action
+        case bucketId
+        case contentLength
+        case contentSha1
+        case contentType
+        case fileId
+        case fileName
+        case uploadTimestamp
+        case fileInfo
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        accountId = try container.decode(String.self, forKey: .accountId)
+        action = try container.decode(String.self, forKey: .action)
+        bucketId = try container.decode(String.self, forKey: .bucketId)
+        contentLength = try container.decode(Int64.self, forKey: .contentLength)
+        contentSha1 = try container.decode(String.self, forKey: .contentSha1)
+        contentType = try container.decode(String.self, forKey: .contentType)
+        fileId = try container.decode(String.self, forKey: .fileId)
+        fileName = try container.decode(String.self, forKey: .fileName)
+        uploadTimestamp = try container.decode(String.self, forKey: .uploadTimestamp)
+        
+        fileInfo = [String: String]()
+        let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
+        for key in subContainer.allKeys {
+            fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
+        }
+        
+    }
+    
+}
+
 struct JSONError: Codable {
     var status: Int
     var code: String

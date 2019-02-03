@@ -35,6 +35,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Fetch data once every 8 hours.
         UIApplication.shared.setMinimumBackgroundFetchInterval(28800)
         
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let authTokenIsSet =  UserDefaults.standard.string(forKey: "authorizationToken")
+        
+        // check if auth token is set. may be a better way to do this?
+        if ((authTokenIsSet) != nil) {
+            self.window?.rootViewController = storyboard.instantiateInitialViewController()
+        } else {
+            self.window?.rootViewController = storyboard.instantiateViewController(withIdentifier: "B2LoginCard")
+            //change to the generic login picker VC once it is done
+        }
+        
         // Other initialization…
         return true
     }

@@ -14,9 +14,9 @@ class Provider: NSObject, NSCoding {
     
     //MARK: Properties
     
-    var name: String
+    var name: String 
     var backend: Site
-    var remoteFileList: [PHAsset: Any]
+    var remoteFileList: [PHAsset: [String:Any]]
     var assetsToUpload = Set<PHAsset>() {
         didSet {
             // possibly do something here
@@ -59,7 +59,7 @@ class Provider: NSObject, NSCoding {
         self.uploadQueue = []
     }
     
-    init(name: String, backend: Site, remoteFileList: [PHAsset: Any], assetsToUpload: Set<PHAsset>, uploadQueue: [URLRequest]) {
+    init(name: String, backend: Site, remoteFileList: [PHAsset: [String:Any]], assetsToUpload: Set<PHAsset>, uploadQueue: [URLRequest]) {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
@@ -87,7 +87,7 @@ class Provider: NSObject, NSCoding {
         }
         
         let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
-        let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [PHAsset: Any]
+        let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [PHAsset: [String:Any]]
         let assetsToUpload = aDecoder.decodeObject(forKey: PropertyKey.assetsToUpload) as! Set<PHAsset>
         let uploadQueue = aDecoder.decodeObject(forKey: PropertyKey.uploadQueue) as! [URLRequest]
         
