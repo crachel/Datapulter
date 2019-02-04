@@ -20,7 +20,7 @@ struct AuthorizeAccountResponse: Codable {
     var apiUrl: String
     var authorizationToken: String
     var downloadUrl: String
-    var recommendedPartSize: Int64
+    var recommendedPartSize: Int
     let allowed: Allowed
 }
 

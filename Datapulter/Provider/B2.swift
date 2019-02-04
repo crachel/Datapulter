@@ -57,6 +57,12 @@ class B2: Provider {
             UserDefaults.standard.set(apiUrl, forKey: "apiUrl")
         }
     }
+    
+    var recommendedPartSize = UserDefaults.standard.integer(forKey: "recommendedPartSize"){
+        didSet {
+            UserDefaults.standard.set(recommendedPartSize, forKey: "recommendedPartSize")
+        }
+    }
    
     
     //MARK: API Responses
@@ -66,6 +72,7 @@ class B2: Provider {
         didSet {
             authorizationToken = authorizeAccountResponse!.authorizationToken
             apiUrl = authorizeAccountResponse!.apiUrl
+            recommendedPartSize = authorizeAccountResponse!.recommendedPartSize
         }
     }
     var listBucketsResponse: ListBucketsResponse?
@@ -238,11 +245,11 @@ class B2: Provider {
                         if let url = url {
                             if let inputStream = InputStream.init(url: url) {
                                 inputStream.open()
-                                var buffer = [UInt8](repeating: 0, count: B2.const.defaultChunkSize)
+                                var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
                                 var bytes = 0
                                 var totalBytes = 0
                                 repeat {
-                                    bytes = inputStream.read(&buffer, maxLength: B2.const.defaultChunkSize)
+                                    bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
                                     if bytes > 0 {
                                         let data = Data(bytes: buffer, count: bytes)
                                         
@@ -250,7 +257,7 @@ class B2: Provider {
                                         print("data.count \(data.count)")
                                         print("bytes \(String(bytes))")
                                         
-                                       
+                                        // write to temp file
                                         outputStream.write(buffer, maxLength: bytes)
                                         
                                         if let assetResources = PHAssetResource.assetResources(for: asset).first {
@@ -262,7 +269,7 @@ class B2: Provider {
                                             }
                                         }
                                         
-                                        
+                                        try? FileManager.default.removeItem(at: payloadFileURL)
                                         
                                         totalBytes += bytes
                                     }
