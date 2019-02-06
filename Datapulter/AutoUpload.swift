@@ -45,24 +45,22 @@ class AutoUpload {
                     if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.insert(asset)
-                        
-                    
-                        // get all metadata here
-                        //Utility.getSizeFromAsset(asset))
-                        
-                       
- 
                     }
                 })
                 
                 totalAssetsToUpload = provider.assetsToUpload.count
+                hud("\(totalAssetsToUpload) assets to upload.")
                 
                 if let backblaze = provider as? B2 {
-                    if (!backblaze.assetsToUpload.isEmpty && !Client.shared.isActive()) {
-                        
-                        backblaze.startUploadTask()
-                        
-                        
+                    if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
+                        for asset in backblaze.assetsToUpload {
+                            backblaze.getUrlRequest(asset).then { request, url in
+                                let taskId = Client.shared.upload(request!, url!)
+                                AutoUpload.shared.uploadingAssets = [taskId: asset]
+                            }.catch { error in
+                                print("Cannot get URLRequest: \(error)")
+                            }
+                        }
                     }
                 }
             }
@@ -72,9 +70,10 @@ class AutoUpload {
     }
     
     public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: Int) {
+        
         if let asset = uploadingAssets?[task] {
             if (response.statusCode == 200) {
-                
+                print ("got here")
                 for provider in providers {
                     if let backblaze = provider as? B2 {
                        
@@ -88,9 +87,11 @@ class AutoUpload {
                         if (!backblaze.assetsToUpload.isEmpty) {
                             backblaze.assetsToUpload.remove(asset)
                         }
-                        let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
-                        hud("uploaded \(totalUploads)")
-                        backblaze.startUploadTask()
+                        //let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
+                        //hud("uploaded \(totalUploads)")
+                        print ("remote file list count \(backblaze.remoteFileList.count)")
+                        // ADD THIS BACK!!!!!
+                        //backblaze.startUploadTask()
                         //print("wouldve looped")
                     }
                 }

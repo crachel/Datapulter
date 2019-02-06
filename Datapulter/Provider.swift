@@ -22,7 +22,7 @@ class Provider: NSObject, NSCoding {
             // possibly do something here
         }
     }
-    var uploadQueue: [URLRequest]?
+    var uploadQueue: [URLRequest: URL]?
     var innerRing: UIColor
     var cell: ProviderTableViewCell?
     
@@ -47,6 +47,10 @@ class Provider: NSObject, NSCoding {
         static let uploadQueue = "uploadQueue"
     }
     
+    enum providerError: String, Error {
+        case optionalBinding
+    }
+    
     //MARK: Initialization
     
     init(name: String, backend: Site) {
@@ -56,10 +60,10 @@ class Provider: NSObject, NSCoding {
         self.innerRing = .blue
         self.remoteFileList = [:]
         self.assetsToUpload = []
-        self.uploadQueue = []
+        self.uploadQueue = [:]
     }
     
-    init(name: String, backend: Site, remoteFileList: [PHAsset: [String:Any]], assetsToUpload: Set<PHAsset>, uploadQueue: [URLRequest]) {
+    init(name: String, backend: Site, remoteFileList: [PHAsset: [String:Any]], assetsToUpload: Set<PHAsset>, uploadQueue: [URLRequest: URL]) {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
@@ -89,7 +93,7 @@ class Provider: NSObject, NSCoding {
         let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
         let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [PHAsset: [String:Any]]
         let assetsToUpload = aDecoder.decodeObject(forKey: PropertyKey.assetsToUpload) as! Set<PHAsset>
-        let uploadQueue = aDecoder.decodeObject(forKey: PropertyKey.uploadQueue) as! [URLRequest]
+        let uploadQueue = aDecoder.decodeObject(forKey: PropertyKey.uploadQueue) as! [URLRequest: URL]
         
         // Must call designated initializer.
         self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload, uploadQueue: uploadQueue)

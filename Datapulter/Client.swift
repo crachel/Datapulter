@@ -82,7 +82,7 @@ extension Client: URLSessionDelegate {
 extension Client: URLSessionDataDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
-        AutoUpload.shared.hud(Float(totalBytesSent), Float(totalBytesExpectedToSend))
+        //AutoUpload.shared.hud(Float(totalBytesSent), Float(totalBytesExpectedToSend))
     }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {

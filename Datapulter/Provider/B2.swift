@@ -191,6 +191,56 @@ class B2: Provider {
         }
     }
     
+    public func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+        return Promise { fulfill, reject in
+            if (!self.assetsToUpload.isEmpty) {
+                    
+                let size = Utility.getSizeFromAsset(asset) // < const.defaultUploadCutoff
+                
+                if (size < const.defaultUploadCutoff ) {
+                    self.getUploadUrl().then { result in
+                        var urlRequest: URLRequest
+                        
+                        urlRequest = URLRequest(url: result.uploadUrl)
+                        urlRequest.httpMethod = "POST"
+                        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+                        urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
+                        
+                        urlRequest.setValue(String(size), forHTTPHeaderField: const.contentLengthHeader)
+                        
+                        if let assetResources = PHAssetResource.assetResources(for: asset).first {
+                            if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
+                                urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
+                            } else {
+                                reject (providerError.optionalBinding)
+                            }
+                        } else {
+                            reject (providerError.optionalBinding)
+                        }
+                        
+                        if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
+                            urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
+                        } else {
+                            reject(providerError.optionalBinding)
+                        }
+                        
+                        Utility.getDataFromAsset(asset) { data in
+                            urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+                            
+                            Utility.getUrlFromAsset(asset) { url in
+                                if let url = url {
+                                    fulfill((urlRequest, url))
+                                } else {
+                                    reject(providerError.optionalBinding)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     public func startUploadTask() {
         if (!assetsToUpload.isEmpty) {
             if let asset = self.assetsToUpload.first {
@@ -268,8 +318,11 @@ class B2: Provider {
                                                 }
                                             }
                                         }
-                                        
-                                        try? FileManager.default.removeItem(at: payloadFileURL)
+                                        do {
+                                            try FileManager.default.removeItem(at: payloadFileURL)
+                                        } catch {
+                                            
+                                        }
                                         
                                         totalBytes += bytes
                                     }
