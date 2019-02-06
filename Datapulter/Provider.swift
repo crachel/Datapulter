@@ -9,6 +9,11 @@
 import UIKit
 import Photos
 import os.log
+import Promises
+
+protocol ProviderProtocol {
+    func getUrlRequest()
+}
 
 class Provider: NSObject, NSCoding {
     
@@ -71,6 +76,12 @@ class Provider: NSObject, NSCoding {
         self.remoteFileList = remoteFileList
         self.assetsToUpload = assetsToUpload
         self.uploadQueue = uploadQueue
+    }
+    
+    //MARK: Public methods
+    
+    public func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)>{
+        fatalError("Must Override")
     }
     
     //MARK: NSCoding

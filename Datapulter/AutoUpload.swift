@@ -21,7 +21,7 @@ class AutoUpload {
     var assets: PHFetchResult<PHAsset>
     
     var providers = [Provider]()
-    var uploadingAssets: [TaskId: PHAsset]? // URLSessionTask associated with each PHAsset
+    var uploadingAssets = [TaskId: PHAsset]() // URLSessionTask associated with each PHAsset
     
     var totalAssetsToUpload: Int = 0
 
@@ -41,61 +41,62 @@ class AutoUpload {
             
             for provider in providers {
                 
-                assets.enumerateObjects({ (asset, _, _) in
+                assets.enumerateObjects({ (asset, _, _) in // synchronous execution
                     if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.insert(asset)
                     }
                 })
                 
+                
                 totalAssetsToUpload = provider.assetsToUpload.count
                 hud("\(totalAssetsToUpload) assets to upload.")
                 
-                if let backblaze = provider as? B2 {
-                    if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
-                        for asset in backblaze.assetsToUpload {
-                            backblaze.getUrlRequest(asset).then { request, url in
-                                let taskId = Client.shared.upload(request!, url!)
-                                AutoUpload.shared.uploadingAssets = [taskId: asset]
-                            }.catch { error in
-                                print("Cannot get URLRequest: \(error)")
-                            }
+                
+                if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
+                    for asset in provider.assetsToUpload {
+                        provider.getUrlRequest(asset).then { request, url in
+                            let taskId = Client.shared.upload(request!, url!)
+                            self.uploadingAssets[taskId] = asset
+                        }.catch { error in
+                            print("Cannot get URLRequest: \(error)")
                         }
                     }
                 }
+               
+                
+                print("does this wait for the above or not - answer: no")
             }
         } else {
             // No photo permission
         }
     }
     
-    public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: Int) {
+    public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: TaskId) {
         
-        if let asset = uploadingAssets?[task] {
+        if let asset = uploadingAssets[task] {
             if (response.statusCode == 200) {
-                print ("got here")
                 for provider in providers {
-                    if let backblaze = provider as? B2 {
-                       
-                        do {
-                            let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
-                            backblaze.remoteFileList[asset] = json
-                        } catch {
-                            print("\(error.localizedDescription)")
-                        }
-                        
-                        if (!backblaze.assetsToUpload.isEmpty) {
-                            backblaze.assetsToUpload.remove(asset)
-                        }
-                        //let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
-                        //hud("uploaded \(totalUploads)")
-                        print ("remote file list count \(backblaze.remoteFileList.count)")
-                        // ADD THIS BACK!!!!!
-                        //backblaze.startUploadTask()
-                        //print("wouldve looped")
+                    do {
+                        let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
+                        provider.remoteFileList[asset] = json
+                    } catch {
+                        print("\(error.localizedDescription)")
                     }
+                    
+                    if (!provider.assetsToUpload.isEmpty) {
+                        provider.assetsToUpload.remove(asset)
+                    }
+                    //let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
+                    //hud("uploaded \(totalUploads)")
+                    print ("remote file list count \(provider.remoteFileList.count)")
+                    // ADD THIS BACK!!!!!
+                    //backblaze.startUploadTask()
+                    //print("wouldve looped")
                 }
-            } // else if response 401 etc
+            } else { // else if response 401 etc
+                print ("======non200inhandler")
+            }
         }
     }
     
