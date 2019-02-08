@@ -48,6 +48,7 @@ class B2: Provider {
     var harddelete: Bool
     
     var authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken") ?? "" {
+    //var authorizationToken = "badtoken" ?? "" {
         didSet {
             UserDefaults.standard.set(authorizationToken, forKey: "authorizationToken")
         }
@@ -134,7 +135,7 @@ class B2: Provider {
             self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
                 switch error {
                 case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                    print("bad or expired auth token. attempting refresh then retrying API call.")
+                    print("getUploadUrl: bad or expired auth token. attempting refresh then retrying API call.")
                     return self.authorizeAccount().then { data, _ in
                         try self.parseAuthorizeAccount(data!)
                     }.then { parsedResult in
@@ -180,7 +181,7 @@ class B2: Provider {
                 }.then { data, _ in
                     try self.parseStartLargeFile(data!) // force unwrap should be safe
                 }.then { parsedResult in
-                    return self.getUploadPartUrlApi(parsedResult["fileId"] as! String) // successful chain ends here
+                    return self.getUploadPartUrlApi(parsedResult["fileId"] as! String)
                 }.then { data, _ in
                     try self.parseGetUploadPartUrl(data!) // force unwrap should be safe
                 }.then { parsedResult in

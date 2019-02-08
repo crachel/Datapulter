@@ -33,15 +33,13 @@ class Utility {
             imageRequestOptions.version = .current
             imageRequestOptions.isSynchronous = true
             
-            PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
-                if let data = data {
-                    
-                    completion(data)
-                    
-                    // do I want to convert HEIC to JPEG?
-                    //completion(UIImage(data: data)!.jpegData(compressionQuality: 1)!)
+            //autoreleasepool(invoking: { () -> () in
+                PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
+                    if let data = data {
+                        completion(data)
+                    }
                 }
-            }
+            //})
             
         } else if (asset.mediaType == .video) {
             
@@ -107,16 +105,8 @@ class Utility {
     
 }
 
-extension Date {
-    var millisecondsSince1970:Int64 {
-        return Int64((self.timeIntervalSince1970 * 1000.0).rounded())
-    }
-    
-    init(milliseconds:Int) {
-        self = Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
-    }
-}
 
+/*
 extension UIApplication {
     var isBackground: Bool {
         return UIApplication.shared.applicationState == .background
@@ -153,4 +143,4 @@ extension OutputStream {
         return bytes < 0 ? bytes : totalBytes
     }
 }
-
+*/

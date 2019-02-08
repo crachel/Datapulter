@@ -49,9 +49,16 @@ class AutoUpload {
                 })
                 
                 
-                totalAssetsToUpload = provider.assetsToUpload.count
-                hud("\(totalAssetsToUpload) assets to upload.")
+                //totalAssetsToUpload = provider.assetsToUpload.count
+                //hud("\(totalAssetsToUpload) assets to upload.")
                 
+                /*
+                provider.getUrlRequest(provider.assetsToUpload.first!).then { request, url in
+                    let taskId = Client.shared.upload(request!, url!)
+                    self.uploadingAssets[taskId] = provider.assetsToUpload.first!
+                    }.catch { error in
+                        print("Cannot get URLRequest: \(error)")
+                }*/
                 
                 if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
                     for asset in provider.assetsToUpload {
@@ -63,9 +70,6 @@ class AutoUpload {
                         }
                     }
                 }
-               
-                
-                print("does this wait for the above or not - answer: no")
             }
         } else {
             // No photo permission
@@ -84,15 +88,14 @@ class AutoUpload {
                         print("\(error.localizedDescription)")
                     }
                     
-                    if (!provider.assetsToUpload.isEmpty) {
-                        provider.assetsToUpload.remove(asset)
+                    if let _ = provider.assetsToUpload.remove(asset) {
+                        // do nothing
+                    } else {
+                        print ("assetsToUpload did not contain asset")
                     }
                     //let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
                     //hud("uploaded \(totalUploads)")
                     print ("remote file list count \(provider.remoteFileList.count)")
-                    // ADD THIS BACK!!!!!
-                    //backblaze.startUploadTask()
-                    //print("wouldve looped")
                 }
             } else { // else if response 401 etc
                 print ("======non200inhandler")
