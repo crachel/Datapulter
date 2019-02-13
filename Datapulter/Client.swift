@@ -14,10 +14,8 @@ class Client: NSObject {
     
     var backgroundCompletionHandler: (() -> Void)?
     
-    static let maxActiveTasks = 5
-    
     public var session: URLSession!
-    public var activeTaskIds: Set<Int>?
+    public var activeTasks = Set<URLSessionTask>()
     
     //MARK: Singleton
     
@@ -39,23 +37,18 @@ class Client: NSObject {
     
     //MARK: Public methods
     
-    public func upload(_ urlrequest: URLRequest,_ url: URL) -> Int {
+    public func upload(_ urlrequest: URLRequest,_ fileURL: URL) -> URLSessionTask {
         
-        let task = session.uploadTask(with: urlrequest, fromFile: url)
-        activeTaskIds?.insert(task.taskIdentifier)
+        let task = session.uploadTask(with: urlrequest, fromFile: fileURL)
+        activeTasks.insert(task)
         task.resume()
         
-        return (task.taskIdentifier)
+        return task
         
-    }
-    
-    public func test(_ urlrequest: URLRequest) {
-       
-        session.dataTask(with: urlrequest)
     }
     
     public func isActive() -> Bool {
-        return ((activeTaskIds?.count) != nil)
+        return (activeTasks.count > 0)
     }
     
 }
@@ -88,40 +81,28 @@ extension Client: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         print("urlSession -> didReceiveData")
         
+        // downcast for access to statusCode
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
         
-        AutoUpload.shared.handler(data, httpResponse, dataTask.taskIdentifier)
+        AutoUpload.shared.handler(data, httpResponse, dataTask)
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         print("urlSession -> didCompleteWithError")
         
+        // downcast for access to statusCode
         guard let httpResponse = task.response as? HTTPURLResponse else { return }
         
-        activeTaskIds?.remove(task.taskIdentifier)
+        activeTasks.remove(task)
         
         if let error = error {
-            // handle failure here
-            //
-            
-            print("\(error.localizedDescription)")
+            print("(didCompleteWithError) \(error.localizedDescription)")
         } else {
             
             if (httpResponse.statusCode == 401) {
                 
                 print("urlSession -> STATUS 401")
-                
-                // prob unauthorized
-                // get new url & token.
-                // get image data somehow
-                // AutoUpload.reauthorizeRequest(newRequest, data)
-                /*
-                 unlikely to see this since getuploadurl call should rectify 401 shortly before uploadfile call
- */
-                
-                //var newRequest = task.originalRequest
-                //newRequest?.setValue("newgoodtoken", forHTTPHeaderField: "Authorization")
-                //AutoUpload.reauthorize(newRequest)
+      
             } else if (httpResponse.statusCode == 503) {
                 
                 print("urlSession -> STATUS 503")
@@ -138,5 +119,3 @@ extension Client: URLSessionDataDelegate {
     }
     
 }
-
-

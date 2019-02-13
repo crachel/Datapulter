@@ -21,12 +21,8 @@ class Provider: NSObject, NSCoding {
     
     var name: String 
     var backend: Site
-    var remoteFileList: [PHAsset: [String:Any]]
-    var assetsToUpload = Set<PHAsset>() {
-        didSet {
-            // possibly do something here
-        }
-    }
+    var remoteFileList: [PHAsset: [String:Any]] // eventually use Cloudkit
+    var assetsToUpload = Set<PHAsset>()
     var uploadQueue: [URLRequest: URL]?
     var innerRing: UIColor
     var cell: ProviderTableViewCell?
@@ -52,8 +48,13 @@ class Provider: NSObject, NSCoding {
         static let uploadQueue = "uploadQueue"
     }
     
-    enum providerError: String, Error {
+    enum providerError: Error {
         case optionalBinding
+        case connectionError
+        case invalidResponse
+        case invalidJson
+        case unhandledStatusCode
+        case foundNil
     }
     
     //MARK: Initialization

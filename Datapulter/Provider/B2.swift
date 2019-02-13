@@ -20,6 +20,7 @@ class B2: Provider {
     struct const {
         static let apiMainURL = "https://api.backblazeb2.com"
         static let authorizeAccountUrl = URL(string: "\(const.apiMainURL)/b2api/v2/b2_authorize_account")
+        static let getUploadUrlEndpoint = "/b2api/v2/b2_get_upload_url"
         static let headerPrefix = "X-Bz-Info-"
         static let authorizationHeader = "Authorization"
         static let fileNameHeader = "X-Bz-File-Name"
@@ -33,10 +34,11 @@ class B2: Provider {
         static let sha1InfoHeader = headerPrefix + sha1Key
         static let testModeHeader = "X-Bz-Test-Mode"
         static let retryAfterHeader = "Retry-After"
+        static let mimeType = "application/json"
         static let maxParts = 10000
         static let maxVersions = 100 // maximum number of versions we search in --b2-versions mode
-        static let defaultUploadCutoff = 200 * 1_024 * 1_024
-        static let defaultChunkSize = 96 * 1_024 * 1_024
+        static let defaultUploadCutoff = 200 * 1_000 * 1_000
+        static let defaultChunkSize = 100 * 1_000 * 1_000
     }
     
     var account: String
@@ -59,7 +61,7 @@ class B2: Provider {
         }
     }
     
-    var recommendedPartSize = UserDefaults.standard.integer(forKey: "recommendedPartSize"){
+    var recommendedPartSize = UserDefaults.standard.integer(forKey: "recommendedPartSize") {
         didSet {
             UserDefaults.standard.set(recommendedPartSize, forKey: "recommendedPartSize")
         }
@@ -85,17 +87,14 @@ class B2: Provider {
     
     
     enum B2Error: String, Error {
-        case none
-        case downcast
-        case connectionError
+        // must match error codes as defined by API
         case bad_request // 400
         case unauthorized // 401
         case bad_auth_token // 401
         case expired_auth_token // 401
         case service_unavailable // 503
-        case invalidResponse
-        case serverError
-        case unknown
+        
+        case unmatchedError
     }
     
     struct PropertyKey {
@@ -129,35 +128,6 @@ class B2: Provider {
     
     //MARK: Public methods
     
-    
-    public func getUploadUrl() -> Promise<GetUploadURLResponse> {
-        return Promise {
-            self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
-                switch error {
-                case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                    print("getUploadUrl: bad or expired auth token. attempting refresh then retrying API call.")
-                    return self.authorizeAccount().then { data, _ in
-                        try self.parseAuthorizeAccount(data!)
-                    }.then { parsedResult in
-                        self.authorizeAccountResponse = parsedResult
-                    }.then {
-                        self.getUploadUrlApi() // retry call
-                    }.catch { error in
-                        print("unhandled error (authorizeAccount): \(error)")
-                    }
-                default:
-                    print("unhandled error (getUploadUrlApi): \(error)")
-                    return Promise(error)
-                }
-            }.then { data, _ in
-                try self.parseGetUploadUrl(data!) // force unwrap should be safe
-            }.then { parsedResult in
-                return parsedResult // successful chain ends here
-            }.catch { error in
-                print("unhandled error (getUploadUrlApi): \(error)")
-            }
-        }
-    }
     
     public func startLargeFile(_ fileName: String) -> Promise<GetUploadPartURLResponse> {
         return Promise {
@@ -211,27 +181,27 @@ class B2: Provider {
                         if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
                             urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
                         } else {
-                            reject (providerError.optionalBinding)
+                            reject (providerError.foundNil)
                         }
                     } else {
-                        reject (providerError.optionalBinding)
+                        reject (providerError.foundNil)
                     }
                     
                     if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
                         urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
                     } else {
-                        reject(providerError.optionalBinding)
+                        reject(providerError.foundNil)
                     }
+                    
                     
                     Utility.getDataFromAsset(asset) { data in
                         urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
-                        
                         
                         Utility.getUrlFromAsset(asset) { url in
                             if let url = url {
                                 fulfill((urlRequest, url))
                             } else {
-                                reject(providerError.optionalBinding)
+                                reject(providerError.foundNil)
                             }
                         }
                     }
@@ -349,14 +319,12 @@ class B2: Provider {
             
             let uploadTask = URLSession.shared.uploadTask(with: urlRequest, from:uploadData) { data, response, error in
                 if let error = error {
-                    print ("error: \(error)")
                     reject(error)
                 }
                 
-                guard let response = response as? HTTPURLResponse else { return }
-                
-                if let mimeType = response.mimeType,
-                    mimeType == "application/json",
+                if let response = response as? HTTPURLResponse,
+                    let mimeType = response.mimeType,
+                    mimeType == const.mimeType,
                     let data = data {
                     
                     if (response.statusCode == 200) {
@@ -364,13 +332,15 @@ class B2: Provider {
                     } else if (400...401).contains(response.statusCode) {
                         do {
                             let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
-                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.invalidResponse) // handled status code
+                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unmatchedError)
                         } catch {
                             reject (error) // handled status code but problem decoding JSON
                         }
                     } else {
-                        reject (B2Error.invalidResponse) // unhandled status code
+                        reject (providerError.unhandledStatusCode) // unhandled status code
                     }
+                } else {
+                    reject (providerError.invalidResponse)
                 }
             }
             uploadTask.resume()
@@ -378,11 +348,17 @@ class B2: Provider {
     }
     
     private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
-        let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString()
+        guard let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString() else {
+            return Promise(providerError.optionalBinding)
+        }
         
-        var urlRequest = URLRequest(url: const.authorizeAccountUrl!)
+        guard let url = const.authorizeAccountUrl else {
+            return Promise(providerError.optionalBinding)
+        }
+        
+        var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "GET"
-        urlRequest.setValue("Basic \(authNData!)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: const.authorizationHeader)
         
         return get(urlRequest)
     }
@@ -393,6 +369,35 @@ class B2: Provider {
                 return try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
             } catch {
                 throw error
+            }
+        }
+    }
+    
+    private func getUploadUrl() -> Promise<GetUploadURLResponse> {
+        return Promise {
+            self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
+                switch error {
+                case B2Error.bad_auth_token, B2Error.expired_auth_token:
+                    print("getUploadUrl: bad or expired auth token. attempting refresh then retrying API call.")
+                    return self.authorizeAccount().then { data, _ in
+                        try self.parseAuthorizeAccount(data!)
+                        }.then { parsedResult in
+                            self.authorizeAccountResponse = parsedResult
+                        }.then {
+                            self.getUploadUrlApi() // retry call
+                        }.catch { error in
+                            print("unhandled error (authorizeAccount): \(error)")
+                    }
+                default:
+                    print("unhandled error (getUploadUrlApi): \(error)")
+                    return Promise(error)
+                }
+                }.then { data, _ in
+                    try self.parseGetUploadUrl(data!) // force unwrap should be safe
+                }.then { parsedResult in
+                    return parsedResult // successful chain ends here
+                }.catch { error in
+                    print("unhandled error (getUploadUrlApi): \(error.localizedDescription)")
             }
         }
     }
@@ -410,12 +415,12 @@ class B2: Provider {
         }
         
         guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_get_upload_part_url") else {
-            return Promise(B2Error.unknown)
+            return Promise(providerError.optionalBinding)
         }
         
         urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
         return post(urlRequest, uploadData)
     }
@@ -427,7 +432,7 @@ class B2: Provider {
                 if let response = self.getUploadPartUrlResponse {
                     return response
                 } else {
-                    throw B2Error.unknown
+                    throw providerError.optionalBinding
                 }
             } catch {
                 throw error
@@ -447,13 +452,14 @@ class B2: Provider {
             return Promise(error)
         }
         
-        guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_get_upload_url") else {
-            return Promise(B2Error.unknown)
+        //guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_get_upload_url") else {
+        guard let url = URL(string: "\(apiUrl)\(const.getUploadUrlEndpoint)") else {
+            return Promise(providerError.optionalBinding)
         }
         
         urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
         return post(urlRequest, uploadData)
     }
@@ -462,10 +468,11 @@ class B2: Provider {
         return Promise { () -> GetUploadURLResponse in
             do {
                 self.getUploadUrlResponse = try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+                
                 if let response = self.getUploadUrlResponse {
                     return response
                 } else {
-                    throw B2Error.unknown
+                    throw providerError.optionalBinding
                 }
             } catch {
                 throw error
@@ -490,12 +497,12 @@ class B2: Provider {
         }
         
         guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_start_large_file") else {
-            return Promise(B2Error.unknown)
+            return Promise(providerError.optionalBinding)
         }
         
         urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
         return post(urlRequest, uploadData)
     }
@@ -523,7 +530,7 @@ class B2: Provider {
         
         var urlRequest = URLRequest(url: url!)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(authorizationToken, forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
         return post(urlRequest, uploadData!)
     }
