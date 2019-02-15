@@ -23,9 +23,11 @@ class Provider: NSObject, NSCoding {
     var backend: Site
     var remoteFileList: [PHAsset: [String:Any]] // eventually use Cloudkit
     var assetsToUpload = Set<PHAsset>()
-    var uploadQueue: [URLRequest: URL]?
+    var uploadQueue: [URLRequest: URL]? // not implemented yet
     var innerRing: UIColor
     var cell: ProviderTableViewCell?
+
+    var uploadUrlPool = CircularBuffer<[String:URL]?>()
     
     enum Site {
         case Backblaze

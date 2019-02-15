@@ -16,6 +16,11 @@ enum Method {
     case get, post, put, patch, delete
 }
 
+enum HttpMethod {
+    static let post = "POST"
+    static let get = "GET"
+}
+
 
 // MARK: Endpoint
 struct Endpoint {

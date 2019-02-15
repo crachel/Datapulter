@@ -26,9 +26,10 @@ class ProviderTableViewController: UITableViewController {
         
         //loadSampleProviders()
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        //DispatchQueue.global(qos: .userInitiated).async {
+        //DispatchQueue.main.async {
             AutoUpload.shared.start()
-        }
+        //}
         
         // Register to receive photo library change messages
         PHPhotoLibrary.shared().register(self)
@@ -47,7 +48,6 @@ class ProviderTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        //return providers.count
         return AutoUpload.shared.providers.count
     }
 

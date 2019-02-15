@@ -108,7 +108,8 @@ extension Client: URLSessionDataDelegate {
                 print("urlSession -> STATUS 503")
                 
             } else if (httpResponse.statusCode == 200) {
-                
+                //print(task.originalRequest?.url)
+                //print(task.originalRequest?.value(forHTTPHeaderField: "Authorization"))
                 print("urlSession -> STATUS 200")
                 print("task \(task.taskIdentifier) finished successfully.")
                 

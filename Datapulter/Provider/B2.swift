@@ -17,6 +17,8 @@ class B2: Provider {
     //MARK: Properties
 
     
+    typealias NetworkCompletionHandler = (Data?, URLResponse?, Error?) -> Void
+    
     struct const {
         static let apiMainURL = "https://api.backblazeb2.com"
         static let authorizeAccountUrl = URL(string: "\(const.apiMainURL)/b2api/v2/b2_authorize_account")
@@ -87,7 +89,7 @@ class B2: Provider {
     
     
     enum B2Error: String, Error {
-        // must match error codes as defined by API
+        // required and must match codes as defined by API
         case bad_request // 400
         case unauthorized // 401
         case bad_auth_token // 401
@@ -136,7 +138,8 @@ class B2: Provider {
                 case B2Error.bad_auth_token, B2Error.expired_auth_token:
                     print("bad or expired auth token. attempting refresh then retrying API call.")
                     return self.authorizeAccount().then { data, _ in
-                        try self.parseAuthorizeAccount(data!)
+                            //self.parseAuthorizeAccount(data!)
+                            try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
                         }.then { parsedResult in
                             self.authorizeAccountResponse = parsedResult
                         }.then {
@@ -165,24 +168,21 @@ class B2: Provider {
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
         return Promise { fulfill, reject in
                     
-            let size = Utility.getSizeFromAsset(asset)
+            let size = asset.size
             
             if (size < const.defaultUploadCutoff ) {
                 self.getUploadUrl().then { result in
+                                        
                     var urlRequest: URLRequest
                     urlRequest = URLRequest(url: result.uploadUrl)
-                    urlRequest.httpMethod = "POST"
+                    urlRequest.httpMethod = HttpMethod.post
                     urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
                     urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
                     
                     urlRequest.setValue(String(size), forHTTPHeaderField: const.contentLengthHeader)
                     
-                    if let assetResources = PHAssetResource.assetResources(for: asset).first {
-                        if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
-                            urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
-                        } else {
-                            reject (providerError.foundNil)
-                        }
+                    if let fileName = asset.percentEncodedFilename {
+                        urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
                     } else {
                         reject (providerError.foundNil)
                     }
@@ -194,130 +194,24 @@ class B2: Provider {
                     }
                     
                     
-                    Utility.getDataFromAsset(asset) { data in
+                    Utility.getDataFromAsset(asset) { data, url in
                         urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
                         
-                        Utility.getUrlFromAsset(asset) { url in
-                            if let url = url {
-                                fulfill((urlRequest, url))
-                            } else {
-                                reject(providerError.foundNil)
-                            }
-                        }
+                        fulfill((urlRequest, url))
                     }
                 }
             } // else handle large upload
         }
     }
     
-    public func startUploadTask() {
-        if (!assetsToUpload.isEmpty) {
-            if let asset = self.assetsToUpload.first {
-                
-                let size = Utility.getSizeFromAsset(asset) // < const.defaultUploadCutoff
-                
-                if (size < const.defaultUploadCutoff ) {
-                    getUploadUrl().then { result in
-                        var urlRequest: URLRequest
-                        
-                        urlRequest = URLRequest(url: result.uploadUrl)
-                        urlRequest.httpMethod = "POST"
-                        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-                        urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
-                        
-                        urlRequest.setValue(String(size), forHTTPHeaderField: const.contentLengthHeader)
-                        
-                        if let assetResources = PHAssetResource.assetResources(for: asset).first {
-                            if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
-                                urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
-                                
-                            }
-                        }
-                        
-                        if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
-                            urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
-                        }
-                        
-                        Utility.getDataFromAsset(asset) { data in
-                            urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
-                            
-                            Utility.getUrlFromAsset(asset) { url in
-                                if let url = url {
-                                    let taskId = Client.shared.upload(urlRequest, url)
-                                    AutoUpload.shared.uploadingAssets = [taskId: asset]
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // handle large upload
-                    let payloadFileURL = URL(fileURLWithPath: NSTemporaryDirectory())
-                        .appendingPathComponent(UUID().uuidString)
-                    
-                    //open temp dir for writing from stream. means user needs const.defaultchunksize
-                    //available space. could be problem. need to check for this eventually
-                    guard let outputStream = OutputStream(url: payloadFileURL, append: false) else {
-                        return
-                    }
-                    
-                    Utility.getUrlFromAsset(asset) { url in
-                        if let url = url {
-                            if let inputStream = InputStream.init(url: url) {
-                                inputStream.open()
-                                var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
-                                var bytes = 0
-                                var totalBytes = 0
-                                repeat {
-                                    bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
-                                    if bytes > 0 {
-                                        let data = Data(bytes: buffer, count: bytes)
-                                        
-                                        print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
-                                        print("data.count \(data.count)")
-                                        print("bytes \(String(bytes))")
-                                        
-                                        // write to temp file
-                                        outputStream.write(buffer, maxLength: bytes)
-                                        
-                                        if let assetResources = PHAssetResource.assetResources(for: asset).first {
-                                            if let fileName = assetResources.originalFilename.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) {
-                                                //urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
-                                                self.startLargeFile(fileName).then { result in
-                                                    print(result.uploadUrl)
-                                                }
-                                            }
-                                        }
-                                        do {
-                                            try FileManager.default.removeItem(at: payloadFileURL)
-                                        } catch {
-                                            
-                                        }
-                                        
-                                        totalBytes += bytes
-                                    }
-                                } while bytes > 0
-                                
-                                inputStream.close()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
 
     //MARK: Private methods
+
     
-    
-    private func get(_ urlrequest: URLRequest) -> Promise<(Data?, URLResponse?)> {
-        return wrap { URLSession.shared.dataTask(with: urlrequest, completionHandler: $0).resume() }
-    }
-    
-    private func post(_ urlRequest: URLRequest,_ uploadData: Data) -> Promise<(Data?, URLResponse?)> {
+    private func fetch(_ urlRequest: URLRequest,_ uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
-            let uploadTask = URLSession.shared.uploadTask(with: urlRequest, from:uploadData) { data, response, error in
+            let completionHandler: NetworkCompletionHandler = { data, response, error in
                 if let error = error {
                     reject(error)
                 }
@@ -343,8 +237,13 @@ class B2: Provider {
                     reject (providerError.invalidResponse)
                 }
             }
-            uploadTask.resume()
-        }
+            
+            if (urlRequest.httpMethod == HttpMethod.post) {
+                URLSession.shared.uploadTask(with: urlRequest, from:uploadData, completionHandler: completionHandler).resume()
+            } else if (urlRequest.httpMethod == HttpMethod.get) {
+                URLSession.shared.dataTask(with: urlRequest, completionHandler: completionHandler).resume()
+            }
+       }
     }
     
     private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
@@ -357,20 +256,10 @@ class B2: Provider {
         }
         
         var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "GET"
+        urlRequest.httpMethod = HttpMethod.get
         urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: const.authorizationHeader)
         
-        return get(urlRequest)
-    }
-    
-    private func parseAuthorizeAccount(_ data: Data) throws -> Promise<AuthorizeAccountResponse> {
-        return Promise { () -> AuthorizeAccountResponse in
-            do {
-                return try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-            } catch {
-                throw error
-            }
-        }
+        return fetch(urlRequest)
     }
     
     private func getUploadUrl() -> Promise<GetUploadURLResponse> {
@@ -380,11 +269,12 @@ class B2: Provider {
                 case B2Error.bad_auth_token, B2Error.expired_auth_token:
                     print("getUploadUrl: bad or expired auth token. attempting refresh then retrying API call.")
                     return self.authorizeAccount().then { data, _ in
-                        try self.parseAuthorizeAccount(data!)
+                            //self.parseAuthorizeAccount(data!)
+                            try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
                         }.then { parsedResult in
                             self.authorizeAccountResponse = parsedResult
                         }.then {
-                            self.getUploadUrlApi() // retry call
+                            self.getUploadUrlApi() // succesfully authorized now retry call
                         }.catch { error in
                             print("unhandled error (authorizeAccount): \(error)")
                     }
@@ -419,10 +309,10 @@ class B2: Provider {
         }
         
         urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
+        urlRequest.httpMethod = HttpMethod.post
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
-        return post(urlRequest, uploadData)
+        return fetch(urlRequest, uploadData)
     }
     
     private func parseGetUploadPartUrl(_ data: Data) throws -> Promise<GetUploadPartURLResponse?> {
@@ -452,16 +342,16 @@ class B2: Provider {
             return Promise(error)
         }
         
-        //guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_get_upload_url") else {
         guard let url = URL(string: "\(apiUrl)\(const.getUploadUrlEndpoint)") else {
             return Promise(providerError.optionalBinding)
         }
         
         urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
+        urlRequest.httpMethod = HttpMethod.post
+        
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
-        return post(urlRequest, uploadData)
+        return fetch(urlRequest, uploadData)
     }
     
     private func parseGetUploadUrl(_ data: Data) throws -> Promise<GetUploadURLResponse?> {
@@ -501,10 +391,10 @@ class B2: Provider {
         }
         
         urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
+        urlRequest.httpMethod = HttpMethod.post
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
-        return post(urlRequest, uploadData)
+        return fetch(urlRequest, uploadData)
     }
     
     private func parseStartLargeFile(_ data: Data) throws -> Promise<[String?: Any?]> {
@@ -529,10 +419,10 @@ class B2: Provider {
         let url = URL(string: "\(apiUrl)/b2api/v2/b2_list_buckets")
         
         var urlRequest = URLRequest(url: url!)
-        urlRequest.httpMethod = "POST"
+        urlRequest.httpMethod = HttpMethod.post
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
-        return post(urlRequest, uploadData!)
+        return fetch(urlRequest, uploadData!)
     }
     
     private func parseListBuckets(_ data: Data) throws -> Promise<ListBucketsResponse?> {

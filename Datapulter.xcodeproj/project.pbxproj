@@ -14,6 +14,7 @@
 		9B2075F721E0B754006ECD02 /* B2Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2075F621E0B754006ECD02 /* B2Types.swift */; };
 		9B5A181221E97EAE00B66783 /* Data+Crypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5A181121E97EAE00B66783 /* Data+Crypto.swift */; };
 		9BA8885E22130765000D5E5B /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8885D22130765000D5E5B /* Endpoint.swift */; };
+		9BA88860221579F6000D5E5B /* CircularBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8885F221579F6000D5E5B /* CircularBuffer.swift */; };
 		9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */; };
 		9BC163E521B838D3003272FF /* ProviderTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163E421B838D3003272FF /* ProviderTableViewController.swift */; };
 		9BC163E721B844CD003272FF /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163E621B844CD003272FF /* Provider.swift */; };
@@ -47,6 +48,7 @@
 		9B2075F621E0B754006ECD02 /* B2Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = B2Types.swift; path = Datapulter/Provider/B2Types.swift; sourceTree = "<group>"; };
 		9B5A181121E97EAE00B66783 /* Data+Crypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Crypto.swift"; sourceTree = "<group>"; };
 		9BA8885D22130765000D5E5B /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
+		9BA8885F221579F6000D5E5B /* CircularBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularBuffer.swift; sourceTree = "<group>"; };
 		9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTableViewCell.swift; sourceTree = "<group>"; };
 		9BC163E421B838D3003272FF /* ProviderTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTableViewController.swift; sourceTree = "<group>"; };
 		9BC163E621B844CD003272FF /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
@@ -130,6 +132,7 @@
 				9BC6C22D21BBFC6900D96D7A /* EditProviderViewController.swift */,
 				9BD86B1921C2D8B300958EAD /* AutoUpload.swift */,
 				9B2075EC21DE42B5006ECD02 /* Client.swift */,
+				9BA8885F221579F6000D5E5B /* CircularBuffer.swift */,
 				9BA8885D22130765000D5E5B /* Endpoint.swift */,
 				9B2075E621DB9890006ECD02 /* Utility.swift */,
 				9B14FD3E220B6079003D52AF /* Date.swift */,
@@ -326,6 +329,7 @@
 				9B2075ED21DE42B5006ECD02 /* Client.swift in Sources */,
 				9BCE4AE721B7DB9600DECB10 /* AddProviderViewController.swift in Sources */,
 				9BC163E521B838D3003272FF /* ProviderTableViewController.swift in Sources */,
+				9BA88860221579F6000D5E5B /* CircularBuffer.swift in Sources */,
 				9BC163E721B844CD003272FF /* Provider.swift in Sources */,
 				9B5A181221E97EAE00B66783 /* Data+Crypto.swift in Sources */,
 				9BC6C22E21BBFC6900D96D7A /* EditProviderViewController.swift in Sources */,

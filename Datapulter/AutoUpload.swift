@@ -18,8 +18,8 @@ class AutoUpload {
     static let shared = AutoUpload()
     
     var assets: PHFetchResult<PHAsset>
-    
     var providers = [Provider]()
+    
     var uploadingAssets = [URLSessionTask: PHAsset]()
     
     var totalAssetsToUpload: Int = 0
@@ -31,7 +31,6 @@ class AutoUpload {
         assets = Utility.getCameraRollAssets()
         
     }
-
     
     //MARK: Public Methods
     
@@ -40,6 +39,7 @@ class AutoUpload {
             
             for provider in providers {
                 
+               
                 assets.enumerateObjects({ (asset, _, _) in
                     if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
@@ -48,19 +48,37 @@ class AutoUpload {
                 })
                 
                 totalAssetsToUpload = provider.assetsToUpload.count
+                
                
-                //all(provider.assetsToUpload.map { provider.getUrlRequest($0) } ).then 
+                //all(provider.assetsToUpload.map { provider.getUrlRequest($0) } ).then
+                
+                /*
+                 
+                 create pool of url/uploadtokens. maybe 50?
+                 
+                 */
+                
+                /*
+                if(provider.uploadUrlPool.count < provider.uploadUrlPool.capacity) {
+                } else {
+                    print("uploadurlpool full. start pulling from here")
+                }*/
                 
                 
                 if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
                     
                     for asset in provider.assetsToUpload {
                         provider.getUrlRequest(asset).then { request, url in
+                        
+                            //provider.uploadUrlPool.append([request?.value(forHTTPHeaderField: "Authorization"):request?.url])
+                            
                             let taskId = Client.shared.upload(request!, url!)
                             self.uploadingAssets[taskId] = asset
                         }.catch { error in
                                 print("Cannot get URLRequest: \(error)")
                         }
+                        
+                        break
                     }
                     
                 }
@@ -89,6 +107,15 @@ class AutoUpload {
                     }
                     //let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
                     //hud("uploaded \(totalUploads)")
+                    //print ("uploadurlpool count \(provider.uploadUrlPool.count)")
+                    /*
+                     if(provider.uploadUrlPool.count < provider.uploadUrlPool.capacity) {
+                        provider.uploadUrlPool.append([(task.originalRequest?.value(forHTTPHeaderField: "Authorization"))!:(task.originalRequest?.url)!])
+                     } else {
+                     print("uploadurlpool full. start pulling from here")
+                     }
+                     print("uploadurlpool count \(provider.uploadUrlPool.count)")
+                     print("uploadurlpool capacity \(provider.uploadUrlPool.capacity)")*/
                     print ("remote file list count \(provider.remoteFileList.count)")
                 }
             } else { // else if response 401 etc
@@ -110,3 +137,5 @@ class AutoUpload {
         }
     }
 }
+
+
