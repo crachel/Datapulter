@@ -51,6 +51,8 @@ class B2: Provider {
     var versions: Bool
     var harddelete: Bool
     
+    var urlPool = CircularBuffer<GetUploadURLResponse?>()
+    
     var authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken") ?? "" {
     //var authorizationToken = "badtoken" ?? "" {
         didSet {
@@ -166,49 +168,122 @@ class B2: Provider {
     }
     
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
-        return Promise { fulfill, reject in
-                    
-            let size = asset.size
-            
-            if (size < const.defaultUploadCutoff ) {
-                self.getUploadUrl().then { result in
-                                        
-                    var urlRequest: URLRequest
-                    urlRequest = URLRequest(url: result.uploadUrl)
-                    urlRequest.httpMethod = HttpMethod.post
-                    urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-                    urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
-                    
-                    urlRequest.setValue(String(size), forHTTPHeaderField: const.contentLengthHeader)
-                    
-                    if let fileName = asset.percentEncodedFilename {
-                        urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
-                    } else {
-                        reject (providerError.foundNil)
-                    }
-                    
-                    if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
-                        urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
-                    } else {
-                        reject(providerError.foundNil)
-                    }
-                    
-                    
-                    Utility.getDataFromAsset(asset) { data, url in
-                        urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
-                        
-                        fulfill((urlRequest, url))
-                    }
+       
+        //ignore large files for now
+        if (asset.size > const.defaultUploadCutoff ) {
+            return Promise(providerError.foundNil)
+        }
+        
+        
+        if (urlPool.count > 0) {
+            // get url out of the pool
+            if let data = urlPool.remove(at: urlPool.headIdx) {
+                print("got url out of pool")
+                print("url pool count \(urlPool.count)")
+                return self.prepareRequest(from: asset, with: data)
+                
+                //wont check for 401. whole point is to do this with delegates for backgroundsession
+            }
+        }
+        
+        return self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
+            switch error {
+            case B2Error.bad_auth_token, B2Error.expired_auth_token:
+                print("bad or expired auth token. attempting refresh then retrying API call.")
+                return self.authorizeAccount().then { data, _ in
+                    Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                }.then { data in
+                    try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+                }.then { parsedResult in
+                    self.authorizeAccountResponse = parsedResult
+                }.then {
+                    self.getUploadUrlApi() // succesfully authorized now retry call
                 }
-            } // else handle large upload
+            default:
+                return Promise(error)
+            }
+        }.then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+        }.then { result in
+            self.prepareRequest(from: asset, with: result)
+        }.catch { error in
+            print("(getUrlRequest) unhandled error: \(error.localizedDescription)")
+        }
+        
+    }
+
+
+    //MARK: Private methods
+    
+    override func returnUpObj<GetUploadURLResponse>(_ asset: PHAsset,_ uploadObject: GetUploadURLResponse) -> Promise<(UploadObject<GetUploadURLResponse>?)> {
+        
+        return Promise(UploadObject(asset: asset, urlPoolObject: uploadObject))
+    }
+    
+    public func prepareRequest(from object: UploadObject<GetUploadURLResponse>) -> Promise<(URLRequest?, URL?)> {
+        return Promise { fulfill, reject in
+            var urlRequest: URLRequest
+            urlRequest = URLRequest(url: object.urlPoolObject.uploadUrl)
+            urlRequest.httpMethod = HttpMethod.post
+            urlRequest.setValue(object.urlPoolObject.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+            urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
+            
+            urlRequest.setValue(String(object.asset.size), forHTTPHeaderField: const.contentLengthHeader)
+            
+            if let fileName = object.asset.percentEncodedFilename {
+                urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
+            } else {
+                reject (providerError.foundNil)
+            }
+            
+            if let unixCreationDate = object.asset.creationDate?.millisecondsSince1970  {
+                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
+            } else {
+                reject(providerError.foundNil)
+            }
+            
+            Utility.getData(from: object.asset) { data, url in
+                urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+                
+                fulfill((urlRequest, url))
+            }
         }
     }
     
-
-    //MARK: Private methods
+    private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
+        return Promise { fulfill, reject in
+            var urlRequest: URLRequest
+            urlRequest = URLRequest(url: result.uploadUrl)
+            urlRequest.httpMethod = HttpMethod.post
+            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+            urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
+            
+            urlRequest.setValue(String(asset.size), forHTTPHeaderField: const.contentLengthHeader)
+            
+            if let fileName = asset.percentEncodedFilename {
+                urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
+            } else {
+                reject (providerError.foundNil)
+            }
+            
+            if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
+                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
+            } else {
+                reject(providerError.foundNil)
+            }
+            
+            Utility.getData(from: asset) { data, url in
+                urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+            
+                fulfill((urlRequest, url))
+            }
+        }
+    }
 
     
-    private func fetch(_ urlRequest: URLRequest,_ uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
+    private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
             let completionHandler: NetworkCompletionHandler = { data, response, error in
@@ -248,50 +323,46 @@ class B2: Provider {
     
     private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
         guard let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString() else {
-            return Promise(providerError.optionalBinding)
+            return Promise(providerError.preparationFailed)
         }
         
         guard let url = const.authorizeAccountUrl else {
-            return Promise(providerError.optionalBinding)
+            return Promise(providerError.preparationFailed)
         }
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = HttpMethod.get
         urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: const.authorizationHeader)
         
-        return fetch(urlRequest)
+        return fetch(from: urlRequest)
     }
+  
     
-    private func getUploadUrl() -> Promise<GetUploadURLResponse> {
-        return Promise {
-            self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
-                switch error {
-                case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                    print("getUploadUrl: bad or expired auth token. attempting refresh then retrying API call.")
-                    return self.authorizeAccount().then { data, _ in
-                            //self.parseAuthorizeAccount(data!)
-                            try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
-                        }.then { parsedResult in
-                            self.authorizeAccountResponse = parsedResult
-                        }.then {
-                            self.getUploadUrlApi() // succesfully authorized now retry call
-                        }.catch { error in
-                            print("unhandled error (authorizeAccount): \(error)")
-                    }
-                default:
-                    print("unhandled error (getUploadUrlApi): \(error)")
-                    return Promise(error)
-                }
-                }.then { data, _ in
-                    try self.parseGetUploadUrl(data!) // force unwrap should be safe
-                }.then { parsedResult in
-                    return parsedResult // successful chain ends here
-                }.catch { error in
-                    print("unhandled error (getUploadUrlApi): \(error.localizedDescription)")
-            }
+    public func getUploadUrlApi() -> Promise<(Data?, URLResponse?)> {
+        var urlRequest: URLRequest
+        var uploadData: Data
+        
+        let request = GetUploadURLRequest(bucketId: bucketId)
+        
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            return Promise(error)
         }
+        
+        guard let url = URL(string: "\(apiUrl)\(const.getUploadUrlEndpoint)") else {
+            return Promise(providerError.preparationFailed)
+        }
+        
+        urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = HttpMethod.post
+        
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+        
+        return fetch(from: urlRequest, with: uploadData)
     }
     
+   
     private func getUploadPartUrlApi(_ fileId: String) -> Promise<(Data?, URLResponse?)> {
         var urlRequest: URLRequest
         var uploadData: Data
@@ -305,14 +376,14 @@ class B2: Provider {
         }
         
         guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_get_upload_part_url") else {
-            return Promise(providerError.optionalBinding)
+            return Promise(providerError.preparationFailed)
         }
         
         urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = HttpMethod.post
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
-        return fetch(urlRequest, uploadData)
+        return fetch(from: urlRequest, with: uploadData)
     }
     
     private func parseGetUploadPartUrl(_ data: Data) throws -> Promise<GetUploadPartURLResponse?> {
@@ -320,46 +391,6 @@ class B2: Provider {
             do {
                 self.getUploadPartUrlResponse = try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
                 if let response = self.getUploadPartUrlResponse {
-                    return response
-                } else {
-                    throw providerError.optionalBinding
-                }
-            } catch {
-                throw error
-            }
-        }
-    }
-    
-    private func getUploadUrlApi() -> Promise<(Data?, URLResponse?)> {
-        var urlRequest: URLRequest
-        var uploadData: Data
-        
-        let request = GetUploadURLRequest(bucketId: bucketId)
-        
-        do {
-            uploadData = try JSONEncoder().encode(request)
-        } catch {
-            return Promise(error)
-        }
-        
-        guard let url = URL(string: "\(apiUrl)\(const.getUploadUrlEndpoint)") else {
-            return Promise(providerError.optionalBinding)
-        }
-        
-        urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = HttpMethod.post
-        
-        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-        
-        return fetch(urlRequest, uploadData)
-    }
-    
-    private func parseGetUploadUrl(_ data: Data) throws -> Promise<GetUploadURLResponse?> {
-        return Promise { () -> GetUploadURLResponse in
-            do {
-                self.getUploadUrlResponse = try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
-                
-                if let response = self.getUploadUrlResponse {
                     return response
                 } else {
                     throw providerError.optionalBinding
@@ -387,14 +418,14 @@ class B2: Provider {
         }
         
         guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_start_large_file") else {
-            return Promise(providerError.optionalBinding)
+            return Promise(providerError.preparationFailed)
         }
         
         urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = HttpMethod.post
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
-        return fetch(urlRequest, uploadData)
+        return fetch(from: urlRequest,with: uploadData)
     }
     
     private func parseStartLargeFile(_ data: Data) throws -> Promise<[String?: Any?]> {
@@ -422,7 +453,7 @@ class B2: Provider {
         urlRequest.httpMethod = HttpMethod.post
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
-        return fetch(urlRequest, uploadData!)
+        return fetch(from: urlRequest,with: uploadData!)
     }
     
     private func parseListBuckets(_ data: Data) throws -> Promise<ListBucketsResponse?> {

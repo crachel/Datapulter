@@ -13,21 +13,24 @@ import Promises
 
 protocol ProviderProtocol {
     func getUrlRequest()
+    func returnUpObj()
 }
 
-class Provider: NSObject, NSCoding {
+class Provider: NSObject, NSCoding  {
     
     //MARK: Properties
     
     var name: String 
     var backend: Site
+    var innerRing: UIColor
+    var cell: ProviderTableViewCell?
+    
     var remoteFileList: [PHAsset: [String:Any]] // eventually use Cloudkit
     var assetsToUpload = Set<PHAsset>()
     var uploadQueue: [URLRequest: URL]? // not implemented yet
-    var innerRing: UIColor
-    var cell: ProviderTableViewCell?
-
-    var uploadUrlPool = CircularBuffer<[String:URL]?>()
+    
+    
+    var uploadingAssets = [URLSessionTask: UploadObject2]()
     
     enum Site {
         case Backblaze
@@ -55,6 +58,7 @@ class Provider: NSObject, NSCoding {
         case connectionError
         case invalidResponse
         case invalidJson
+        case preparationFailed
         case unhandledStatusCode
         case foundNil
     }
@@ -83,7 +87,11 @@ class Provider: NSObject, NSCoding {
     
     //MARK: Public methods
     
-    public func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)>{
+    public func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+        fatalError("Must Override")
+    }
+    
+    public func returnUpObj<T>(_ asset: PHAsset, _ uploadObject: T) -> Promise<(UploadObject<T>?)> {
         fatalError("Must Override")
     }
     

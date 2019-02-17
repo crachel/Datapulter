@@ -8,6 +8,7 @@
 
 import UIKit
 import Photos
+import Promises
 
 class Utility {
     
@@ -24,14 +25,19 @@ class Utility {
         return PHAssetCollection.fetchAssetCollections(with: PHAssetCollectionType.smartAlbum, subtype: PHAssetCollectionSubtype.smartAlbumUserLibrary, options: nil)
     }
     
-    public static func getDataFromAsset(_ asset: PHAsset, completion:@escaping (_ data: Data,_ url: URL) -> Void) {
+    public static func getData(from asset: PHAsset, completion:@escaping (_ data: Data,_ url: URL) -> Void) {
         
         if (asset.mediaType == .image) {
             
             let imageRequestOptions = PHImageRequestOptions()
             
             imageRequestOptions.version = .current
-            imageRequestOptions.isSynchronous = true
+            imageRequestOptions.isSynchronous = false
+            imageRequestOptions.isNetworkAccessAllowed = false
+            
+            imageRequestOptions.progressHandler = {  (progress, error, stop, info) in
+                print("progress: \(progress)")
+            }
             
             PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
                 if let data = data,
@@ -63,8 +69,19 @@ class Utility {
             
         }
     }
-   
     
+    
+   
+    public static func objectIsType<T>(object: Any?, someObjectOfType: T.Type) -> Promise<T> {
+        
+        return Promise { fulfill, reject in
+            if let object = object as? T {
+                fulfill(object)
+            } else {
+                reject(Provider.providerError.optionalBinding)
+            }
+        }
+    }
 
     
     public static func getSizeFromAsset(_ asset: PHAsset) -> Int64 {

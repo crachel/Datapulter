@@ -21,7 +21,7 @@ class AutoUpload {
     var providers = [Provider]()
     
     var uploadingAssets = [URLSessionTask: PHAsset]()
-    
+       
     var totalAssetsToUpload: Int = 0
 
     //MARK: Initialization
@@ -68,6 +68,8 @@ class AutoUpload {
                 if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
                     
                     for asset in provider.assetsToUpload {
+                        
+                        /*
                         provider.getUrlRequest(asset).then { request, url in
                         
                             //provider.uploadUrlPool.append([request?.value(forHTTPHeaderField: "Authorization"):request?.url])
@@ -76,6 +78,43 @@ class AutoUpload {
                             self.uploadingAssets[taskId] = asset
                         }.catch { error in
                                 print("Cannot get URLRequest: \(error)")
+                        }*/
+                        
+                        // PHAsset
+                        // Task
+                        // GetUrlResponse
+                        
+                        
+                        if let backblaze = provider as? B2 {
+                            
+                            backblaze.getUploadUrlApi().then { data, response in
+                                try JSONDecoder().decode(GetUploadURLResponse.self, from: data!)
+                            }.then { data in
+                                backblaze.returnUpObj(asset, data)
+                            }.then { object in
+                                backblaze.prepareRequest(from: object!)
+                            }.then { request, url in
+                                let task = Client.shared.upload(request!, url!)
+                                self.uploadingAssets[task] = asset
+                                let uploadObject = UploadObject2(asset: asset, uploadUrl:(request?.url)!, uploadToken:(request?.value(forHTTPHeaderField: "Authorization"))!)
+                                provider.uploadingAssets[task] = uploadObject
+                            }
+                            
+                            /*
+                            backblaze.getUploadUrlApi().then { data, response in
+                                try JSONDecoder().decode(GetUploadURLResponse.self, from: data!)
+                            }.then { data in
+                                backblaze.urlPool.append(data)
+                            }.then {
+                                backblaze.getUrlRequest(asset)
+                            }.then { request, url in
+                                let task = Client.shared.upload(request!, url!)
+                                self.uploadingAssets[task] = asset
+                                let uploadObject = UploadObject2(asset: asset, uploadUrl:(request?.url)!, uploadToken:(request?.value(forHTTPHeaderField: "Authorization"))!)
+                                provider.uploadingAssets[task] = uploadObject
+                            }.catch { error in
+                                print("unhandled error: \(error.localizedDescription)")
+                            }*/
                         }
                         
                         break
@@ -105,6 +144,8 @@ class AutoUpload {
                     } else {
                         print ("assetsToUpload did not contain asset")
                     }
+                    print("upAsset \(String(describing: provider.uploadingAssets[task]?.uploadUrl))")
+                    
                     //let totalUploads = totalAssetsToUpload - backblaze.assetsToUpload.count
                     //hud("uploaded \(totalUploads)")
                     //print ("uploadurlpool count \(provider.uploadUrlPool.count)")
