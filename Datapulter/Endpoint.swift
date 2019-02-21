@@ -22,12 +22,6 @@ enum HttpMethod {
     static let get = "GET"
 }
 
-struct UploadObject2 {
-    let asset: PHAsset
-    let uploadUrl: URL
-    let uploadToken: AuthorizationToken
-}
-
 struct UploadObject<T> {
     let asset: PHAsset
     let urlPoolObject: T

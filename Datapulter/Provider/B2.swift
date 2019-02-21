@@ -10,7 +10,6 @@ import os.log
 import Promises
 import Photos
 
-
 class B2: Provider {
     
     
@@ -53,6 +52,8 @@ class B2: Provider {
     
     var urlPool = CircularBuffer<GetUploadURLResponse?>()
     
+    var uploadingAssets = [URLSessionTask: UploadObject<GetUploadURLResponse>]()
+    
     var authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken") ?? "" {
     //var authorizationToken = "badtoken" ?? "" {
         didSet {
@@ -91,7 +92,7 @@ class B2: Provider {
     
     
     enum B2Error: String, Error {
-        // required and must match codes as defined by API
+        // required. must match codes as defined by API
         case bad_request // 400
         case unauthorized // 401
         case bad_auth_token // 401
@@ -174,17 +175,43 @@ class B2: Provider {
             return Promise(providerError.foundNil)
         }
         
+        /*
+        let dispatchQueue = DispatchQueue(label: "com.example.Datapulter.background")
         
-        if (urlPool.count > 0) {
+        //var count = 0
+        /*
+        dispatchQueue.sync {
+            count = urlPool.count
+        }*/
+        
+        let count = dispatchQueue.sync {
+            return urlPool.count
+        }
+        
+        if (count > 0) {
             // get url out of the pool
+            
+            let data = dispatchQueue.sync {
+                return urlPool.remove(at: urlPool.headIdx)
+            }
+            
+            
+            print("got url out of pool")
+            print("url pool count \(urlPool.count)")
+            return self.prepareRequest(from: asset, with: data!)
+            
+            //wont check for 401. whole point is to do this with delegates for backgroundsession
+            
+            /*
             if let data = urlPool.remove(at: urlPool.headIdx) {
                 print("got url out of pool")
                 print("url pool count \(urlPool.count)")
                 return self.prepareRequest(from: asset, with: data)
                 
                 //wont check for 401. whole point is to do this with delegates for backgroundsession
-            }
-        }
+            }*/
+            
+       }*/
         
         return self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
             switch error {
@@ -213,14 +240,47 @@ class B2: Provider {
         }
         
     }
+    
+    
 
 
     //MARK: Private methods
     
-    override func returnUpObj<GetUploadURLResponse>(_ asset: PHAsset,_ uploadObject: GetUploadURLResponse) -> Promise<(UploadObject<GetUploadURLResponse>?)> {
+    override func getUploadObject<GetUploadURLResponse>(_ asset: PHAsset,_ urlPoolObject: GetUploadURLResponse) -> Promise<(UploadObject<GetUploadURLResponse>?)> {
         
-        return Promise(UploadObject(asset: asset, urlPoolObject: uploadObject))
+        return Promise(UploadObject(asset: asset, urlPoolObject: urlPoolObject))
     }
+    
+     /*
+    override func getUploadObject<GetUploadURLResponse>(with asset: PHAsset) -> Promise<(UploadObject<GetUploadURLResponse>?)> {
+        /*    let asset: PHAsset
+         let fileUrl: URL
+         let request: URLRequest
+         let urlPoolObject: T
+         */
+        
+        //ignore large files for now
+        if (asset.size > const.defaultUploadCutoff ) {
+            return Promise(providerError.foundNil)
+        }
+     
+        // (get urlPoolObject out of pool or api)
+        // (prepare request)
+     
+        return Promise(UploadObject(asset: asset, urlPoolObject: urlPoolObject, fileUrl: url, request: request))
+     }*/
+    
+    
+     /*
+     override func startTask(_ task: URLSessionTask, _ object: UploadObject<GetUploadURLResponse>) {
+        (add task and object to uploadingassets)
+     }
+     
+     override func finishTask(_ task: URLSessionTask) {
+        (add back to urlpool)
+        (remove from uploadingassets)
+     }
+     */
     
     public func prepareRequest(from object: UploadObject<GetUploadURLResponse>) -> Promise<(URLRequest?, URL?)> {
         return Promise { fulfill, reject in
@@ -253,6 +313,32 @@ class B2: Provider {
     }
     
     private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
+        
+        let dispatchQueue = DispatchQueue(label: "thread-safe-circularbuffer", attributes: .concurrent)
+        
+        //var count = 0
+        /*
+         dispatchQueue.sync {
+         count = urlPool.count
+         }*/
+        
+        let count = dispatchQueue.sync {
+            return urlPool.count
+        }
+        
+        let capacity = dispatchQueue.sync {
+            return urlPool.capacity
+        }
+        
+        dispatchQueue.async(flags: .barrier) {
+            print("urlpool count \(count)")
+            print("urlpool capacity \(capacity)")
+            if (count < (capacity - 1)) {
+                self.urlPool.append(result)
+            }
+        }
+        
+        
         return Promise { fulfill, reject in
             var urlRequest: URLRequest
             urlRequest = URLRequest(url: result.uploadUrl)
