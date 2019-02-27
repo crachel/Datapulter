@@ -22,10 +22,6 @@ class AutoUpload {
     var providers = [Provider]()
     var tasks = [URLSessionTask: Provider]()
     
-    
-    var uploadingAssets = [URLSessionTask: PHAsset]() //move to provider. makes no sense here with multiple providers
-    
-    
     var totalAssetsToUpload: Int = 0
 
     //MARK: Initialization
@@ -51,89 +47,38 @@ class AutoUpload {
                 
                 totalAssetsToUpload = provider.assetsToUpload.count
                 
-                //let emptyObject = UploadObject<GetUploadURLResponse>(PHAsset(), GetUploadURLResponse(bucketId: "", uploadUrl: url!, authorizationToken: "" ))
-                //all(provider.assetsToUpload.map { provider.getUrlRequest($0) } ).then
-                
                 /*
+                 provider.authorizeAccount().then {
+                     return Promise { fulfill, _ in
+                         func go() {
+                             if thereIsNotEnoughItemsLoaded {
+                                load().then(go)
+                             } else {
+                                fulfill()
+                             }
+                         }
+                         go()
+                     }
+                 }
                  
-                 create pool of url/uploadtokens. maybe 50?
                  
                  */
                 
-                /*
-                if(provider.uploadUrlPool.count < provider.uploadUrlPool.capacity) {
-                } else {
-                    print("uploadurlpool full. start pulling from here")
-                }*/
-                
                 
                 if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
-                    
+                   
                     for asset in provider.assetsToUpload {
                         
-                        
-                        
                         provider.getUrlRequest(asset).then { request, url in
-                        
-                            //provider.uploadUrlPool.append([request?.value(forHTTPHeaderField: "Authorization"):request?.url])
-                            
                             let task = Client.shared.upload(request!, url!)
-                            self.uploadingAssets[task] = asset
+                            provider.uploadingAssets[task] = asset
                             self.tasks[task] = provider
                         }.catch { error in
-                                print("Cannot get URLRequest: \(error)")
+                            print("Cannot get URLRequest: \(error)")
                         }
+                    
                         
-                        /*
-                         provider.getUploadObject.then { object in
-                            let task = Cliet.shared.upload(object.request, object.url)
-                         }.then {
-                         
-                         
-                         
-                         
-                         */
-                        
-                        
-                       // if let backblaze = provider as? B2 {
-                            
-                            /*
-                            
-                            backblaze.getUploadUrlApi().then { data, response in
-                                try JSONDecoder().decode(GetUploadURLResponse.self, from: data!)
-                            }.then { data in
-                                provider.getUploadObject(asset, data)
-                            }.then { object in
-                                backblaze.prepareRequest(from: object!)
-                            }.then { request, url in
-                                let task = Client.shared.upload(request!, url!)
-                                self.uploadingAssets[task] = asset // change this to provider
-                                self.tasks[task] = provider
-                                //let uploadObject = UploadObject2(asset: asset, uploadUrl:(request?.url)!, uploadToken:(request?.value(forHTTPHeaderField: "Authorization"))!)
-                                //provider.uploadingAssets2[task] = uploadObject
-                                //provider.uploadingAssets[task] = emptyObject as AnyObject as? UploadObject<Any>
-                            }.catch { error in
-                                    print("unhandled error: \(error.localizedDescription)")
-                            }*/
-                            
-                            /*
-                            backblaze.getUploadUrlApi().then { data, response in
-                                try JSONDecoder().decode(GetUploadURLResponse.self, from: data!)
-                            }.then { data in
-                                backblaze.urlPool.append(data)
-                            }.then {
-                                backblaze.getUrlRequest(asset)
-                            }.then { request, url in
-                                let task = Client.shared.upload(request!, url!)
-                                self.uploadingAssets[task] = asset
-                                let uploadObject = UploadObject2(asset: asset, uploadUrl:(request?.url)!, uploadToken:(request?.value(forHTTPHeaderField: "Authorization"))!)
-                                provider.uploadingAssets[task] = uploadObject
-                            }.catch { error in
-                                print("unhandled error: \(error.localizedDescription)")
-                            }*/
-                        //}
-                        
-                        //break
+                        break
                     }
                     
                 }
@@ -144,8 +89,8 @@ class AutoUpload {
     }
     
     public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: URLSessionTask) {
-        if let provider = tasks[task] {
-            if let asset = uploadingAssets[task] { // change this
+        if let provider = tasks.removeValue(forKey: task) {
+            if let asset = provider.uploadingAssets.removeValue(forKey: task) {
                 if (response.statusCode == 200) {
                     do {
                         let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
@@ -159,11 +104,15 @@ class AutoUpload {
                     } else {
                         print ("assetsToUpload did not contain asset")
                     }
-                    
                     print ("remote file list count \(provider.remoteFileList.count)")
                 } else if (400...401).contains(response.statusCode)  {
                     print ("handler: response statuscode 400 or 401")
                 } // else if response 500 etc
+                
+                print("tasks count \(tasks.count)")
+                print("uploadingassets count \(provider.uploadingAssets.count)")
+            } else {
+                // no asset associated with task.
             }
         } else {
             // no provider associated with task. likely user quit app while task was running.

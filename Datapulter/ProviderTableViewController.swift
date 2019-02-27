@@ -28,7 +28,7 @@ class ProviderTableViewController: UITableViewController {
 
         //DispatchQueue.global(qos: .userInitiated).async {
         //DispatchQueue.main.async {
-            AutoUpload.shared.start()
+            //AutoUpload.shared.start()
         //}
         
         // Register to receive photo library change messages
@@ -233,7 +233,11 @@ class ProviderTableViewController: UITableViewController {
                 AutoUpload.shared.providers[selectedIndexPath.row] = provider
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
-        } // add else for AddProviderViewController
+        } else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
+            print("unwind save")
+        }
+        
+ // add else for AddProviderViewController
         
         // Save the providers.
         saveProviders()

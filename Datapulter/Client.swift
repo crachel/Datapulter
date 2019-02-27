@@ -44,7 +44,6 @@ class Client: NSObject {
         task.resume()
         
         return task
-        
     }
     
     public func isActive() -> Bool {
@@ -100,7 +99,6 @@ extension Client: URLSessionDataDelegate {
         } else {
             
             if (httpResponse.statusCode == 401) {
-                
                 print("urlSession -> STATUS 401")
       
             } else if (httpResponse.statusCode == 503) {
@@ -108,12 +106,12 @@ extension Client: URLSessionDataDelegate {
                 print("urlSession -> STATUS 503")
                 
             } else if (httpResponse.statusCode == 200) {
-                //print(task.originalRequest?.url)
-                //print(task.originalRequest?.value(forHTTPHeaderField: "Authorization"))
+                
                 print("urlSession -> STATUS 200")
                 print("task \(task.taskIdentifier) finished successfully.")
                 
             } else {
+                
                 print("urlSession -> UNHANDLED ERROR")
             }
         }

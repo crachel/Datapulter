@@ -27,6 +27,11 @@ struct UploadObject<T> {
     let urlPoolObject: T
 }
 
+struct UploadObject2 {
+    let asset: PHAsset
+    let urlPoolObject: Data
+}
+
 // MARK: Endpoint
 struct Endpoint {
     let method: Method

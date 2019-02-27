@@ -15,11 +15,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     
     func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
+        print("AppDelegate -> handleEventsForBackgroundURLSession")
         Client.shared.backgroundCompletionHandler = completionHandler
     }
     
     func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         
+        print("AppDelegate -> performFetchWithCompletionHandler")
         /*
         // Check for new data.
         if let fetchResultChangeDetails = changeInstance.changeDetails(for: AutoUpload.shared.assets) {
@@ -35,6 +37,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Fetch data once every 8 hours.
         UIApplication.shared.setMinimumBackgroundFetchInterval(28800)
         
+        /*
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         let authTokenIsSet =  UserDefaults.standard.string(forKey: "authorizationToken")
         
@@ -44,7 +47,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         } else {
             self.window?.rootViewController = storyboard.instantiateViewController(withIdentifier: "B2LoginCard")
             //change to the generic login picker VC once it is done
-        }
+        }*/
         
         // Other initialization…
         return true

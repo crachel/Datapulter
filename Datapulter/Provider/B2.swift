@@ -19,6 +19,7 @@ class B2: Provider {
     typealias NetworkCompletionHandler = (Data?, URLResponse?, Error?) -> Void
     
     struct const {
+        static let server = "https://www.backblaze.com/"
         static let apiMainURL = "https://api.backblazeb2.com"
         static let authorizeAccountUrl = URL(string: "\(const.apiMainURL)/b2api/v2/b2_authorize_account")
         static let getUploadUrlEndpoint = "/b2api/v2/b2_get_upload_url"
@@ -49,10 +50,8 @@ class B2: Provider {
     var bucketId: String
     var versions: Bool
     var harddelete: Bool
-    
+    var dispatchQueue = DispatchQueue(label: "thread-safe-circularbuffer", attributes: .concurrent)
     var urlPool = CircularBuffer<GetUploadURLResponse?>()
-    
-    var uploadingAssets = [URLSessionTask: UploadObject<GetUploadURLResponse>]()
     
     var authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken") ?? "" {
     //var authorizationToken = "badtoken" ?? "" {
@@ -81,6 +80,7 @@ class B2: Provider {
             authorizationToken = authorizeAccountResponse!.authorizationToken
             apiUrl = authorizeAccountResponse!.apiUrl
             recommendedPartSize = authorizeAccountResponse!.recommendedPartSize
+            
         }
     }
     var listBucketsResponse: ListBucketsResponse?
@@ -111,6 +111,10 @@ class B2: Provider {
         static let uploadList = "uploadList"
         static let accountId = "accountId"
         static let bucketId = "bucketId"
+        
+        static let authorizationToken = "authorizationToken"
+        static let apiUrl = "apiUrl"
+        static let recommendedPartSize = "recommendedPartSize"
     }
     
     
@@ -241,98 +245,24 @@ class B2: Provider {
         
     }
     
-    
-
-
-    //MARK: Private methods
-    
     override func getUploadObject<GetUploadURLResponse>(_ asset: PHAsset,_ urlPoolObject: GetUploadURLResponse) -> Promise<(UploadObject<GetUploadURLResponse>?)> {
         
         return Promise(UploadObject(asset: asset, urlPoolObject: urlPoolObject))
     }
+
+
+    //MARK: Private methods
     
-     /*
-    override func getUploadObject<GetUploadURLResponse>(with asset: PHAsset) -> Promise<(UploadObject<GetUploadURLResponse>?)> {
-        /*    let asset: PHAsset
-         let fileUrl: URL
-         let request: URLRequest
-         let urlPoolObject: T
-         */
-        
-        //ignore large files for now
-        if (asset.size > const.defaultUploadCutoff ) {
-            return Promise(providerError.foundNil)
-        }
-     
-        // (get urlPoolObject out of pool or api)
-        // (prepare request)
-     
-        return Promise(UploadObject(asset: asset, urlPoolObject: urlPoolObject, fileUrl: url, request: request))
-     }*/
-    
-    
-     /*
-     override func startTask(_ task: URLSessionTask, _ object: UploadObject<GetUploadURLResponse>) {
-        (add task and object to uploadingassets)
-     }
-     
-     override func finishTask(_ task: URLSessionTask) {
-        (add back to urlpool)
-        (remove from uploadingassets)
-     }
-     */
-    
-    public func prepareRequest(from object: UploadObject<GetUploadURLResponse>) -> Promise<(URLRequest?, URL?)> {
-        return Promise { fulfill, reject in
-            var urlRequest: URLRequest
-            urlRequest = URLRequest(url: object.urlPoolObject.uploadUrl)
-            urlRequest.httpMethod = HttpMethod.post
-            urlRequest.setValue(object.urlPoolObject.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-            urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
-            
-            urlRequest.setValue(String(object.asset.size), forHTTPHeaderField: const.contentLengthHeader)
-            
-            if let fileName = object.asset.percentEncodedFilename {
-                urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
-            } else {
-                reject (providerError.foundNil)
-            }
-            
-            if let unixCreationDate = object.asset.creationDate?.millisecondsSince1970  {
-                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
-            } else {
-                reject(providerError.foundNil)
-            }
-            
-            Utility.getData(from: object.asset) { data, url in
-                urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
-                
-                fulfill((urlRequest, url))
-            }
-        }
-    }
-    
+  
     private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
+
         
-        let dispatchQueue = DispatchQueue(label: "thread-safe-circularbuffer", attributes: .concurrent)
-        
-        //var count = 0
-        /*
-         dispatchQueue.sync {
-         count = urlPool.count
-         }*/
-        
-        let count = dispatchQueue.sync {
-            return urlPool.count
+        let (count, capacity) = dispatchQueue.sync {
+            return (urlPool.count, urlPool.capacity)
         }
         
-        let capacity = dispatchQueue.sync {
-            return urlPool.capacity
-        }
-        
+        // add to urlPool, if there's room
         dispatchQueue.async(flags: .barrier) {
-            print("urlpool count \(count)")
-            print("urlpool capacity \(capacity)")
             if (count < (capacity - 1)) {
                 self.urlPool.append(result)
             }
@@ -367,7 +297,6 @@ class B2: Provider {
             }
         }
     }
-
     
     private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
@@ -424,7 +353,7 @@ class B2: Provider {
     }
   
     
-    public func getUploadUrlApi() -> Promise<(Data?, URLResponse?)> {
+    private func getUploadUrlApi() -> Promise<(Data?, URLResponse?)> {
         var urlRequest: URLRequest
         var uploadData: Data
         

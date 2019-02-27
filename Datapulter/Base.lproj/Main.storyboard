@@ -128,10 +128,10 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="2000px-Running_bond-update" translatesAutoresizingMaskIntoConstraints="NO" id="0cN-Ih-dHf">
-                                <rect key="frame" x="0.0" y="64" width="375" height="603"/>
+                                <rect key="frame" x="0.0" y="20" width="375" height="647"/>
                             </imageView>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="1" translatesAutoresizingMaskIntoConstraints="NO" id="9iv-xK-TzU">
-                                <rect key="frame" x="20" y="129" width="335" height="309"/>
+                                <rect key="frame" x="20" y="85" width="335" height="309"/>
                                 <subviews>
                                     <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="backblazeb2" translatesAutoresizingMaskIntoConstraints="NO" id="Q6L-RV-AfC">
                                         <rect key="frame" x="0.0" y="0.0" width="335" height="100"/>
@@ -212,14 +212,18 @@
                                 <action selector="cancel:" destination="BYZ-38-t0r" id="d5j-Xp-Bfy"/>
                             </connections>
                         </barButtonItem>
-                        <barButtonItem key="rightBarButtonItem" title="B2" id="cBB-gm-OvH">
+                        <barButtonItem key="rightBarButtonItem" title="Save" id="cBB-gm-OvH">
                             <connections>
-                                <segue destination="4Iy-s5-7rS" kind="show" id="PM6-Zd-RnJ"/>
+                                <segue destination="cch-K4-lLn" kind="unwind" unwindAction="unwindToProviderListWithSender:" id="veS-Wx-trT"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
+                    <connections>
+                        <outlet property="saveProvider" destination="cBB-gm-OvH" id="9uC-wd-hDz"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+                <exit id="cch-K4-lLn" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="2161" y="519"/>
         </scene>

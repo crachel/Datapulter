@@ -19,10 +19,11 @@ class Provider: NSObject, NSCoding  {
     var backend: Site
     var innerRing: UIColor
     var cell: ProviderTableViewCell?
+    var authorized: Bool?
     
     var remoteFileList: [PHAsset: [String:Any]] // eventually use Cloudkit
     var assetsToUpload = Set<PHAsset>()
-    var uploadQueue: [URLRequest: URL]? // not implemented yet
+    var uploadingAssets = [URLSessionTask: PHAsset]()
     
     enum Site {
         case Backblaze
@@ -64,17 +65,15 @@ class Provider: NSObject, NSCoding  {
         self.innerRing = .blue
         self.remoteFileList = [:]
         self.assetsToUpload = []
-        self.uploadQueue = [:]
     }
     
-    init(name: String, backend: Site, remoteFileList: [PHAsset: [String:Any]], assetsToUpload: Set<PHAsset>, uploadQueue: [URLRequest: URL]) {
+    init(name: String, backend: Site, remoteFileList: [PHAsset: [String:Any]], assetsToUpload: Set<PHAsset>) {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
         self.innerRing = .blue
         self.remoteFileList = remoteFileList
         self.assetsToUpload = assetsToUpload
-        self.uploadQueue = uploadQueue
     }
     
     //MARK: Public methods
@@ -87,10 +86,6 @@ class Provider: NSObject, NSCoding  {
         fatalError("Must Override")
     }
     
-    //public func getUploadObject<T>(with asset: PHAsset) -> Promise<(UploadObject<T>?)> {
-     //   fatalError("Must Override")
-    //}
-    
     //MARK: NSCoding
     
     func encode(with aCoder: NSCoder) {
@@ -98,7 +93,6 @@ class Provider: NSObject, NSCoding  {
         aCoder.encode(backend, forKey: PropertyKey.backend)
         aCoder.encode(remoteFileList, forKey: PropertyKey.backend)
         aCoder.encode(assetsToUpload, forKey: PropertyKey.assetsToUpload)
-        aCoder.encode(uploadQueue, forKey: PropertyKey.uploadQueue)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -111,10 +105,9 @@ class Provider: NSObject, NSCoding  {
         let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
         let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [PHAsset: [String:Any]]
         let assetsToUpload = aDecoder.decodeObject(forKey: PropertyKey.assetsToUpload) as! Set<PHAsset>
-        let uploadQueue = aDecoder.decodeObject(forKey: PropertyKey.uploadQueue) as! [URLRequest: URL]
         
         // Must call designated initializer.
-        self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload, uploadQueue: uploadQueue)
+        self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload)
     }
     
 }

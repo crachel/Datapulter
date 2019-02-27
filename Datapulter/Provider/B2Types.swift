@@ -17,10 +17,18 @@ struct AuthorizeAccountResponse: Codable {
         var bucketName: String?
         var namePrefix: String?
     }
-    var apiUrl: String
-    var authorizationToken: String
-    var downloadUrl: String
+    var apiUrl: String {
+        didSet {
+            let _ = KeychainHelper.set(value: apiUrl, forKey: B2.PropertyKey.apiUrl)
+        }
+    }
+    var authorizationToken: String {
+        didSet {
+            let _ = KeychainHelper.set(value: authorizationToken, forKey: B2.PropertyKey.authorizationToken)
+        }
+    }
     var recommendedPartSize: Int
+    var downloadUrl: String
     let allowed: Allowed
 }
 

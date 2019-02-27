@@ -7,12 +7,16 @@
 //
 
 import UIKit
+import os.log
 import Eureka
 
 class AddProviderViewController: FormViewController, UITextFieldDelegate {
     
     //MARK: Properties
+    var provider: Provider?
 
+    @IBOutlet weak var saveProvider: UIBarButtonItem!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
@@ -98,6 +102,25 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
     }
     
     //MARK: Navigation
+    
+    
+    
+    // This method lets you configure a view controller before it's presented.
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        super.prepare(for: segue, sender: sender)
+        
+        
+        
+        // Configure the destination view controller only when the save button is pressed.
+        guard let button = sender as? UIBarButtonItem, button === saveProvider else {
+            os_log("The save button was not pressed, cancelling", log: OSLog.default, type: .debug)
+            return
+        }
+        
+
+    }
+    
+
     
     @IBAction func cancel(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
