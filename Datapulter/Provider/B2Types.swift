@@ -19,19 +19,15 @@ struct AuthorizeAccountResponse: Codable {
     }
     var apiUrl: String {
         didSet {
-            let _ = KeychainHelper.set(value: apiUrl, forKey: B2.PropertyKey.apiUrl)
+            
         }
     }
-    var authorizationToken: String {
-        didSet {
-            let _ = KeychainHelper.set(value: authorizationToken, forKey: B2.PropertyKey.authorizationToken)
-        }
-    }
+    var authorizationToken: String
     var recommendedPartSize: Int
     var downloadUrl: String
     let allowed: Allowed
 }
-
+/*
 struct AssetMetaData {
     var fileName: String
     var contentType: String
@@ -39,7 +35,7 @@ struct AssetMetaData {
     var contentSha1: String
     var lastModified: Int64
     var fileInfo: [String: String]
-}
+}*/
 
 struct Bucket: Codable {
     var accountId: String

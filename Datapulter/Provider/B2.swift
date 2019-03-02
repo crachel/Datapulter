@@ -53,21 +53,32 @@ class B2: Provider {
     var dispatchQueue = DispatchQueue(label: "thread-safe-circularbuffer", attributes: .concurrent)
     var urlPool = CircularBuffer<GetUploadURLResponse?>()
     
-    var authorizationToken = UserDefaults.standard.string(forKey: "authorizationToken") ?? "" {
-    //var authorizationToken = "badtoken" ?? "" {
-        didSet {
-            UserDefaults.standard.set(authorizationToken, forKey: "authorizationToken")
-        }
-    }
-    var apiUrl = UserDefaults.standard.string(forKey: "apiUrl") ?? "" {
-        didSet {
-            UserDefaults.standard.set(apiUrl, forKey: "apiUrl")
+    var authorizationToken: String {
+        get {
+            if let result = KeychainHelper.get(account: account),
+                let tokenData = result[kSecValueData as String] as? Data,
+                let token = String(data: tokenData, encoding: .utf8) {
+                return token
+            }
+            
+            return ""
         }
     }
     
-    var recommendedPartSize = UserDefaults.standard.integer(forKey: "recommendedPartSize") {
-        didSet {
-            UserDefaults.standard.set(recommendedPartSize, forKey: "recommendedPartSize")
+    var apiUrl: String {
+        get {
+            if let result = KeychainHelper.get(account: account),
+                let url = result[kSecAttrServer as String] as? String {
+                return url
+            }
+            
+            return const.apiMainURL // keeps urlsessiontask from failing
+        }
+    }
+    
+    var recommendedPartSize: Int {
+        get {
+            return UserDefaults.standard.integer(forKey: PropertyKey.recommendedPartSize)
         }
     }
    
@@ -77,10 +88,12 @@ class B2: Provider {
     
     var authorizeAccountResponse: AuthorizeAccountResponse? {
         didSet {
-            authorizationToken = authorizeAccountResponse!.authorizationToken
-            apiUrl = authorizeAccountResponse!.apiUrl
-            recommendedPartSize = authorizeAccountResponse!.recommendedPartSize
-            
+            UserDefaults.standard.set(authorizeAccountResponse!.recommendedPartSize, forKey: PropertyKey.recommendedPartSize)
+            if(KeychainHelper.update(account: account, value: authorizeAccountResponse!.authorizationToken, server: authorizeAccountResponse!.apiUrl)) {
+                print("B2.authorizationToken saved to keychain")
+            } else {
+                // keychain save problem
+            }
         }
     }
     var listBucketsResponse: ListBucketsResponse?
@@ -138,44 +151,11 @@ class B2: Provider {
     //MARK: Public methods
     
     
-    public func startLargeFile(_ fileName: String) -> Promise<GetUploadPartURLResponse> {
-        return Promise {
-            self.startLargeFileApi(fileName).recover { error -> Promise<(Data?, URLResponse?)> in
-                switch error {
-                case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                    print("bad or expired auth token. attempting refresh then retrying API call.")
-                    return self.authorizeAccount().then { data, _ in
-                            //self.parseAuthorizeAccount(data!)
-                            try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
-                        }.then { parsedResult in
-                            self.authorizeAccountResponse = parsedResult
-                        }.then {
-                            self.startLargeFileApi(fileName) // retry call
-                        }.catch { error in
-                            print("unhandled error (authorizeAccount): \(error)")
-                    }
-                default:
-                    print("unhandled error (startLargeFileApi): \(error.localizedDescription)")
-                    return Promise(error)
-                }
-                }.then { data, _ in
-                    try self.parseStartLargeFile(data!) // force unwrap should be safe
-                }.then { parsedResult in
-                    return self.getUploadPartUrlApi(parsedResult["fileId"] as! String)
-                }.then { data, _ in
-                    try self.parseGetUploadPartUrl(data!) // force unwrap should be safe
-                }.then { parsedResult in
-                    return parsedResult // successful chain ends here
-                }.catch { error in
-                    print("unhandled error (startLargeFile): \(error)")
-            }
-        }
-    }
-    
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
        
         //ignore large files for now
         if (asset.size > const.defaultUploadCutoff ) {
+            handleLargeFile(asset)
             return Promise(providerError.foundNil)
         }
         
@@ -220,7 +200,7 @@ class B2: Provider {
         return self.getUploadUrlApi().recover { error -> Promise<(Data?, URLResponse?)> in
             switch error {
             case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                print("bad or expired auth token. attempting refresh then retrying API call.")
+                print("[getUploadUrlApi] bad or expired auth token. attempting refresh then retrying API call.")
                 return self.authorizeAccount().then { data, _ in
                     Utility.objectIsType(object: data, someObjectOfType: Data.self)
                 }.then { data in
@@ -239,8 +219,6 @@ class B2: Provider {
             try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
         }.then { result in
             self.prepareRequest(from: asset, with: result)
-        }.catch { error in
-            print("(getUrlRequest) unhandled error: \(error.localizedDescription)")
         }
         
     }
@@ -268,7 +246,6 @@ class B2: Provider {
             }
         }
         
-        
         return Promise { fulfill, reject in
             var urlRequest: URLRequest
             urlRequest = URLRequest(url: result.uploadUrl)
@@ -294,6 +271,90 @@ class B2: Provider {
                 urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
             
                 fulfill((urlRequest, url))
+            }
+        }
+    }
+    
+    private func startLargeFile(_ fileName: String) -> Promise<GetUploadPartURLResponse> {
+        return Promise {
+            self.startLargeFileApi(fileName).recover { error -> Promise<(Data?, URLResponse?)> in
+                switch error {
+                case B2Error.bad_auth_token, B2Error.expired_auth_token:
+                    print("bad or expired auth token. attempting refresh then retrying API call.")
+                    return self.authorizeAccount().then { data, _ in
+                        //self.parseAuthorizeAccount(data!)
+                        try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
+                        }.then { parsedResult in
+                            self.authorizeAccountResponse = parsedResult
+                        }.then {
+                            self.startLargeFileApi(fileName) // retry call
+                        }.catch { error in
+                            print("unhandled error (authorizeAccount): \(error)")
+                    }
+                default:
+                    print("unhandled error (startLargeFileApi): \(error.localizedDescription)")
+                    return Promise(error)
+                }
+                }.then { data, _ in
+                    try self.parseStartLargeFile(data!) // force unwrap should be safe
+                }.then { parsedResult in
+                    return self.getUploadPartUrlApi(parsedResult["fileId"] as! String)
+                }.then { data, _ in
+                    try self.parseGetUploadPartUrl(data!) // force unwrap should be safe
+                }.then { parsedResult in
+                    return parsedResult // successful chain ends here
+                }.catch { error in
+                    print("unhandled error (startLargeFile): \(error)")
+            }
+        }
+    }
+    
+    private func handleLargeFile(_ asset: PHAsset) {
+        // handle large upload
+        let payloadFileURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+        
+        //open temp dir for writing from stream. means user needs const.defaultchunksize
+        //available space. could be problem. need to check for this eventually
+        guard let outputStream = OutputStream(url: payloadFileURL, append: false) else {
+            return
+        }
+        
+        Utility.getData(from: asset) { _, url in
+            if let inputStream = InputStream.init(url: url) {
+                inputStream.open()
+                var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
+                var bytes = 0
+                var totalBytes = 0
+                repeat {
+                    bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                    if bytes > 0 {
+                        let data = Data(bytes: buffer, count: bytes)
+                        
+                        print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
+                        print("data.count \(data.count)")
+                        print("bytes \(String(bytes))")
+                        print("payloadFileURL \(payloadFileURL)")
+                        
+                        // write to temp file
+                        outputStream.write(buffer, maxLength: bytes)
+                        
+                        if let fileName = asset.originalFilename {
+                            self.startLargeFile(fileName).then { result in
+                                print(result.uploadUrl)
+                            }
+                        }
+                        do {
+                            try FileManager.default.removeItem(at: payloadFileURL)
+                        } catch {
+                            
+                        }
+                        
+                        totalBytes += bytes
+                    }
+                } while bytes > 0
+                
+                inputStream.close()
             }
         }
     }

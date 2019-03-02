@@ -28,7 +28,7 @@ class ProviderTableViewController: UITableViewController {
 
         //DispatchQueue.global(qos: .userInitiated).async {
         //DispatchQueue.main.async {
-            //AutoUpload.shared.start()
+            AutoUpload.shared.start()
         //}
         
         // Register to receive photo library change messages
@@ -92,6 +92,12 @@ class ProviderTableViewController: UITableViewController {
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
+            /*
+             
+             delete userdefaults and keychain stuff. any other cleanup/deinit
+             Provider.willRemove()
+             
+             */
             // Delete the row from the data source
             AutoUpload.shared.providers.remove(at: indexPath.row)
             
@@ -216,9 +222,7 @@ class ProviderTableViewController: UITableViewController {
     
     private func loadSampleProviders() {
         let provider1 = B2(name: "My Backblaze B2 Remote", account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e")
-        //let provider2 = B2(name: "My Second Backblaze B2 Remote", account: "123456ABCDE", key: "S3CR3TK3Y", bucket: "myotherbucket", versions: false, harddelete: true, accountId: "temp", bucketId: "temp")
-
-        //providers += [provider1, provider2]
+        
         AutoUpload.shared.providers += [provider1]
     }
     
@@ -233,9 +237,9 @@ class ProviderTableViewController: UITableViewController {
                 AutoUpload.shared.providers[selectedIndexPath.row] = provider
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
-        } else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
+        } /*else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
             print("unwind save")
-        }
+        }*/
         
  // add else for AddProviderViewController
         

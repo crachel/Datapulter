@@ -47,26 +47,7 @@ class AutoUpload {
                 
                 totalAssetsToUpload = provider.assetsToUpload.count
                 
-                /*
-                 provider.authorizeAccount().then {
-                     return Promise { fulfill, _ in
-                         func go() {
-                             if thereIsNotEnoughItemsLoaded {
-                                load().then(go)
-                             } else {
-                                fulfill()
-                             }
-                         }
-                         go()
-                     }
-                 }
-                 
-                 
-                 */
-                
-                
                 if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
-                   
                     for asset in provider.assetsToUpload {
                         
                         provider.getUrlRequest(asset).then { request, url in
@@ -77,8 +58,7 @@ class AutoUpload {
                             print("Cannot get URLRequest: \(error)")
                         }
                     
-                        
-                        break
+                        //break
                     }
                     
                 }
