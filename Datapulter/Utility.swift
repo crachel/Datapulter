@@ -73,7 +73,6 @@ class Utility {
     
    
     public static func objectIsType<T>(object: Any?, someObjectOfType: T.Type) -> Promise<T> {
-        
         return Promise { fulfill, reject in
             if let object = object as? T {
                 fulfill(object)

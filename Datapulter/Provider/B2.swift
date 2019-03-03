@@ -23,6 +23,7 @@ class B2: Provider {
         static let apiMainURL = "https://api.backblazeb2.com"
         static let authorizeAccountUrl = URL(string: "\(const.apiMainURL)/b2api/v2/b2_authorize_account")
         static let getUploadUrlEndpoint = "/b2api/v2/b2_get_upload_url"
+        static let startLargeFileEndpoint = "/b2api/v2/b2_start_large_file"
         static let headerPrefix = "X-Bz-Info-"
         static let authorizationHeader = "Authorization"
         static let fileNameHeader = "X-Bz-File-Name"
@@ -153,9 +154,10 @@ class B2: Provider {
     
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
        
-        //ignore large files for now
         if (asset.size > const.defaultUploadCutoff ) {
-            handleLargeFile(asset)
+            startLargeFile(asset)
+            return Promise(providerError.foundNil)
+        } else {
             return Promise(providerError.foundNil)
         }
         
@@ -231,7 +233,15 @@ class B2: Provider {
 
     //MARK: Private methods
     
-  
+    private func uploadPart(from data: Data) {
+    /*
+         print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
+         print("data.count \(data.count)")
+         X-Bz-Part-Number
+         authorizationtoken
+         */
+    }
+    
     private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
 
         
@@ -275,86 +285,116 @@ class B2: Provider {
         }
     }
     
-    private func startLargeFile(_ fileName: String) -> Promise<GetUploadPartURLResponse> {
-        return Promise {
-            self.startLargeFileApi(fileName).recover { error -> Promise<(Data?, URLResponse?)> in
-                switch error {
-                case B2Error.bad_auth_token, B2Error.expired_auth_token:
-                    print("bad or expired auth token. attempting refresh then retrying API call.")
-                    return self.authorizeAccount().then { data, _ in
-                        //self.parseAuthorizeAccount(data!)
-                        try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data!)
-                        }.then { parsedResult in
-                            self.authorizeAccountResponse = parsedResult
-                        }.then {
-                            self.startLargeFileApi(fileName) // retry call
-                        }.catch { error in
-                            print("unhandled error (authorizeAccount): \(error)")
-                    }
-                default:
-                    print("unhandled error (startLargeFileApi): \(error.localizedDescription)")
-                    return Promise(error)
-                }
-                }.then { data, _ in
-                    try self.parseStartLargeFile(data!) // force unwrap should be safe
-                }.then { parsedResult in
-                    return self.getUploadPartUrlApi(parsedResult["fileId"] as! String)
-                }.then { data, _ in
-                    try self.parseGetUploadPartUrl(data!) // force unwrap should be safe
-                }.then { parsedResult in
-                    return parsedResult // successful chain ends here
-                }.catch { error in
-                    print("unhandled error (startLargeFile): \(error)")
-            }
-        }
+    private func uploadPart() {
+        
     }
     
-    private func handleLargeFile(_ asset: PHAsset) {
-        // handle large upload
-        let payloadFileURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent(UUID().uuidString)
+    private func finishLargeFile() {
         
-        //open temp dir for writing from stream. means user needs const.defaultchunksize
-        //available space. could be problem. need to check for this eventually
-        guard let outputStream = OutputStream(url: payloadFileURL, append: false) else {
-            return
+    }
+    
+    private func startLargeFile(_ asset: PHAsset) -> Promise<[String: Any]> {
+        guard let fileName = asset.originalFilename else {
+            
+            return Promise(providerError.preparationFailed)
         }
         
-        Utility.getData(from: asset) { _, url in
-            if let inputStream = InputStream.init(url: url) {
-                inputStream.open()
-                var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
-                var bytes = 0
-                var totalBytes = 0
-                repeat {
-                    bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
-                    if bytes > 0 {
-                        let data = Data(bytes: buffer, count: bytes)
-                        
-                        print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
-                        print("data.count \(data.count)")
-                        print("bytes \(String(bytes))")
-                        print("payloadFileURL \(payloadFileURL)")
-                        
-                        // write to temp file
-                        outputStream.write(buffer, maxLength: bytes)
-                        
-                        if let fileName = asset.originalFilename {
-                            self.startLargeFile(fileName).then { result in
-                                print(result.uploadUrl)
+        //var fileId: String?
+    
+        return self.startLargeFileApi(fileName).recover { error -> Promise<(Data?, URLResponse?)> in
+            switch error {
+            case B2Error.bad_auth_token, B2Error.expired_auth_token:
+                print("[startLargeFileApi] bad or expired auth token. attempting refresh then retrying API call.")
+                return self.authorizeAccount().then { data, _ in
+                    Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                }.then { data in
+                    try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+                }.then { parsedResult in
+                    self.authorizeAccountResponse = parsedResult
+                }.then {
+                    self.startLargeFileApi(fileName) // retry call
+                }
+            default:
+                return Promise(error)
+            }
+        }.then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        }.then { parsedResult in
+            self.test(asset, parsedResult["fileId"] as! String)
+        }
+            /*
+            .then { parsedResult in
+            fileId = parsedResult["fileId"] as? String
+        }.then {
+            self.getUploadPartUrlApi(fileId!)
+        }.then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+        }.then { parsedResult in
+            return parsedResult // successful chain ends here
+        }*/
+    }
+    
+    private func test(_ asset: PHAsset,_ fileId: String) -> Promise<Void> {
+        return Promise { fulfill, _ in
+            // handle large upload
+            let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
+            
+            //open temp dir for writing from stream. means user needs const.defaultchunksize
+            //available space. could be problem. need to check for this eventually
+            let outputStream = OutputStream(url: payloadFileURL, append: false)
+            
+            Utility.getData(from: asset) { _, url in
+                if let inputStream = InputStream.init(url: url) {
+                    inputStream.open()
+                    var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
+                    var bytes = 0
+                    var totalBytes = 0
+                    
+                        func go() {
+                            bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                            if bytes > 0 {
+                                let data = Data(bytes: buffer, count: bytes)
+                                outputStream!.write(buffer, maxLength: bytes)
+                                load(data).then { _ in
+                                    go()
+                                }
+                            } else {
+                                //fulfill()
+                                do {
+                                    try FileManager.default.removeItem(at: payloadDirURL)
+                                } catch {
+                                    print("\(error.localizedDescription)")
+                                }
+                                inputStream.close()
                             }
                         }
-                        do {
-                            try FileManager.default.removeItem(at: payloadFileURL)
-                        } catch {
-                            
-                        }
-                        
-                        totalBytes += bytes
-                    }
-                } while bytes > 0
+                        go()
+                    
+                }
                 
-                inputStream.close()
+            }
+            func load(_ data: Data) -> Promise<Bool> {
+                return Promise { fulfill, _ in
+                    //getuploadparturl
+                    //uploadpart
+                    self.getUploadPartUrlApi(fileId).then { data, response in
+                        Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                    }.then { data in
+                        try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+                    }.then { parsedResponse in
+                        print(parsedResponse)
+                         //uploadpart(data, payloadFileurl, parsedResponse)
+                    }
+                    print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
+                    print("data.count \(data.count)")
+                    print("payloadFileURL \(payloadFileURL)")
+                    fulfill(true)
+                }
             }
         }
     }
@@ -461,24 +501,7 @@ class B2: Provider {
         
         return fetch(from: urlRequest, with: uploadData)
     }
-    
-    private func parseGetUploadPartUrl(_ data: Data) throws -> Promise<GetUploadPartURLResponse?> {
-        return Promise { () -> GetUploadPartURLResponse in
-            do {
-                self.getUploadPartUrlResponse = try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                if let response = self.getUploadPartUrlResponse {
-                    return response
-                } else {
-                    throw providerError.optionalBinding
-                }
-            } catch {
-                throw error
-            }
-        }
-    }
-    
-    
-    
+
     private func startLargeFileApi(_ fileName: String) -> Promise<(Data?, URLResponse?)> {
         var urlRequest: URLRequest
         var uploadData: Data
@@ -493,7 +516,8 @@ class B2: Provider {
             return Promise(error)
         }
         
-        guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_start_large_file") else {
+        //guard let url = URL(string: "\(apiUrl)/b2api/v2/b2_start_large_file") else {
+        guard let url = URL(string: "\(apiUrl)\(const.startLargeFileEndpoint)") else {
             return Promise(providerError.preparationFailed)
         }
         
@@ -502,18 +526,6 @@ class B2: Provider {
         urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
         
         return fetch(from: urlRequest,with: uploadData)
-    }
-    
-    private func parseStartLargeFile(_ data: Data) throws -> Promise<[String?: Any?]> {
-        return Promise { () -> [String: Any] in
-            do {
-                let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-                return json
-            } catch {
-                print("\(error.localizedDescription)")
-                throw error
-            }
-        }
     }
 
     private func listBuckets() -> Promise<(Data?, URLResponse?)> {
