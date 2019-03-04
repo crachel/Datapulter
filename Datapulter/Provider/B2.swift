@@ -24,6 +24,7 @@ class B2: Provider {
         static let authorizeAccountUrl = URL(string: "\(const.apiMainURL)/b2api/v2/b2_authorize_account")
         static let getUploadUrlEndpoint = "/b2api/v2/b2_get_upload_url"
         static let startLargeFileEndpoint = "/b2api/v2/b2_start_large_file"
+        static let finishLargeFileEndpoint = "/b2api/v2/b2_finish_large_file"
         static let headerPrefix = "X-Bz-Info-"
         static let authorizationHeader = "Authorization"
         static let fileNameHeader = "X-Bz-File-Name"
@@ -233,14 +234,6 @@ class B2: Provider {
 
     //MARK: Private methods
     
-    private func uploadPart(from data: Data) {
-    /*
-         print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
-         print("data.count \(data.count)")
-         X-Bz-Part-Number
-         authorizationtoken
-         */
-    }
     
     private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
 
@@ -285,15 +278,8 @@ class B2: Provider {
         }
     }
     
-    private func uploadPart() {
-        
-    }
-    
-    private func finishLargeFile() {
-        
-    }
-    
-    private func startLargeFile(_ asset: PHAsset) -> Promise<[String: Any]> {
+
+    private func startLargeFile(_ asset: PHAsset) -> Promise<[String:Any]> {
         guard let fileName = asset.originalFilename else {
             
             return Promise(providerError.preparationFailed)
@@ -338,7 +324,37 @@ class B2: Provider {
         }*/
     }
     
-    private func test(_ asset: PHAsset,_ fileId: String) -> Promise<Void> {
+    private func uploadPart() {
+        
+    }
+    
+    private func finishLargeFile(_ fileId: String,_ partSha1Array: [String]) -> Promise<(Data?, URLResponse?)> {
+        var urlRequest: URLRequest
+        var uploadData: Data
+        
+        let request = FinishLargeUploadRequest(fileId: fileId,
+                                               partSha1Array: partSha1Array)
+        
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            return Promise(error)
+        }
+        
+        guard let url = URL(string: "\(apiUrl)\(const.finishLargeFileEndpoint)") else {
+            return Promise(providerError.preparationFailed)
+        }
+        
+        urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = HttpMethod.post
+        
+        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+        
+        return fetch(from: urlRequest, with: uploadData)
+    }
+    
+    
+    private func test(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])> {
         return Promise { fulfill, _ in
             // handle large upload
             let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -347,6 +363,8 @@ class B2: Provider {
             //open temp dir for writing from stream. means user needs const.defaultchunksize
             //available space. could be problem. need to check for this eventually
             let outputStream = OutputStream(url: payloadFileURL, append: false)
+            
+            var partSha1Array = [String]()
             
             Utility.getData(from: asset) { _, url in
                 if let inputStream = InputStream.init(url: url) {
@@ -364,13 +382,15 @@ class B2: Provider {
                                     go()
                                 }
                             } else {
-                                //fulfill()
+                                //self.finishLargeFile(fileId, partSha1Array)
                                 do {
                                     try FileManager.default.removeItem(at: payloadDirURL)
                                 } catch {
                                     print("\(error.localizedDescription)")
                                 }
                                 inputStream.close()
+                                
+                                fulfill((fileId, partSha1Array))
                             }
                         }
                         go()
@@ -390,6 +410,7 @@ class B2: Provider {
                         print(parsedResponse)
                          //uploadpart(data, payloadFileurl, parsedResponse)
                     }
+                    partSha1Array.append(data.hashWithRSA2048Asn1Header(.sha1)!)
                     print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
                     print("data.count \(data.count)")
                     print("payloadFileURL \(payloadFileURL)")
