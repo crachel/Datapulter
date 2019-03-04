@@ -102,7 +102,7 @@ struct GetUploadPartURLRequest: Codable {
 
 struct GetUploadPartURLResponse: Codable {
     var fileId: String
-    var uploadUrl: String
+    var uploadUrl: URL
     var authorizationToken: String
 }
 

@@ -279,7 +279,7 @@ class B2: Provider {
     }
     
 
-    private func startLargeFile(_ asset: PHAsset) -> Promise<[String:Any]> {
+    private func startLargeFile(_ asset: PHAsset) -> Promise<(Data?, URLResponse?)> {
         guard let fileName = asset.originalFilename else {
             
             return Promise(providerError.preparationFailed)
@@ -309,6 +309,8 @@ class B2: Provider {
             try JSONSerialization.jsonObject(with: data) as! [String: Any]
         }.then { parsedResult in
             self.test(asset, parsedResult["fileId"] as! String)
+        }.then { fileId, partSha1Array in
+            self.finishLargeFile(fileId, partSha1Array)
         }
             /*
             .then { parsedResult in
@@ -324,8 +326,56 @@ class B2: Provider {
         }*/
     }
     
-    private func uploadPart() {
-        
+    private func uploadPart(_ result: GetUploadPartURLResponse,_ data: Data,_ url: URL,_ partNumber: Int) -> Promise<(Data?, URLResponse?)> {
+        return Promise { fulfill, reject in
+            var urlRequest: URLRequest
+            urlRequest = URLRequest(url: result.uploadUrl)
+            urlRequest.httpMethod = HttpMethod.post
+            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+            
+            print("partnumber \(partNumber)")
+            print("datacount \(data.count)")
+            print("url \(url)")
+            print("result \(result)")
+            
+            urlRequest.setValue(String(partNumber), forHTTPHeaderField: "X-Bz-Part-Number")
+            
+            urlRequest.setValue(String(data.count), forHTTPHeaderField: const.contentLengthHeader)
+            
+            urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+            
+            let completionHandler: NetworkCompletionHandler = { data, response, error in
+                if let error = error {
+                    reject(error)
+                }
+                
+                if let response = response as? HTTPURLResponse,
+                    let mimeType = response.mimeType,
+                    mimeType == const.mimeType,
+                    let data = data {
+                    
+                    if (response.statusCode == 200) {
+                        fulfill((data, response))
+                    } else if (400...401).contains(response.statusCode) {
+                        do {
+                            let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
+                            print(jsonerror.message)
+                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unmatchedError)
+                        } catch {
+                            reject (error) // handled status code but problem decoding JSON
+                        }
+                    } else {
+                        reject (providerError.unhandledStatusCode) // unhandled status code
+                    }
+                } else {
+                    reject (providerError.invalidResponse)
+                }
+            }
+            //URLSession.shared.uploadTask(with: urlRequest, fromFile: url)
+            URLSession.shared.uploadTask(with: urlRequest, from: data, completionHandler: completionHandler).resume()
+            
+            
+        }
     }
     
     private func finishLargeFile(_ fileId: String,_ partSha1Array: [String]) -> Promise<(Data?, URLResponse?)> {
@@ -363,19 +413,23 @@ class B2: Provider {
             //open temp dir for writing from stream. means user needs const.defaultchunksize
             //available space. could be problem. need to check for this eventually
             let outputStream = OutputStream(url: payloadFileURL, append: false)
-            
+           
             var partSha1Array = [String]()
+            var part = 0
             
             Utility.getData(from: asset) { _, url in
+                print(url)
                 if let inputStream = InputStream.init(url: url) {
                     inputStream.open()
                     var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
                     var bytes = 0
                     var totalBytes = 0
                     
+                    
                         func go() {
                             bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
                             if bytes > 0 {
+                                part += 1
                                 let data = Data(bytes: buffer, count: bytes)
                                 outputStream!.write(buffer, maxLength: bytes)
                                 load(data).then { _ in
@@ -407,14 +461,18 @@ class B2: Provider {
                     }.then { data in
                         try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
                     }.then { parsedResponse in
-                        print(parsedResponse)
-                         //uploadpart(data, payloadFileurl, parsedResponse)
+                        self.uploadPart(parsedResponse, data, payloadFileURL, part)
+                    }.then { data, response in
+                        fulfill(true)
+                    }.catch { error in
+                       print("\(error)")
                     }
                     partSha1Array.append(data.hashWithRSA2048Asn1Header(.sha1)!)
+                    print("part #\(part)")
                     print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
                     print("data.count \(data.count)")
                     print("payloadFileURL \(payloadFileURL)")
-                    fulfill(true)
+                    
                 }
             }
         }
