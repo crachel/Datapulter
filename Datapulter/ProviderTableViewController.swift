@@ -25,11 +25,7 @@ class ProviderTableViewController: UITableViewController {
         }
         
         //loadSampleProviders()
-
-        //DispatchQueue.global(qos: .userInitiated).async {
-        //DispatchQueue.main.async {
-            AutoUpload.shared.start()
-        //}
+        //AutoUpload.shared.start()
         
         // Register to receive photo library change messages
         PHPhotoLibrary.shared().register(self)
@@ -129,13 +125,14 @@ class ProviderTableViewController: UITableViewController {
     
     //MARK: - Navigation
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    // Do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         super.prepare(for: segue, sender: sender)
         
         switch(segue.identifier ?? "") {
             
         case "AddItem":
+            
             os_log("Adding a new provider.", log: OSLog.default, type: .debug)
             
         case "EditItem":
@@ -151,10 +148,8 @@ class ProviderTableViewController: UITableViewController {
                 fatalError("The selected cell is not being displayed by the table")
             }
             
-            //let selectedProvider = providers[indexPath.row]
             let selectedProvider = AutoUpload.shared.providers[indexPath.row]
             providerDetailViewController.provider = selectedProvider
-
 
             os_log("Editing a provider.", log: OSLog.default, type: .debug)
             
@@ -165,13 +160,7 @@ class ProviderTableViewController: UITableViewController {
     
     //MARK: Private Methods
     
-
-    
     private func saveProviders() {
-        //let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(providers, toFile: Provider.ArchiveURL.path)
-        //let isSuccessfulSave = NSKeyedArchiver.archiveRootObject(AutoUpload.shared.providers, toFile: Provider.ArchiveURL.path)
-        
-        
         let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
         
         do {
@@ -181,27 +170,12 @@ class ProviderTableViewController: UITableViewController {
         } catch {
             os_log("Failed to save providers...", log: OSLog.default, type: .error)
         }
-        /*
-        do {
-            try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: true)
-        } catch {
-            print(error)
-        }*/
-        /*
-        if isSuccessfulSave {
-            os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
-        } else {
-            os_log("Failed to save providers...", log: OSLog.default, type: .error)
-        }*/
     }
     
     private func loadProviders() -> [Provider]?  {
-        
-        //return NSKeyedUnarchiver.unarchiveObject(withFile: Provider.ArchiveURL.path) as? [Provider]
         let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
         if let nsData = NSData(contentsOf: fullPath) {
             do {
-                
                 let data = Data(referencing:nsData)
                 
                 if let loadedProviders = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? Array<Provider> {
@@ -233,28 +207,24 @@ class ProviderTableViewController: UITableViewController {
             
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
                 // Update an existing provider.
-                
                 AutoUpload.shared.providers[selectedIndexPath.row] = provider
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
-        } /*else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
-            print("unwind save")
-        }*/
-        
- // add else for AddProviderViewController
+        } else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
+            // Add a new provider.
+            AutoUpload.shared.providers += [provider]
+            tableView.reloadData()
+        }
         
         // Save the providers.
         saveProviders()
     }
-    
 }
 
 // MARK: PHPhotoLibraryChangeObserver
 
 extension ProviderTableViewController: PHPhotoLibraryChangeObserver {
-    
-    
-    
+
     func photoLibraryDidChange(_ changeInstance: PHChange) {
   
         DispatchQueue.main.sync {

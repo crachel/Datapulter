@@ -212,14 +212,20 @@
                                 <action selector="cancel:" destination="BYZ-38-t0r" id="d5j-Xp-Bfy"/>
                             </connections>
                         </barButtonItem>
-                        <barButtonItem key="rightBarButtonItem" title="Save" id="cBB-gm-OvH">
-                            <connections>
-                                <segue destination="cch-K4-lLn" kind="unwind" unwindAction="unwindToProviderListWithSender:" id="veS-Wx-trT"/>
-                            </connections>
-                        </barButtonItem>
+                        <rightBarButtonItems>
+                            <barButtonItem title="Save" id="cBB-gm-OvH"/>
+                            <barButtonItem title="Item" id="cbo-6j-qSV">
+                                <connections>
+                                    <action selector="saveButton:" destination="BYZ-38-t0r" id="7rb-bO-1fz"/>
+                                </connections>
+                            </barButtonItem>
+                        </rightBarButtonItems>
                     </navigationItem>
                     <connections>
+                        <outlet property="saveButton" destination="cbo-6j-qSV" id="vi7-vz-C6R"/>
                         <outlet property="saveProvider" destination="cBB-gm-OvH" id="9uC-wd-hDz"/>
+                        <segue destination="Xyl-y3-lW8" kind="show" identifier="saveSegue" id="EFl-Vo-k9j"/>
+                        <segue destination="cch-K4-lLn" kind="unwind" identifier="unwindToProviderList" unwindAction="unwindToProviderListWithSender:" id="cPz-VT-Ulh"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
@@ -261,11 +267,14 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="cOL-bF-Zhc" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1206" y="519"/>
+            <point key="canvasLocation" x="983" y="745"/>
         </scene>
     </scenes>
     <resources>
         <image name="2000px-Running_bond-update" width="810" height="1440"/>
         <image name="backblazeb2" width="300" height="300"/>
     </resources>
+    <inferredMetricsTieBreakers>
+        <segue reference="EFl-Vo-k9j"/>
+    </inferredMetricsTieBreakers>
 </document>

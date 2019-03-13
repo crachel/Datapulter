@@ -29,6 +29,7 @@
 		9BCE4AEF21B7DB9800DECB10 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9BCE4AED21B7DB9800DECB10 /* LaunchScreen.storyboard */; };
 		9BCE4AFA21B7DB9900DECB10 /* DatapulterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCE4AF921B7DB9900DECB10 /* DatapulterTests.swift */; };
 		9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD86B1921C2D8B300958EAD /* AutoUpload.swift */; };
+		9BE9F12222353CCD000D7E83 /* UIAlertController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE9F12122353CCD000D7E83 /* UIAlertController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 		9BCE4AF921B7DB9900DECB10 /* DatapulterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatapulterTests.swift; sourceTree = "<group>"; };
 		9BCE4AFB21B7DB9900DECB10 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9BD86B1921C2D8B300958EAD /* AutoUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpload.swift; sourceTree = "<group>"; };
+		9BE9F12122353CCD000D7E83 /* UIAlertController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAlertController.swift; sourceTree = "<group>"; };
 		C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Datapulter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -139,6 +141,7 @@
 				9BA8885F221579F6000D5E5B /* CircularBuffer.swift */,
 				9BA8885D22130765000D5E5B /* Endpoint.swift */,
 				9B2075E621DB9890006ECD02 /* Utility.swift */,
+				9BE9F12122353CCD000D7E83 /* UIAlertController.swift */,
 				9BA88861221A1DD6000D5E5B /* PHAsset.swift */,
 				9B14FD3E220B6079003D52AF /* Date.swift */,
 				9B5A181121E97EAE00B66783 /* Data+Crypto.swift */,
@@ -336,6 +339,7 @@
 				9B2075ED21DE42B5006ECD02 /* Client.swift in Sources */,
 				9BCE4AE721B7DB9600DECB10 /* AddProviderViewController.swift in Sources */,
 				9BC163E521B838D3003272FF /* ProviderTableViewController.swift in Sources */,
+				9BE9F12222353CCD000D7E83 /* UIAlertController.swift in Sources */,
 				9BA88860221579F6000D5E5B /* CircularBuffer.swift in Sources */,
 				9BC163E721B844CD003272FF /* Provider.swift in Sources */,
 				9B5A181221E97EAE00B66783 /* Data+Crypto.swift in Sources */,

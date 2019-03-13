@@ -154,13 +154,13 @@ class B2: Provider {
     
     
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
-       
+        
         if (asset.size > const.defaultUploadCutoff ) {
             startLargeFile(asset)
-            return Promise(providerError.foundNil)
-        } else {
-            return Promise(providerError.foundNil)
-        }
+            return Promise(providerError.foundNil) //need to return here so we don't try to process large file anyway
+        }// else {
+         //   return Promise(providerError.foundNil)
+        //}
         
         /*
         let dispatchQueue = DispatchQueue(label: "com.example.Datapulter.background")
@@ -308,74 +308,25 @@ class B2: Provider {
         }.then { data in
             try JSONSerialization.jsonObject(with: data) as! [String: Any]
         }.then { parsedResult in
-            self.test(asset, parsedResult["fileId"] as! String)
+            self.processLargeFile(asset, parsedResult["fileId"] as! String)
         }.then { fileId, partSha1Array in
             self.finishLargeFile(fileId, partSha1Array)
         }
-            /*
-            .then { parsedResult in
-            fileId = parsedResult["fileId"] as? String
-        }.then {
-            self.getUploadPartUrlApi(fileId!)
-        }.then { data, _ in
-            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-        }.then { data in
-            try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-        }.then { parsedResult in
-            return parsedResult // successful chain ends here
-        }*/
     }
     
     private func uploadPart(_ result: GetUploadPartURLResponse,_ data: Data,_ url: URL,_ partNumber: Int) -> Promise<(Data?, URLResponse?)> {
-        return Promise { fulfill, reject in
-            var urlRequest: URLRequest
-            urlRequest = URLRequest(url: result.uploadUrl)
-            urlRequest.httpMethod = HttpMethod.post
-            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-            
-            print("partnumber \(partNumber)")
-            print("datacount \(data.count)")
-            print("url \(url)")
-            print("result \(result)")
-            
-            urlRequest.setValue(String(partNumber), forHTTPHeaderField: "X-Bz-Part-Number")
-            
-            urlRequest.setValue(String(data.count), forHTTPHeaderField: const.contentLengthHeader)
-            
-            urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
-            
-            let completionHandler: NetworkCompletionHandler = { data, response, error in
-                if let error = error {
-                    reject(error)
-                }
-                
-                if let response = response as? HTTPURLResponse,
-                    let mimeType = response.mimeType,
-                    mimeType == const.mimeType,
-                    let data = data {
-                    
-                    if (response.statusCode == 200) {
-                        fulfill((data, response))
-                    } else if (400...401).contains(response.statusCode) {
-                        do {
-                            let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
-                            print(jsonerror.message)
-                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unmatchedError)
-                        } catch {
-                            reject (error) // handled status code but problem decoding JSON
-                        }
-                    } else {
-                        reject (providerError.unhandledStatusCode) // unhandled status code
-                    }
-                } else {
-                    reject (providerError.invalidResponse)
-                }
-            }
-            //URLSession.shared.uploadTask(with: urlRequest, fromFile: url)
-            URLSession.shared.uploadTask(with: urlRequest, from: data, completionHandler: completionHandler).resume()
-            
-            
-        }
+        var urlRequest: URLRequest
+        urlRequest = URLRequest(url: result.uploadUrl)
+        urlRequest.httpMethod = HttpMethod.post
+        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+        
+        urlRequest.setValue(String(partNumber), forHTTPHeaderField: "X-Bz-Part-Number")
+        
+        urlRequest.setValue(String(data.count), forHTTPHeaderField: const.contentLengthHeader)
+        
+        urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+        
+        return fetch(from: urlRequest, with: data)
     }
     
     private func finishLargeFile(_ fileId: String,_ partSha1Array: [String]) -> Promise<(Data?, URLResponse?)> {
@@ -404,75 +355,71 @@ class B2: Provider {
     }
     
     
-    private func test(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])> {
+    private func processLargeFile(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])> {
         return Promise { fulfill, _ in
             // handle large upload
             let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
             let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
-            
+
             //open temp dir for writing from stream. means user needs const.defaultchunksize
             //available space. could be problem. need to check for this eventually
-            let outputStream = OutputStream(url: payloadFileURL, append: false)
+            guard let outputStream = OutputStream(url: payloadFileURL, append: false) else {
+                return
+            }
            
             var partSha1Array = [String]()
             var part = 0
             
             Utility.getData(from: asset) { _, url in
-                print(url)
                 if let inputStream = InputStream.init(url: url) {
                     inputStream.open()
+                    outputStream.open()
+                    
                     var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
                     var bytes = 0
-                    var totalBytes = 0
                     
-                    
-                        func go() {
+                        func readBytes() {
                             bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                            
                             if bytes > 0 {
                                 part += 1
                                 let data = Data(bytes: buffer, count: bytes)
-                                outputStream!.write(buffer, maxLength: bytes)
-                                load(data).then { _ in
-                                    go()
+                                partSha1Array.append(data.hashWithRSA2048Asn1Header(.sha1)!)
+                                let written = outputStream.write(buffer, maxLength: bytes)
+                                
+                                print("bytes written to outputStream: \(written)")
+                                preparePart(data).then { _, _ in
+                                    readBytes()
                                 }
                             } else {
-                                //self.finishLargeFile(fileId, partSha1Array)
                                 do {
-                                    try FileManager.default.removeItem(at: payloadDirURL)
-                                } catch {
-                                    print("\(error.localizedDescription)")
+                                    print("trying to remove payloadFileURL...", terminator:"")
+                                    try FileManager.default.removeItem(at: payloadFileURL)
+                                    print("done")
+                                } catch let error as NSError {
+                                    print("failed")
+                                    print("Error: \(error.domain)")
                                 }
+                                
                                 inputStream.close()
+                                outputStream.close()
                                 
                                 fulfill((fileId, partSha1Array))
                             }
                         }
-                        go()
-                    
-                }
-                
-            }
-            func load(_ data: Data) -> Promise<Bool> {
-                return Promise { fulfill, _ in
-                    //getuploadparturl
-                    //uploadpart
-                    self.getUploadPartUrlApi(fileId).then { data, response in
-                        Utility.objectIsType(object: data, someObjectOfType: Data.self)
-                    }.then { data in
-                        try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                    }.then { parsedResponse in
-                        self.uploadPart(parsedResponse, data, payloadFileURL, part)
-                    }.then { data, response in
-                        fulfill(true)
-                    }.catch { error in
-                       print("\(error)")
+                        readBytes()
+  
+                    func preparePart(_ data: Data) -> Promise<(Data?, URLResponse?)> {
+                        return self.getUploadPartUrlApi(fileId).then { data, response in
+                            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                        }.then { data in
+                            try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+                        }.then { parsedResponse in
+                            self.uploadPart(parsedResponse, data, payloadFileURL, part)
+                        }.catch { error in
+                            print("\(error)")
+                        }
                     }
-                    partSha1Array.append(data.hashWithRSA2048Asn1Header(.sha1)!)
-                    print("part #\(part)")
-                    print("sha1 \(String(describing: data.hashWithRSA2048Asn1Header(.sha1)))")
-                    print("data.count \(data.count)")
-                    print("payloadFileURL \(payloadFileURL)")
-                    
                 }
             }
         }

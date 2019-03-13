@@ -58,7 +58,7 @@ class AutoUpload {
                             print("Cannot get URLRequest: \(error)")
                         }
                     
-                       //break
+                       break
                     }
                     
                 }
