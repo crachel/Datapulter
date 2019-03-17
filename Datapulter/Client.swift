@@ -43,7 +43,16 @@ class Client: NSObject {
         activeTasks.insert(task)
         task.resume()
         
+        
+        DispatchQueue.main.async {
+            UIApplication.shared.isNetworkActivityIndicatorVisible = true
+        }
+        
         return task
+    }
+    
+    public func cancel() {
+        //session.delegateQueue.cancelAllOperations()
     }
     
     public func isActive() -> Bool {
@@ -62,6 +71,7 @@ extension Client: URLSessionDelegate {
         DispatchQueue.main.async {
             self.backgroundCompletionHandler?()
             self.backgroundCompletionHandler = nil
+            UIApplication.shared.isNetworkActivityIndicatorVisible = false
         }
     }
     
@@ -87,6 +97,7 @@ extension Client: URLSessionDataDelegate {
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+
         print("urlSession -> didCompleteWithError")
         
         // downcast for access to statusCode

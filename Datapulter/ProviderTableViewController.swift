@@ -25,7 +25,7 @@ class ProviderTableViewController: UITableViewController {
         }
         
         //loadSampleProviders()
-        //AutoUpload.shared.start()
+        AutoUpload.shared.start()
         
         // Register to receive photo library change messages
         PHPhotoLibrary.shared().register(self)

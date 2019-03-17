@@ -86,6 +86,10 @@ class Provider: NSObject, NSCoding  {
         fatalError("Must Override")
     }
     
+    public func login() -> Promise<Bool> {
+        fatalError("Must Override")
+    }
+    
     //MARK: NSCoding
     
     func encode(with aCoder: NSCoder) {

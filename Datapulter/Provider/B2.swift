@@ -231,7 +231,18 @@ class B2: Provider {
         return Promise(UploadObject(asset: asset, urlPoolObject: urlPoolObject))
     }
 
-
+    override func login() -> Promise<Bool> {
+        return Promise { fulfill, reject in
+            self.authorizeAccount().then { data, response in
+                if let response = response as? HTTPURLResponse,
+                    response.statusCode == 200 {
+                    fulfill(true)
+                } else {
+                    fulfill(false)
+                }
+            }
+        }
+    }
     //MARK: Private methods
     
     
@@ -429,6 +440,10 @@ class B2: Provider {
         return Promise { fulfill, reject in
             
             let completionHandler: NetworkCompletionHandler = { data, response, error in
+                DispatchQueue.main.async {
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                }
+                
                 if let error = error {
                     reject(error)
                 }
@@ -445,7 +460,7 @@ class B2: Provider {
                             let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
                             reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unmatchedError)
                         } catch {
-                            reject (error) // handled status code but problem decoding JSON
+                            reject (error) // handled status code but unknown problem decoding JSON
                         }
                     } else {
                         reject (providerError.unhandledStatusCode) // unhandled status code
@@ -453,6 +468,10 @@ class B2: Provider {
                 } else {
                     reject (providerError.invalidResponse)
                 }
+            }
+            
+            DispatchQueue.main.async {
+                UIApplication.shared.isNetworkActivityIndicatorVisible = true
             }
             
             if (urlRequest.httpMethod == HttpMethod.post) {

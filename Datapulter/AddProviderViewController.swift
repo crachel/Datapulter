@@ -9,6 +9,7 @@
 import UIKit
 import os.log
 import Eureka
+import Promises
 
 class AddProviderViewController: FormViewController, UITextFieldDelegate {
     
@@ -102,16 +103,6 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
     
     //MARK: Navigation
     override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
-        /*
-        let alert = UIAlertController(title: "My Alert", message: "This is an alert.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .default, handler: { _ in
-            NSLog("The \"OK\" alert occured.")
-        }))
-        alert.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: "Cancel action"), style: .cancel, handler: { _ in
-            NSLog("The \"Cancel\" alert occured.")
-        }))
-        self.present(alert, animated: true, completion: nil)*/
-        
         return true
     }
     
@@ -132,11 +123,29 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
 
     @IBAction func saveButton(_ sender: Any) {
         if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+            /*
+            let alert = UIAlertController(title: "My Alert", message: "This is an alert.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .default, handler: { _ in
+                NSLog("The \"OK\" alert occured.")
+            }))
+            alert.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: "Cancel action"), style: .cancel, handler: { _ in
+                NSLog("The \"Cancel\" alert occured.")
+            }))
+            self.present(alert, animated: true, completion: nil)*/
+            
             if(row.value == "Backblaze B2") {
                 //let valuesDictionary = form.values()
                 //print(valuesDictionary["tagKeyID"] as! String)
-                provider = B2(name: "My Backblaze B2 Remote", account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e")
-                self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+                //"K0002N7fDPHf/MaFFITLUinf8//4qqc"
+                provider = B2(name: "My Backblaze B2 Remote v4", account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e")
+                provider?.login().then { success in
+                    if (success) {
+                       self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+                    } else {
+                        // do nothing for now
+                    }
+                }
+                //self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
             }
         }
         
