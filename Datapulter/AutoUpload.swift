@@ -9,7 +9,7 @@
 import UIKit
 import os.log
 import Photos
-//import UICircularProgressRing
+import UICircularProgressRing
 import Promises
 
 class AutoUpload {
@@ -18,7 +18,7 @@ class AutoUpload {
     
     static let shared = AutoUpload()
     
-    var assets: PHFetchResult<PHAsset>
+    var assets = PHFetchResult<PHAsset>()
     var providers = [Provider]()
     var tasks = [URLSessionTask: Provider]()
     
@@ -27,17 +27,22 @@ class AutoUpload {
     //MARK: Initialization
     
     private init() {
-        
-        assets = Utility.getCameraRollAssets()
+        PHPhotoLibrary.requestAuthorization { (status) in
+            print("Status: \(status)")
+        }
         
     }
     
     //MARK: Public Methods
     
     public func start() {
+        
+        assets = Utility.getCameraRollAssets()
+        
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             for provider in providers {
                 
+                print("Autoupload: Checking for assets.")
                 assets.enumerateObjects({ (asset, _, _) in
                     if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
@@ -47,24 +52,68 @@ class AutoUpload {
                 
                 totalAssetsToUpload = provider.assetsToUpload.count
                 
+                DispatchQueue.main.async {
+                    provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(self.totalAssetsToUpload)
+                }
+                
                 if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
-                    for asset in provider.assetsToUpload {
-                        
-                        provider.getUrlRequest(asset).then { request, url in
-                            let task = Client.shared.upload(request!, url!)
-                            provider.uploadingAssets[task] = asset
-                            self.tasks[task] = provider
-                        }.catch { error in
-                            print("Cannot get URLRequest: \(error)")
+                    /*while(Client.shared.activeTasks.count < 2 && provider.assetsToUpload.count > 0) {
+                        if let asset = provider.assetsToUpload.popFirst() {
+                            provider.getUrlRequest(asset).then { request, url in
+                                let task = Client.shared.upload(request!, url!)
+                                provider.uploadingAssets[task] = asset
+                                self.tasks[task] = provider
+                            }.catch { error in
+                                    print("Cannot get URLRequest: \(error)")
+                            }
                         }
-                    
-                       //break
+                    }*/
+                    func foo(_ N: Int) {
+                        //while(Client.shared.activeTasks.count < 4 && provider.assetsToUpload.count > 0) {
+                        if(N > 0) {
+                            if let asset = provider.assetsToUpload.popFirst() {
+                                provider.getUrlRequest(asset).then { request, url in
+                                    let task = Client.shared.upload(request!, url!)
+                                    provider.uploadingAssets[task] = asset
+                                    self.tasks[task] = provider
+                                    foo(N - 1)
+                                }.catch { error in
+                                    print("Cannot get URLRequest: \(error)")
+                                }
+                            }
+                        }
                     }
+                    foo(10)
+                    /*
+                    provider.authorizeAccount().then { _, response in
+                        if let response = response as? HTTPURLResponse,
+                            response.statusCode == 200 {
+                            foo(10)
+                        }
+                    }*/
+                    
+                    /*for asset in provider.assetsToUpload {
+                        
+                        if(Client.shared.activeTasks.count < 50) {
+                            provider.getUrlRequest(asset).then { request, url in
+                                let task = Client.shared.upload(request!, url!)
+                                provider.uploadingAssets[task] = asset
+                                self.tasks[task] = provider
+                            }.catch { error in
+                                print("Cannot get URLRequest: \(error)")
+                            }
+                        } else {
+                            // exit loop and let delegates handle from here
+                            break
+                        }
+                       //break
+                    }*/
                     
                 }
             }
         } else {
             // No photo permission
+            print("Autoupload: No photo permission.")
         }
     }
     
@@ -85,6 +134,24 @@ class AutoUpload {
                         print ("assetsToUpload did not contain asset")
                     }
                     print ("remote file list count \(provider.remoteFileList.count)")
+                    
+                    DispatchQueue.main.async {
+                        provider.cell?.ringView.value = UICircularProgressRing.ProgressValue((provider.cell?.ringView.value)! - 1)
+                    }
+                    
+                    //start another task, if asset exists
+                    if(Client.shared.activeTasks.count < 50 && provider.assetsToUpload.count > 0) {
+                        print("delegate started new task")
+                        if let asset = provider.assetsToUpload.popFirst() {
+                            provider.getUrlRequest(asset).then { request, url in
+                                let task = Client.shared.upload(request!, url!)
+                                provider.uploadingAssets[task] = asset
+                                self.tasks[task] = provider
+                            }.catch { error in
+                                print("Cannot get URLRequest: \(error)")
+                            }
+                        }
+                    }
                 } else if (400...401).contains(response.statusCode)  {
                     print ("handler: response statuscode 400 or 401")
                 } // else if response 500 etc

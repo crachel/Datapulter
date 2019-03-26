@@ -21,14 +21,13 @@ class ProviderTableViewController: UITableViewController {
         
         // Load any saved providers
         if let savedProviders = loadProviders() {
-           AutoUpload.shared.providers += savedProviders
+            AutoUpload.shared.providers += savedProviders
+            
+            AutoUpload.shared.start()
+            
+            // Register to receive photo library change messages
+            PHPhotoLibrary.shared().register(self)
         }
-        
-        //loadSampleProviders()
-        AutoUpload.shared.start()
-        
-        // Register to receive photo library change messages
-        PHPhotoLibrary.shared().register(self)
     }
     
     deinit {
@@ -47,7 +46,6 @@ class ProviderTableViewController: UITableViewController {
         return AutoUpload.shared.providers.count
     }
 
-    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         // Table view cells are reused and should be dequeued using a cell identifier.
         let cellIdentifier = "ProvidersTableViewCell"
@@ -69,22 +67,18 @@ class ProviderTableViewController: UITableViewController {
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
         cell.ringView.valueKnobSize = 10
-        
+        cell.ringView.valueIndicator = ""
         provider.cell = cell
 
         return cell
     }
-    
-
     
     // Override to support conditional editing of the table view.
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         // Return false if you do not want the specified item to be editable.
         return true
     }
-    
 
-    
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
@@ -104,25 +98,7 @@ class ProviderTableViewController: UITableViewController {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
         }    
     }
-    
-    
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
 
-    }
-    */
-    
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
-    
     //MARK: - Navigation
 
     // Do a little preparation before navigation
@@ -194,12 +170,6 @@ class ProviderTableViewController: UITableViewController {
         return paths[0]
     }
     
-    private func loadSampleProviders() {
-        let provider1 = B2(name: "My Backblaze B2 Remote", account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e")
-        
-        AutoUpload.shared.providers += [provider1]
-    }
-    
     //MARK: Actions
     
     @IBAction func unwindToProviderList(sender: UIStoryboardSegue) {
@@ -218,6 +188,9 @@ class ProviderTableViewController: UITableViewController {
         
         // Save the providers.
         saveProviders()
+        
+        print("unwindToProviderList: starting AutoUpload")
+        AutoUpload.shared.start()
     }
 }
 

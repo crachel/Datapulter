@@ -11,11 +11,9 @@ import Promises
 import Photos
 
 class B2: Provider {
-    
-    
+
     //MARK: Properties
 
-    
     typealias NetworkCompletionHandler = (Data?, URLResponse?, Error?) -> Void
     
     struct const {
@@ -94,7 +92,7 @@ class B2: Provider {
             if(KeychainHelper.update(account: account, value: authorizeAccountResponse!.authorizationToken, server: authorizeAccountResponse!.apiUrl)) {
                 print("B2.authorizationToken saved to keychain")
             } else {
-                // keychain save problem
+                print("Problem saving B2.authorizationToken to keychain")
             }
         }
     }
@@ -156,7 +154,7 @@ class B2: Provider {
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
         
         if (asset.size > const.defaultUploadCutoff ) {
-            startLargeFile(asset)
+            //startLargeFile(asset)
             return Promise(providerError.foundNil) //need to return here so we don't try to process large file anyway
         }// else {
          //   return Promise(providerError.foundNil)
@@ -232,19 +230,31 @@ class B2: Provider {
     }
 
     override func login() -> Promise<Bool> {
-        return Promise { fulfill, reject in
-            self.authorizeAccount().then { data, response in
+        //return Promise { fulfill, _ in
+            /*
+            self.authorizeAccount().then { _, response in
                 if let response = response as? HTTPURLResponse,
                     response.statusCode == 200 {
                     fulfill(true)
                 } else {
                     fulfill(false)
                 }
+            }*/
+            return self.authorizeAccount().then { data, _ in
+                Utility.objectIsType(object: data, someObjectOfType: Data.self)
+            }.then { data in
+                try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+            }.then { parsedResult in
+                self.authorizeAccountResponse = parsedResult
+            }.then {
+                Promise(true)
+            }.catch { _ in
+                Promise(false)
             }
-        }
+        //}
     }
-    //MARK: Private methods
     
+    //MARK: Private methods
     
     private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
 

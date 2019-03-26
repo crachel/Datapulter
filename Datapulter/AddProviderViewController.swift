@@ -142,10 +142,9 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                     if (success) {
                        self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
                     } else {
-                        // do nothing for now
+                        // alert user of bad log in
                     }
                 }
-                //self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
             }
         }
         

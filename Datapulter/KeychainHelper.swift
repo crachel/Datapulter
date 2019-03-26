@@ -47,11 +47,11 @@ class KeychainHelper {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         
         guard status != errSecItemNotFound else {
-            print("nothing found")
+            print("keychain: nothing found")
             return nil
         }
         guard status == errSecSuccess else {
-            print("keychain get error")
+            print("keychain: get error")
             return nil
         }
         
