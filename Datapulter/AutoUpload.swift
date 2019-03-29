@@ -22,7 +22,7 @@ class AutoUpload {
     var providers = [Provider]()
     var tasks = [URLSessionTask: Provider]()
     
-    var totalAssetsToUpload: Int = 0
+    //var totalAssetsToUpload: Int = 0
 
     //MARK: Initialization
     
@@ -41,22 +41,24 @@ class AutoUpload {
         
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             for provider in providers {
-                
+                print("remoteFileList count: \(provider.remoteFileList.count)")
                 print("Autoupload: Checking for assets.")
                 assets.enumerateObjects({ (asset, _, _) in
-                    if(provider.remoteFileList[asset] == nil && !provider.assetsToUpload.contains(asset)) {
+                    
+                    if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.insert(asset)
                     }
                 })
                 
-                totalAssetsToUpload = provider.assetsToUpload.count
+                provider.totalAssetsToUpload = Float(provider.assetsToUpload.count)
                 
                 DispatchQueue.main.async {
-                    provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(self.totalAssetsToUpload)
+                    provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(0)
+                    provider.cell?.ringView.maxValue = UICircularProgressRing.ProgressValue(provider.totalAssetsToUpload)
                 }
                 
-                if (totalAssetsToUpload > 0 && !Client.shared.isActive()) {
+                if (provider.totalAssetsToUpload > 0 && !Client.shared.isActive()) {
                     /*while(Client.shared.activeTasks.count < 2 && provider.assetsToUpload.count > 0) {
                         if let asset = provider.assetsToUpload.popFirst() {
                             provider.getUrlRequest(asset).then { request, url in
@@ -69,7 +71,6 @@ class AutoUpload {
                         }
                     }*/
                     func foo(_ N: Int) {
-                        //while(Client.shared.activeTasks.count < 4 && provider.assetsToUpload.count > 0) {
                         if(N > 0) {
                             if let asset = provider.assetsToUpload.popFirst() {
                                 provider.getUrlRequest(asset).then { request, url in
@@ -109,6 +110,8 @@ class AutoUpload {
                        //break
                     }*/
                     
+                } else {
+                    print("Autoupload: No assets found.")
                 }
             }
         } else {
@@ -123,9 +126,20 @@ class AutoUpload {
                 if (response.statusCode == 200) {
                     do {
                         let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
-                        provider.remoteFileList[asset] = json
+                        provider.remoteFileList[asset.localIdentifier] = json
+                    
                     } catch {
                         print("\(error.localizedDescription)")
+                    }
+                    
+                    let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
+                    
+                    do {
+                        let data = try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: false)
+                        try data.write(to: fullPath)
+                        os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
+                    } catch {
+                        os_log("Failed to save providers...", log: OSLog.default, type: .error)
                     }
                     
                     if let _ = provider.assetsToUpload.remove(asset) {
@@ -135,8 +149,16 @@ class AutoUpload {
                     }
                     print ("remote file list count \(provider.remoteFileList.count)")
                     
+                    provider.totalAssetsUploaded += 1
+                    
                     DispatchQueue.main.async {
-                        provider.cell?.ringView.value = UICircularProgressRing.ProgressValue((provider.cell?.ringView.value)! - 1)
+                        provider.cell?.ringView.value = UICircularProgressRing.ProgressValue((provider.cell?.ringView.value)! + 1)
+                        
+                        if(provider.totalAssetsToUpload == provider.totalAssetsUploaded) {
+                            provider.cell?.ringView.innerRingColor = .green
+                            //provider.cell?.ringView.valueIndicator = "%"
+                            //provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(100)
+                        }
                     }
                     
                     //start another task, if asset exists
@@ -165,6 +187,11 @@ class AutoUpload {
             // no provider associated with task. likely user quit app while task was running.
             // need to save to disk some how. core data or realm or something
         }
+    }
+    
+    private func getDocumentsDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0]
     }
     
     /*

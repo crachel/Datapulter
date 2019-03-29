@@ -134,7 +134,7 @@ class B2: Provider {
     //MARK: Initialization
     
     
-    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String) {
+    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String, remoteFileList: [String: [String:Any]], assetsToUpload: Set<PHAsset>) {
     // init for when user adds new provider
         self.account = account
         self.key = key
@@ -144,7 +144,7 @@ class B2: Provider {
         self.accountId = accountId
         self.bucketId = bucketId
         
-        super.init(name: name, backend: .Backblaze)
+        super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList, assetsToUpload: [])
     }
     
     
@@ -622,6 +622,7 @@ class B2: Provider {
         aCoder.encode(harddelete, forKey: PropertyKey.harddelete)
         aCoder.encode(accountId, forKey: PropertyKey.accountId)
         aCoder.encode(bucketId, forKey: PropertyKey.bucketId)
+        aCoder.encode(remoteFileList, forKey: PropertyKey.remoteFileList)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -632,7 +633,8 @@ class B2: Provider {
             let key = aDecoder.decodeObject(forKey: PropertyKey.key) as? String,
             let bucket = aDecoder.decodeObject(forKey: PropertyKey.bucket) as? String,
             let accountId = aDecoder.decodeObject(forKey: PropertyKey.accountId) as? String,
-            let bucketId = aDecoder.decodeObject(forKey: PropertyKey.bucketId) as? String
+            let bucketId = aDecoder.decodeObject(forKey: PropertyKey.bucketId) as? String,
+            let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as? [String: [String:Any]]
         else
         {
             os_log("Unable to decode a B2 object.", log: OSLog.default, type: .debug)
@@ -644,7 +646,7 @@ class B2: Provider {
         
         
         // Must call designated initializer.
-        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId)
+        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, assetsToUpload: [])
     }
  
 }

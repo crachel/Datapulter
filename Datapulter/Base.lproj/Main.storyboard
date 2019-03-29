@@ -40,7 +40,7 @@
                                                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5nl-8G-Bor">
                                                             <rect key="frame" x="0.0" y="0.0" width="253" height="30"/>
                                                             <constraints>
-                                                                <constraint firstAttribute="height" constant="30" id="USf-9C-idU"/>
+                                                                <constraint firstAttribute="height" constant="30" id="HtP-Gu-wDk"/>
                                                             </constraints>
                                                             <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                             <nil key="textColor"/>
@@ -56,15 +56,15 @@
                                                 </stackView>
                                             </subviews>
                                             <constraints>
-                                                <constraint firstItem="eYY-uv-TnW" firstAttribute="leading" secondItem="oyd-ba-MZc" secondAttribute="leading" constant="90" id="wit-21-dK9"/>
+                                                <constraint firstItem="eYY-uv-TnW" firstAttribute="leading" secondItem="oyd-ba-MZc" secondAttribute="leading" constant="90" id="VIX-Ga-qJA"/>
                                             </constraints>
                                         </stackView>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="leading" secondItem="HMt-yB-qBn" secondAttribute="leadingMargin" id="YEH-f6-SoP"/>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="trailing" secondItem="HMt-yB-qBn" secondAttribute="trailingMargin" id="deP-u9-jl8"/>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="bottom" secondItem="HMt-yB-qBn" secondAttribute="bottomMargin" id="h1l-aV-pcf"/>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="top" secondItem="HMt-yB-qBn" secondAttribute="topMargin" id="jeA-KN-VFE"/>
+                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="trailing" secondItem="HMt-yB-qBn" secondAttribute="trailingMargin" id="Ac1-iU-zyF"/>
+                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="bottom" secondItem="HMt-yB-qBn" secondAttribute="bottomMargin" id="D3i-na-9Zw"/>
+                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="leading" secondItem="HMt-yB-qBn" secondAttribute="leadingMargin" id="R6F-Pg-XzS"/>
+                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="top" secondItem="HMt-yB-qBn" secondAttribute="topMargin" id="ewl-y0-vne"/>
                                     </constraints>
                                 </tableViewCellContentView>
                                 <connections>
@@ -224,7 +224,6 @@
                     <connections>
                         <outlet property="saveButton" destination="cbo-6j-qSV" id="vi7-vz-C6R"/>
                         <outlet property="saveProvider" destination="cBB-gm-OvH" id="9uC-wd-hDz"/>
-                        <segue destination="Xyl-y3-lW8" kind="show" identifier="saveSegue" id="EFl-Vo-k9j"/>
                         <segue destination="cch-K4-lLn" kind="unwind" identifier="unwindToProviderList" unwindAction="unwindToProviderListWithSender:" id="cPz-VT-Ulh"/>
                     </connections>
                 </viewController>
@@ -274,7 +273,4 @@
         <image name="2000px-Running_bond-update" width="810" height="1440"/>
         <image name="backblazeb2" width="300" height="300"/>
     </resources>
-    <inferredMetricsTieBreakers>
-        <segue reference="EFl-Vo-k9j"/>
-    </inferredMetricsTieBreakers>
 </document>

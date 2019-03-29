@@ -21,7 +21,10 @@ class Provider: NSObject, NSCoding  {
     var cell: ProviderTableViewCell?
     var authorized: Bool?
     
-    var remoteFileList: [PHAsset: [String:Any]] // eventually use Cloudkit
+    var totalAssetsToUpload: Float = 0
+    var totalAssetsUploaded: Float = 0
+    
+    var remoteFileList: [String: [String:Any]] // eventually use Cloudkit
     var assetsToUpload = Set<PHAsset>()
     var uploadingAssets = [URLSessionTask: PHAsset]()
     
@@ -67,13 +70,13 @@ class Provider: NSObject, NSCoding  {
         self.assetsToUpload = []
     }
     
-    init(name: String, backend: Site, remoteFileList: [PHAsset: [String:Any]], assetsToUpload: Set<PHAsset>) {
+    init(name: String, backend: Site, remoteFileList: [String: [String:Any]], assetsToUpload: Set<PHAsset>) {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
         self.innerRing = .blue
         self.remoteFileList = remoteFileList
-        self.assetsToUpload = assetsToUpload
+        self.assetsToUpload = []
     }
     
     //MARK: Public methods
@@ -95,7 +98,6 @@ class Provider: NSObject, NSCoding  {
     func encode(with aCoder: NSCoder) {
         aCoder.encode(name, forKey: PropertyKey.name)
         aCoder.encode(backend, forKey: PropertyKey.backend)
-        aCoder.encode(remoteFileList, forKey: PropertyKey.backend)
         aCoder.encode(assetsToUpload, forKey: PropertyKey.assetsToUpload)
     }
     
@@ -107,7 +109,7 @@ class Provider: NSObject, NSCoding  {
         }
         
         let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
-        let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [PHAsset: [String:Any]]
+        let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [String: [String:Any]]
         let assetsToUpload = aDecoder.decodeObject(forKey: PropertyKey.assetsToUpload) as! Set<PHAsset>
         
         // Must call designated initializer.

@@ -30,6 +30,20 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 $0.options = ["Amazon S3","Backblaze B2","DigitalOcean Spaces"]
                 $0.value = "Backblaze B2"    // initially selected
             }
+            <<< AccountRow("tagName"){ row in
+                row.title = "Remote Name"
+                row.placeholder = "\"My Backblaze B2 Remote\""
+                row.add(rule: RuleRequired())
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Backblaze B2"
+                    }
+                    return false
+                }
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+            }
             <<< AccountRow("tagKeyID"){ row in
                 row.title = "Key ID"
                 row.placeholder = "Your account key ID"
@@ -132,12 +146,13 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 NSLog("The \"Cancel\" alert occured.")
             }))
             self.present(alert, animated: true, completion: nil)*/
+            let valuesDictionary = form.values()
             
             if(row.value == "Backblaze B2") {
                 //let valuesDictionary = form.values()
                 //print(valuesDictionary["tagKeyID"] as! String)
                 //"K0002N7fDPHf/MaFFITLUinf8//4qqc"
-                provider = B2(name: "My Backblaze B2 Remote v4", account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e")
+                provider = B2(name: valuesDictionary["tagName"] as! String, account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e", remoteFileList: [:], assetsToUpload: [])
                 provider?.login().then { success in
                     if (success) {
                        self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
