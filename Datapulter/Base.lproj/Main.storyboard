@@ -11,60 +11,58 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Providers-->
+        <!--Provider Table View Controller-->
         <scene sceneID="UEG-AJ-eeR">
             <objects>
                 <tableViewController id="Xyl-y3-lW8" customClass="ProviderTableViewController" customModule="Datapulter" customModuleProvider="target" sceneMemberID="viewController">
-                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="90" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="xfg-ES-mGt">
+                    <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="none" rowHeight="270" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="xfg-ES-mGt">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <prototypes>
-                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="ProvidersTableViewCell" rowHeight="90" id="6TP-fk-5t0" customClass="ProviderTableViewCell" customModule="Datapulter" customModuleProvider="target">
-                                <rect key="frame" x="0.0" y="28" width="375" height="90"/>
+                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="ProvidersTableViewCell" rowHeight="270" id="6TP-fk-5t0" customClass="ProviderTableViewCell" customModule="Datapulter" customModuleProvider="target">
+                                <rect key="frame" x="0.0" y="28" width="375" height="270"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="6TP-fk-5t0" id="HMt-yB-qBn">
-                                    <rect key="frame" x="0.0" y="0.0" width="375" height="89.5"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="375" height="270"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <stackView opaque="NO" contentMode="scaleToFill" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="oyd-ba-MZc">
-                                            <rect key="frame" x="16" y="11" width="343" height="68"/>
+                                        <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacingType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="eYY-uv-TnW">
+                                            <rect key="frame" x="16" y="11" width="343" height="248"/>
                                             <subviews>
+                                                <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="datapulter" translatesAutoresizingMaskIntoConstraints="NO" id="vnR-rO-BeW">
+                                                    <rect key="frame" x="0.0" y="0.0" width="343" height="47"/>
+                                                </imageView>
                                                 <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GKD-Gr-D31" customClass="UICircularProgressRing" customModule="UICircularProgressRing">
-                                                    <rect key="frame" x="0.0" y="0.0" width="80" height="68"/>
+                                                    <rect key="frame" x="0.0" y="55" width="343" height="117"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                 </view>
-                                                <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacingType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="eYY-uv-TnW">
-                                                    <rect key="frame" x="90" y="0.0" width="253" height="68"/>
-                                                    <subviews>
-                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5nl-8G-Bor">
-                                                            <rect key="frame" x="0.0" y="0.0" width="253" height="30"/>
-                                                            <constraints>
-                                                                <constraint firstAttribute="height" constant="30" id="HtP-Gu-wDk"/>
-                                                            </constraints>
-                                                            <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                                            <nil key="textColor"/>
-                                                            <nil key="highlightedColor"/>
-                                                        </label>
-                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VUc-d5-Rdy">
-                                                            <rect key="frame" x="0.0" y="38" width="253" height="30"/>
-                                                            <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                                            <nil key="textColor"/>
-                                                            <nil key="highlightedColor"/>
-                                                        </label>
-                                                    </subviews>
-                                                </stackView>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="center" horizontalHuggingPriority="251" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5nl-8G-Bor">
+                                                    <rect key="frame" x="0.0" y="180" width="343" height="30"/>
+                                                    <constraints>
+                                                        <constraint firstAttribute="height" constant="30" id="xe7-a0-Gyu"/>
+                                                    </constraints>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VUc-d5-Rdy">
+                                                    <rect key="frame" x="0.0" y="218" width="343" height="30"/>
+                                                    <constraints>
+                                                        <constraint firstAttribute="height" constant="30" id="vrf-FS-2AK"/>
+                                                    </constraints>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
                                             </subviews>
-                                            <constraints>
-                                                <constraint firstItem="eYY-uv-TnW" firstAttribute="leading" secondItem="oyd-ba-MZc" secondAttribute="leading" constant="90" id="VIX-Ga-qJA"/>
-                                            </constraints>
                                         </stackView>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="trailing" secondItem="HMt-yB-qBn" secondAttribute="trailingMargin" id="Ac1-iU-zyF"/>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="bottom" secondItem="HMt-yB-qBn" secondAttribute="bottomMargin" id="D3i-na-9Zw"/>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="leading" secondItem="HMt-yB-qBn" secondAttribute="leadingMargin" id="R6F-Pg-XzS"/>
-                                        <constraint firstItem="oyd-ba-MZc" firstAttribute="top" secondItem="HMt-yB-qBn" secondAttribute="topMargin" id="ewl-y0-vne"/>
+                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="leading" secondItem="HMt-yB-qBn" secondAttribute="leadingMargin" id="HLJ-nD-Q7j"/>
+                                        <constraint firstAttribute="bottomMargin" secondItem="eYY-uv-TnW" secondAttribute="bottom" id="aod-4a-KVS"/>
+                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="top" secondItem="HMt-yB-qBn" secondAttribute="topMargin" id="nd4-jC-ucG"/>
+                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="trailing" secondItem="HMt-yB-qBn" secondAttribute="trailingMargin" id="z2q-JU-eGS"/>
                                     </constraints>
                                 </tableViewCellContentView>
                                 <connections>
@@ -80,7 +78,7 @@
                             <outlet property="delegate" destination="Xyl-y3-lW8" id="08f-RT-bKz"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Providers" id="Sga-yy-0D8">
+                    <navigationItem key="navigationItem" id="Sga-yy-0D8">
                         <barButtonItem key="rightBarButtonItem" systemItem="add" id="7xb-92-SNt">
                             <connections>
                                 <segue destination="P1T-em-dsS" kind="show" identifier="AddItem" id="4Rm-H9-YMh"/>
@@ -272,5 +270,6 @@
     <resources>
         <image name="2000px-Running_bond-update" width="810" height="1440"/>
         <image name="backblazeb2" width="300" height="300"/>
+        <image name="datapulter" width="144.75" height="47.25"/>
     </resources>
 </document>

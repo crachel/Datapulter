@@ -19,6 +19,8 @@ class ProviderTableViewController: UITableViewController {
         // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
+        tableView.tableFooterView = UIView()
+        
         // Load any saved providers
         if let savedProviders = loadProviders() {
             AutoUpload.shared.providers += savedProviders
@@ -62,11 +64,12 @@ class ProviderTableViewController: UITableViewController {
         cell.providerLabel.text = provider.name
         
         cell.ringView.innerRingColor = provider.innerRing
-        cell.ringView.outerRingWidth = 8
-        cell.ringView.innerRingWidth = 8
+        cell.ringView.outerRingColor = .black
+        cell.ringView.outerRingWidth = 16
+        cell.ringView.innerRingWidth = 12
         cell.ringView.ringStyle = .ontop
         cell.ringView.showsValueKnob = true
-        cell.ringView.valueKnobSize = 10
+        cell.ringView.valueKnobSize = 20
         cell.ringView.valueIndicator = ""
         provider.cell = cell
 

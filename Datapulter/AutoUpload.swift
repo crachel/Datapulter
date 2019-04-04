@@ -156,8 +156,9 @@ class AutoUpload {
                         
                         if(provider.totalAssetsToUpload == provider.totalAssetsUploaded) {
                             provider.cell?.ringView.innerRingColor = .green
-                            //provider.cell?.ringView.valueIndicator = "%"
-                            //provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(100)
+                            provider.cell?.ringView.maxValue = UICircularProgressRing.ProgressValue(100)
+                            provider.cell?.ringView.valueIndicator = "%"
+                            provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(100)
                         }
                     }
                     
