@@ -155,7 +155,9 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 provider = B2(name: valuesDictionary["tagName"] as! String, account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e", remoteFileList: [:], assetsToUpload: [])
                 provider?.login().then { success in
                     if (success) {
-                       self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+                        print("provider successfully created.")
+                        self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+                        
                     } else {
                         // alert user of bad log in
                     }

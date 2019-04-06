@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2ADA62915F98068E30C859E1 /* Pods_Datapulter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */; };
+		9B0F8C8F2257D5CA006C034D /* FrontDoorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0F8C8E2257D5CA006C034D /* FrontDoorViewController.swift */; };
 		9B14FD3F220B6079003D52AF /* Date.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B14FD3E220B6079003D52AF /* Date.swift */; };
 		9B2075E721DB9890006ECD02 /* Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2075E621DB9890006ECD02 /* Utility.swift */; };
 		9B2075ED21DE42B5006ECD02 /* Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2075EC21DE42B5006ECD02 /* Client.swift */; };
@@ -26,7 +27,6 @@
 		9BCE4AE721B7DB9600DECB10 /* AddProviderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCE4AE621B7DB9600DECB10 /* AddProviderViewController.swift */; };
 		9BCE4AEA21B7DB9600DECB10 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9BCE4AE821B7DB9600DECB10 /* Main.storyboard */; };
 		9BCE4AEC21B7DB9800DECB10 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9BCE4AEB21B7DB9800DECB10 /* Assets.xcassets */; };
-		9BCE4AEF21B7DB9800DECB10 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9BCE4AED21B7DB9800DECB10 /* LaunchScreen.storyboard */; };
 		9BCE4AFA21B7DB9900DECB10 /* DatapulterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCE4AF921B7DB9900DECB10 /* DatapulterTests.swift */; };
 		9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD86B1921C2D8B300958EAD /* AutoUpload.swift */; };
 /* End PBXBuildFile section */
@@ -44,6 +44,7 @@
 /* Begin PBXFileReference section */
 		255F2EFF802574F1F6D5DC03 /* Pods-Datapulter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Datapulter.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Datapulter/Pods-Datapulter.debug.xcconfig"; sourceTree = "<group>"; };
 		384C332A8CCA221D1966A88F /* Pods-Datapulter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Datapulter.release.xcconfig"; path = "Pods/Target Support Files/Pods-Datapulter/Pods-Datapulter.release.xcconfig"; sourceTree = "<group>"; };
+		9B0F8C8E2257D5CA006C034D /* FrontDoorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrontDoorViewController.swift; sourceTree = "<group>"; };
 		9B14FD3E220B6079003D52AF /* Date.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Date.swift; sourceTree = "<group>"; };
 		9B2075E621DB9890006ECD02 /* Utility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utility.swift; sourceTree = "<group>"; };
 		9B2075EC21DE42B5006ECD02 /* Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Client.swift; sourceTree = "<group>"; };
@@ -63,7 +64,6 @@
 		9BCE4AE621B7DB9600DECB10 /* AddProviderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddProviderViewController.swift; sourceTree = "<group>"; };
 		9BCE4AE921B7DB9600DECB10 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		9BCE4AEB21B7DB9800DECB10 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		9BCE4AEE21B7DB9800DECB10 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		9BCE4AF021B7DB9800DECB10 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9BCE4AF521B7DB9900DECB10 /* DatapulterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DatapulterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BCE4AF921B7DB9900DECB10 /* DatapulterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatapulterTests.swift; sourceTree = "<group>"; };
@@ -145,12 +145,12 @@
 				9BCE4AE421B7DB9600DECB10 /* AppDelegate.swift */,
 				9BCE4AE621B7DB9600DECB10 /* AddProviderViewController.swift */,
 				9BCE4AE821B7DB9600DECB10 /* Main.storyboard */,
+				9B0F8C8E2257D5CA006C034D /* FrontDoorViewController.swift */,
 				9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */,
 				9BC163E421B838D3003272FF /* ProviderTableViewController.swift */,
 				9BC163E621B844CD003272FF /* Provider.swift */,
 				9BA8886322233FEB000D5E5B /* KeychainHelper.swift */,
 				9BCE4AEB21B7DB9800DECB10 /* Assets.xcassets */,
-				9BCE4AED21B7DB9800DECB10 /* LaunchScreen.storyboard */,
 				9BCE4AF021B7DB9800DECB10 /* Info.plist */,
 			);
 			path = Datapulter;
@@ -253,7 +253,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9BCE4AEF21B7DB9800DECB10 /* LaunchScreen.storyboard in Resources */,
 				9BCE4AEC21B7DB9800DECB10 /* Assets.xcassets in Resources */,
 				9BCE4AEA21B7DB9600DECB10 /* Main.storyboard in Resources */,
 			);
@@ -342,6 +341,7 @@
 				9BC6C22E21BBFC6900D96D7A /* EditProviderViewController.swift in Sources */,
 				9B14FD3F220B6079003D52AF /* Date.swift in Sources */,
 				9BCE4AE521B7DB9600DECB10 /* AppDelegate.swift in Sources */,
+				9B0F8C8F2257D5CA006C034D /* FrontDoorViewController.swift in Sources */,
 				9BA8886422233FEB000D5E5B /* KeychainHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -371,14 +371,6 @@
 				9BCE4AE921B7DB9600DECB10 /* Base */,
 			);
 			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		9BCE4AED21B7DB9800DECB10 /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				9BCE4AEE21B7DB9800DECB10 /* Base */,
-			);
-			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

@@ -43,6 +43,9 @@ class AutoUpload {
             for provider in providers {
                 print("remoteFileList count: \(provider.remoteFileList.count)")
                 print("Autoupload: Checking for assets.")
+                DispatchQueue.main.async {
+                    provider.cell?.hudLabel.text = "Checking for new media..."
+                }
                 assets.enumerateObjects({ (asset, _, _) in
                     
                     if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
@@ -56,6 +59,7 @@ class AutoUpload {
                 DispatchQueue.main.async {
                     provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(0)
                     provider.cell?.ringView.maxValue = UICircularProgressRing.ProgressValue(provider.totalAssetsToUpload)
+                    provider.cell?.hudLabel.text = "\(provider.totalAssetsToUpload) objects found."
                 }
                 
                 if (provider.totalAssetsToUpload > 0 && !Client.shared.isActive()) {
@@ -154,6 +158,12 @@ class AutoUpload {
                     DispatchQueue.main.async {
                         provider.cell?.ringView.value = UICircularProgressRing.ProgressValue((provider.cell?.ringView.value)! + 1)
                         
+                        if ( Float((provider.cell?.ringView.currentValue)!) == provider.totalAssetsToUpload ){
+                            DispatchQueue.main.async {
+                                provider.cell?.hudLabel.text = "Done uploading!"
+                            }
+                        }
+                        
                         if(provider.totalAssetsToUpload == provider.totalAssetsUploaded) {
                             provider.cell?.ringView.innerRingColor = .green
                             provider.cell?.ringView.maxValue = UICircularProgressRing.ProgressValue(100)
@@ -174,9 +184,21 @@ class AutoUpload {
                                 print("Cannot get URLRequest: \(error)")
                             }
                         }
+                    } else {
+                        
                     }
                 } else if (400...401).contains(response.statusCode)  {
                     print ("handler: response statuscode 400 or 401")
+                } else if (response.statusCode == 503) {
+                    //retry
+                    print("delegate retry 503 task")
+                    provider.getUrlRequest(asset).then { request, url in
+                        let task = Client.shared.upload(request!, url!)
+                        provider.uploadingAssets[task] = asset
+                        self.tasks[task] = provider
+                    }.catch { error in
+                        print("Cannot get URLRequest: \(error)")
+                    }
                 } // else if response 500 etc
                 
                 print("tasks count \(tasks.count)")

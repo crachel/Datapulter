@@ -22,14 +22,27 @@ class ProviderTableViewController: UITableViewController {
         tableView.tableFooterView = UIView()
         
         // Load any saved providers
-        if let savedProviders = loadProviders() {
-            AutoUpload.shared.providers += savedProviders
+       // if let savedProviders = loadProviders() {
+         //   AutoUpload.shared.providers += savedProviders
             
-            AutoUpload.shared.start()
+            if(AutoUpload.shared.providers.isEmpty) {
+                //performSegue(withIdentifier: "showLogin", sender: nil)
+                //let test = UIImage(named: "backblazeb2")
+                //tableView.backgroundView = UIImageView(image: test)
+                
+            } else {
+                //tableView.backgroundColor = UIColor.clear
+                AutoUpload.shared.start()
+            }
             
             // Register to receive photo library change messages
             PHPhotoLibrary.shared().register(self)
-        }
+       // }
+        
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+       
     }
     
     deinit {
@@ -62,6 +75,7 @@ class ProviderTableViewController: UITableViewController {
         // Configure the cell...
     
         cell.providerLabel.text = provider.name
+        cell.hudLabel.text = "App initialized."
         
         cell.ringView.innerRingColor = provider.innerRing
         cell.ringView.outerRingColor = .black
@@ -131,6 +145,10 @@ class ProviderTableViewController: UITableViewController {
             providerDetailViewController.provider = selectedProvider
 
             os_log("Editing a provider.", log: OSLog.default, type: .debug)
+        
+        case "showLogin":
+            
+            os_log("Showing the login controller.", log: OSLog.default, type: .debug)
             
         default:
             fatalError("Unexpected Segue Identifier; \(String(describing: segue.identifier))")
@@ -217,6 +235,8 @@ extension ProviderTableViewController: PHPhotoLibraryChangeObserver {
             print("Contains changes")
             
             AutoUpload.shared.assets = (fetchResultChangeDetails?.fetchResultAfterChanges)!
+            
+            AutoUpload.shared.start()
             
             //let insertedObjects = fetchResultChangeDetails?.insertedObjects
             

@@ -52,6 +52,7 @@ class Client: NSObject {
     }
     
     public func cancel() {
+        activeTasks.removeAll()
         //session.delegateQueue.cancelAllOperations()
     }
     
