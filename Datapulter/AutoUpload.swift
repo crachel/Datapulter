@@ -21,8 +21,6 @@ class AutoUpload {
     var assets = PHFetchResult<PHAsset>()
     var providers = [Provider]()
     var tasks = [URLSessionTask: Provider]()
-    
-    //var totalAssetsToUpload: Int = 0
 
     //MARK: Initialization
     
@@ -30,7 +28,6 @@ class AutoUpload {
         PHPhotoLibrary.requestAuthorization { (status) in
             print("Status: \(status)")
         }
-        
     }
     
     //MARK: Public Methods
@@ -57,8 +54,8 @@ class AutoUpload {
                 provider.totalAssetsToUpload = Float(provider.assetsToUpload.count)
                 
                 DispatchQueue.main.async {
-                    provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(0)
-                    provider.cell?.ringView.maxValue = UICircularProgressRing.ProgressValue(provider.totalAssetsToUpload)
+                    provider.cell?.ringView.value = 0
+                    provider.cell?.ringView.maxValue = CGFloat(provider.totalAssetsToUpload)
                     provider.cell?.hudLabel.text = "\(provider.totalAssetsToUpload) objects found."
                 }
                 
@@ -156,7 +153,7 @@ class AutoUpload {
                     provider.totalAssetsUploaded += 1
                     
                     DispatchQueue.main.async {
-                        provider.cell?.ringView.value = UICircularProgressRing.ProgressValue((provider.cell?.ringView.value)! + 1)
+                        provider.cell?.ringView.value = ((provider.cell?.ringView.value)! + 1)
                         
                         if ( Float((provider.cell?.ringView.currentValue)!) == provider.totalAssetsToUpload ){
                             DispatchQueue.main.async {
@@ -166,9 +163,11 @@ class AutoUpload {
                         
                         if(provider.totalAssetsToUpload == provider.totalAssetsUploaded) {
                             provider.cell?.ringView.innerRingColor = .green
-                            provider.cell?.ringView.maxValue = UICircularProgressRing.ProgressValue(100)
-                            provider.cell?.ringView.valueIndicator = "%"
-                            provider.cell?.ringView.value = UICircularProgressRing.ProgressValue(100)
+                            provider.cell?.ringView.maxValue = 100
+                            //provider.cell?.ringView.valueIndicator = "%"
+                            provider.cell?.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "%", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
+                            
+                            provider.cell?.ringView.value = 100
                         }
                     }
                     

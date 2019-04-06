@@ -1,13 +1,13 @@
 PODS:
-  - Eureka (4.3.0)
-  - PromisesObjC (1.2.4)
-  - PromisesSwift (1.2.4):
-    - PromisesObjC (= 1.2.4)
-  - UICircularProgressRing (4.1.0)
+  - Eureka (5.0.0)
+  - PromisesObjC (1.2.7)
+  - PromisesSwift (1.2.7):
+    - PromisesObjC (= 1.2.7)
+  - UICircularProgressRing (6.1.0)
 
 DEPENDENCIES:
   - Eureka
-  - PromisesSwift (~> 1.2.4)
+  - PromisesSwift (~> 1.2.7)
   - UICircularProgressRing
 
 SPEC REPOS:
@@ -18,11 +18,11 @@ SPEC REPOS:
     - UICircularProgressRing
 
 SPEC CHECKSUMS:
-  Eureka: 6d711cb30ca333b4bc893110285a722ae3840114
-  PromisesObjC: 4a3f2e30a0eb793e9bbb32cd367b625d4a14de5a
-  PromisesSwift: 8e1d2cdbc3cafb4f09d4b82df12f645bc19ab64e
-  UICircularProgressRing: 5a32c01f54474571b1e66e8fa050c0f83d6d981b
+  Eureka: 0f64f477ec8ef6201c6fec143d60ff5c201cf654
+  PromisesObjC: 7b28ddd1e78cce8f80f1ada927d2217663a9c672
+  PromisesSwift: b27f410f9ea693753cfd4cfd8ac1c60a471f137b
+  UICircularProgressRing: b3eba859a515e4d9d38503eec913f09c28450785
 
-PODFILE CHECKSUM: c727a34f1a1ca328ea217903a5af76a3aec15ddb
+PODFILE CHECKSUM: bf652ca7de425051a1e660bd942ce7cad3849f72
 
 COCOAPODS: 1.5.3

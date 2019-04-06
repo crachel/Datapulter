@@ -217,6 +217,7 @@
 				TargetAttributes = {
 					9BCE4AE021B7DB9600DECB10 = {
 						CreatedOnToolsVersion = 10.1;
+						LastSwiftMigration = 1020;
 						SystemCapabilities = {
 							com.apple.BackgroundModes = {
 								enabled = 1;
@@ -225,6 +226,7 @@
 					};
 					9BCE4AF421B7DB9900DECB10 = {
 						CreatedOnToolsVersion = 10.1;
+						LastSwiftMigration = 1020;
 						TestTargetID = 9BCE4AE021B7DB9600DECB10;
 					};
 				};
@@ -505,7 +507,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.Datapulter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -523,7 +525,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.Datapulter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -542,7 +544,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.DatapulterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Datapulter.app/Datapulter";
 			};
@@ -562,7 +564,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.DatapulterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.2;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Datapulter.app/Datapulter";
 			};

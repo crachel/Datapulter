@@ -127,7 +127,7 @@ struct StartLargeFileResponse: Codable {
     var fileId: String
     var fileName: String
     var uploadTimestamp: String
-    let fileInfo: [String: String]?
+    var fileInfo: [String: String]?
     
     private enum CodingKeys: String, CodingKey {
         case accountId
@@ -180,7 +180,7 @@ struct UploadFileResponse: Codable {
     var fileId: String
     var fileName: String
     var uploadTimestamp: String
-    let fileInfo: [String: String]?
+    var fileInfo: [String: String]?
     
     private enum CodingKeys: String, CodingKey {
         case accountId
