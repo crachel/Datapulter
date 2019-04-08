@@ -16,12 +16,17 @@ class ProviderTableViewCell: UITableViewCell {
     @IBOutlet weak var providerLabel: UILabel!
     @IBOutlet weak var progressLine: UIProgressView!
     @IBOutlet weak var hudLabel: UILabel!
+    @IBOutlet weak var stopButton: UIButton!
     
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
     }
-
+    
+    @IBAction func pressed(_ sender: Any) {
+        Client.shared.cancel()
+    }
+    
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
 

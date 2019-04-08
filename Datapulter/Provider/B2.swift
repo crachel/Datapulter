@@ -230,16 +230,6 @@ class B2: Provider {
     }
 
     override func login() -> Promise<Bool> {
-        //return Promise { fulfill, _ in
-            /*
-            self.authorizeAccount().then { _, response in
-                if let response = response as? HTTPURLResponse,
-                    response.statusCode == 200 {
-                    fulfill(true)
-                } else {
-                    fulfill(false)
-                }
-            }*/
             return self.authorizeAccount().then { data, _ in
                 Utility.objectIsType(object: data, someObjectOfType: Data.self)
             }.then { data in
@@ -249,9 +239,8 @@ class B2: Provider {
             }.then {
                 Promise(true)
             }.catch { _ in
-                Promise(false)
+               Promise(false)
             }
-        //}
     }
     
     //MARK: Private methods
@@ -292,7 +281,10 @@ class B2: Provider {
             }
             
             Utility.getData(from: asset) { data, url in
-                urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+                //print (data.hashWithRSA2048Asn1Header(.sha1)!)
+                //print (data.sha1v)
+                urlRequest.setValue(data.sha1, forHTTPHeaderField: const.sha1Header)
+                //urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
             
                 fulfill((urlRequest, url))
             }
@@ -345,7 +337,8 @@ class B2: Provider {
         
         urlRequest.setValue(String(data.count), forHTTPHeaderField: const.contentLengthHeader)
         
-        urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+        //urlRequest.setValue(data.hashWithRSA2048Asn1Header(.sha1), forHTTPHeaderField: const.sha1Header)
+        urlRequest.setValue(data.sha1, forHTTPHeaderField: const.sha1Header)
         
         return fetch(from: urlRequest, with: data)
     }
@@ -405,7 +398,8 @@ class B2: Provider {
                             if bytes > 0 {
                                 part += 1
                                 let data = Data(bytes: buffer, count: bytes)
-                                partSha1Array.append(data.hashWithRSA2048Asn1Header(.sha1)!)
+                                //partSha1Array.append(data.hashWithRSA2048Asn1Header(.sha1)!)
+                                partSha1Array.append(data.sha1)
                                 let written = outputStream.write(buffer, maxLength: bytes)
                                 
                                 print("bytes written to outputStream: \(written)")

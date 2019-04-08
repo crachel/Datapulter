@@ -9,6 +9,7 @@
 import UIKit
 import CommonCrypto
 
+/*
 // Defines types of hash string outputs available
 public enum HashOutputType {
     // standard hex string output
@@ -71,22 +72,7 @@ extension Data {
         var digest = Data(count: Int(type.length))
         
         // generate hash using specified hash type
-        /*
         _ = digest.withUnsafeMutableBytes { (digestBytes: UnsafeMutablePointer<UInt8>) in
-            self.withUnsafeBytes { (messageBytes: UnsafePointer<UInt8>) in
-                let length = CC_LONG(self.count)
-                switch type {
-                case .md5: CC_MD5(messageBytes, length, digestBytes)
-                case .sha1: CC_SHA1(messageBytes, length, digestBytes)
-                case .sha224: CC_SHA224(messageBytes, length, digestBytes)
-                case .sha256: CC_SHA256(messageBytes, length, digestBytes)
-                case .sha384: CC_SHA384(messageBytes, length, digestBytes)
-                case .sha512: CC_SHA512(messageBytes, length, digestBytes)
-                }
-            }
-        }*/
-        
-        digest.withUnsafeMutableBytes { (digestBytes: UnsafeMutablePointer<UInt8>) in
             self.withUnsafeBytes { (messageBytes: UnsafePointer<UInt8>) in
                 let length = CC_LONG(self.count)
                 switch type {
@@ -107,3 +93,19 @@ extension Data {
         }
     }
 }
+*/
+
+extension Data {
+    
+    public var sha1: String {
+        var digest = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
+        
+        _ = withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
+            return CC_SHA1(bytes.baseAddress, CC_LONG(count), &digest)
+        }
+        
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+

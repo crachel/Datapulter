@@ -52,8 +52,18 @@ class Client: NSObject {
     }
     
     public func cancel() {
+        print("Client: cancel all tasks")
+        for task in activeTasks {
+            task.cancel()
+        }
         activeTasks.removeAll()
-        //session.delegateQueue.cancelAllOperations()
+    }
+    
+    public func suspend() {
+        print("Client: suspend all tasks")
+        for task in activeTasks {
+            task.suspend()
+        }
     }
     
     public func isActive() -> Bool {

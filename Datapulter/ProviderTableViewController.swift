@@ -85,11 +85,6 @@ class ProviderTableViewController: UITableViewController {
         cell.ringView.style = .ontop
         cell.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
         
-        //cell.ringView.ringStyle = .ontop
-        //cell.ringView.showsValueKnob = true
-        //cell.ringView.valueKnobSize = 20
-        //cell.ringView.valueIndicator = ""
-        
         provider.cell = cell
 
         return cell

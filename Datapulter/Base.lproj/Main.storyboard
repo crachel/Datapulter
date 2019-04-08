@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="cnR-nV-mvG">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="cnR-nV-mvG">
     <device id="retina4_7" orientation="portrait">
         <adaptation id="fullscreen"/>
     </device>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14460.20"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14490.49"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="Stack View standard spacing" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -50,44 +50,55 @@
                                             <rect key="frame" x="16" y="11" width="343" height="338"/>
                                             <subviews>
                                                 <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="datapulter" translatesAutoresizingMaskIntoConstraints="NO" id="vnR-rO-BeW">
-                                                    <rect key="frame" x="0.0" y="0.0" width="343" height="47"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="343" height="60"/>
+                                                    <constraints>
+                                                        <constraint firstAttribute="height" constant="60" id="7bf-p5-ba5"/>
+                                                    </constraints>
                                                 </imageView>
                                                 <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GKD-Gr-D31" customClass="UICircularProgressRing" customModule="UICircularProgressRing">
-                                                    <rect key="frame" x="0.0" y="55" width="343" height="207"/>
+                                                    <rect key="frame" x="0.0" y="68" width="343" height="156"/>
                                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                 </view>
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="center" horizontalHuggingPriority="251" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5nl-8G-Bor">
-                                                    <rect key="frame" x="0.0" y="270" width="343" height="30"/>
+                                                    <rect key="frame" x="0.0" y="232" width="343" height="30"/>
                                                     <constraints>
-                                                        <constraint firstAttribute="height" constant="30" id="yEt-mL-wg4"/>
+                                                        <constraint firstAttribute="height" constant="30" id="Fpj-EZ-zBm"/>
                                                     </constraints>
                                                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VUc-d5-Rdy">
-                                                    <rect key="frame" x="0.0" y="308" width="343" height="30"/>
+                                                    <rect key="frame" x="0.0" y="270" width="343" height="30"/>
                                                     <constraints>
-                                                        <constraint firstAttribute="height" constant="30" id="R58-HZ-orC"/>
+                                                        <constraint firstAttribute="height" constant="30" id="5at-Ed-fV4"/>
                                                     </constraints>
                                                     <fontDescription key="fontDescription" type="system" weight="thin" pointSize="17"/>
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
+                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="p34-SR-9nj">
+                                                    <rect key="frame" x="0.0" y="308" width="343" height="30"/>
+                                                    <state key="normal" title="Stop"/>
+                                                    <connections>
+                                                        <action selector="pressed:" destination="6TP-fk-5t0" eventType="touchUpInside" id="T7Q-Gq-4B5"/>
+                                                    </connections>
+                                                </button>
                                             </subviews>
                                         </stackView>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="bottom" secondItem="HMt-yB-qBn" secondAttribute="bottomMargin" id="Fxi-J8-q5L"/>
-                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="trailing" secondItem="HMt-yB-qBn" secondAttribute="trailingMargin" id="bmr-pP-hh3"/>
-                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="top" secondItem="HMt-yB-qBn" secondAttribute="topMargin" id="dQL-GE-HP4"/>
-                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="leading" secondItem="HMt-yB-qBn" secondAttribute="leadingMargin" id="lph-C7-Nzn"/>
+                                        <constraint firstAttribute="bottomMargin" secondItem="eYY-uv-TnW" secondAttribute="bottom" id="Wqe-km-UNL"/>
+                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="trailing" secondItem="HMt-yB-qBn" secondAttribute="trailingMargin" id="thk-Tz-59I"/>
+                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="top" secondItem="HMt-yB-qBn" secondAttribute="topMargin" id="yc9-JE-VYi"/>
+                                        <constraint firstItem="eYY-uv-TnW" firstAttribute="leading" secondItem="HMt-yB-qBn" secondAttribute="leadingMargin" id="yry-dY-ezL"/>
                                     </constraints>
                                 </tableViewCellContentView>
                                 <connections>
                                     <outlet property="hudLabel" destination="VUc-d5-Rdy" id="rVR-5u-1vZ"/>
                                     <outlet property="providerLabel" destination="5nl-8G-Bor" id="3Lr-6Z-F4Q"/>
                                     <outlet property="ringView" destination="GKD-Gr-D31" id="UWq-OS-8JB"/>
+                                    <outlet property="stopButton" destination="p34-SR-9nj" id="hUV-jb-bQA"/>
                                     <segue destination="DZ1-pT-mvI" kind="show" identifier="EditItem" id="Dtg-j8-Esu"/>
                                 </connections>
                             </tableViewCell>
@@ -97,6 +108,7 @@
                             <outlet property="delegate" destination="Xyl-y3-lW8" id="08f-RT-bKz"/>
                         </connections>
                     </tableView>
+                    <toolbarItems/>
                     <navigationItem key="navigationItem" id="Sga-yy-0D8">
                         <barButtonItem key="rightBarButtonItem" systemItem="add" id="7xb-92-SNt">
                             <connections>
@@ -104,6 +116,7 @@
                             </connections>
                         </barButtonItem>
                     </navigationItem>
+                    <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="4yT-o9-vpl" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
@@ -210,6 +223,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="datapulter" width="144.75" height="47.25"/>
+        <image name="datapulter" width="193" height="63"/>
     </resources>
 </document>
