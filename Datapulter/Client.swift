@@ -27,7 +27,7 @@ class Client: NSObject {
         
         super.init()
         
-        let configuration = URLSessionConfiguration.background(withIdentifier: "com.example.Datapulter.background")
+        let configuration = URLSessionConfiguration.background(withIdentifier: "com.craigrachel.Datapulter.background")
         configuration.allowsCellularAccess = false
         configuration.waitsForConnectivity = true
         

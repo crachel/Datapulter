@@ -228,19 +228,21 @@ class B2: Provider {
         
         return Promise(UploadObject(asset: asset, urlPoolObject: urlPoolObject))
     }
-
-    override func login() -> Promise<Bool> {
-            return self.authorizeAccount().then { data, _ in
-                Utility.objectIsType(object: data, someObjectOfType: Data.self)
-            }.then { data in
-                try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-            }.then { parsedResult in
-                self.authorizeAccountResponse = parsedResult
-            }.then {
-                Promise(true)
-            }.catch { _ in
-               Promise(false)
-            }
+    
+    override func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
+        guard let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString() else {
+            return Promise(providerError.preparationFailed)
+        }
+        
+        guard let url = const.authorizeAccountUrl else {
+            return Promise(providerError.preparationFailed)
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = HttpMethod.get
+        urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: const.authorizationHeader)
+        
+        return fetch(from: urlRequest)
     }
     
     //MARK: Private methods
@@ -486,21 +488,7 @@ class B2: Provider {
        }
     }
     
-    private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
-        guard let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString() else {
-            return Promise(providerError.preparationFailed)
-        }
-        
-        guard let url = const.authorizeAccountUrl else {
-            return Promise(providerError.preparationFailed)
-        }
-        
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = HttpMethod.get
-        urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: const.authorizationHeader)
-        
-        return fetch(from: urlRequest)
-    }
+    
   
     
     private func getUploadUrlApi() -> Promise<(Data?, URLResponse?)> {

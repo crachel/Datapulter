@@ -27,7 +27,7 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
             <<< ActionSheetRow<String>("actionsProvider") {
                 $0.title = "Pick Provider"
                 $0.selectorTitle = "Pick Provider"
-                $0.options = ["Amazon S3","Backblaze B2","DigitalOcean Spaces"]
+                $0.options = ["Backblaze B2","Datapulter"]
                 $0.value = "Backblaze B2"    // initially selected
             }
             <<< AccountRow("tagName"){ row in
@@ -137,15 +137,12 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
 
     @IBAction func saveButton(_ sender: Any) {
         if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-            /*
-            let alert = UIAlertController(title: "My Alert", message: "This is an alert.", preferredStyle: .alert)
+            
+            let alert = UIAlertController(title: "Alert", message: "Failed to authorize account.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .default, handler: { _ in
                 NSLog("The \"OK\" alert occured.")
             }))
-            alert.addAction(UIAlertAction(title: NSLocalizedString("Cancel", comment: "Cancel action"), style: .cancel, handler: { _ in
-                NSLog("The \"Cancel\" alert occured.")
-            }))
-            self.present(alert, animated: true, completion: nil)*/
+            
             let valuesDictionary = form.values()
             
             if(row.value == "Backblaze B2") {
@@ -153,15 +150,13 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 //print(valuesDictionary["tagKeyID"] as! String)
                 //"K0002N7fDPHf/MaFFITLUinf8//4qqc"
                 provider = B2(name: valuesDictionary["tagName"] as! String, account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e", remoteFileList: [:], assetsToUpload: [])
-                provider?.login().then { success in
-                    if (success) {
-                        print("provider successfully created.")
-                        self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
-                        
-                    } else {
-                        // alert user of bad log in
-                    }
+                
+                provider?.authorizeAccount().then { _ in
+                    self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+                }.catch { _ in
+                    self.present(alert, animated: true, completion: nil)
                 }
+                
             }
         }
         

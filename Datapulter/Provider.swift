@@ -89,7 +89,7 @@ class Provider: NSObject, NSCoding  {
         fatalError("Must Override")
     }
     
-    public func login() -> Promise<Bool> {
+    public func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
         fatalError("Must Override")
     }
     

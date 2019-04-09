@@ -34,7 +34,7 @@ class ProviderTableViewController: UITableViewController {
                 //tableView.backgroundColor = UIColor.clear
                 AutoUpload.shared.start()
             }
-            
+        
             // Register to receive photo library change messages
             PHPhotoLibrary.shared().register(self)
        // }
