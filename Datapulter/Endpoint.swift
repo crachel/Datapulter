@@ -9,13 +9,20 @@
 import UIKit
 import Photos
 
-// MARK: Defines
+//typealias Parameters = [String: Any]
 //typealias Path = String
-//typealias AuthorizationToken = String
-/*
-enum Method {
-    case get, post, put, patch, delete
-}*/
+
+struct Endpoint {
+    var method, path, scheme: String
+    
+    init(method: String = HttpMethod.post,
+         path: String,
+         scheme: String = "https") {
+        self.method = method
+        self.path = path
+        self.scheme = scheme
+    }
+}
 
 enum HttpMethod {
     static let post = "POST"
@@ -26,19 +33,6 @@ struct UploadObject<T> {
     let asset: PHAsset
     let urlPoolObject: T
 }
-
-/*
-struct UploadObject2 {
-    let asset: PHAsset
-    let urlPoolObject: Data
-}
-
-// MARK: Endpoint
-struct Endpoint {
-    let method: Method
-    let path: Path
-    let queryItems: [URLQueryItem]
-}*/
 
 enum APIError: Error {
     case requestFailed
