@@ -16,6 +16,7 @@
 		9B4CC7FB225B9BEA00A832EA /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B4CC7FA225B9BEA00A832EA /* CloudKit.framework */; };
 		9B4CC7FF225D0E4400A832EA /* Managed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4CC7FE225D0E4400A832EA /* Managed.swift */; };
 		9B4CC801225D259E00A832EA /* Container.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4CC800225D259E00A832EA /* Container.swift */; };
+		9B4CC80322620B1800A832EA /* Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4CC80222620B1800A832EA /* Queue.swift */; };
 		9B5A181221E97EAE00B66783 /* Data+Crypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5A181121E97EAE00B66783 /* Data+Crypto.swift */; };
 		9BA8885E22130765000D5E5B /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8885D22130765000D5E5B /* Endpoint.swift */; };
 		9BA88860221579F6000D5E5B /* CircularBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8885F221579F6000D5E5B /* CircularBuffer.swift */; };
@@ -56,6 +57,7 @@
 		9B4CC7FA225B9BEA00A832EA /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		9B4CC7FE225D0E4400A832EA /* Managed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Managed.swift; path = Datapulter/Provider/Managed.swift; sourceTree = "<group>"; };
 		9B4CC800225D259E00A832EA /* Container.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Container.swift; sourceTree = "<group>"; };
+		9B4CC80222620B1800A832EA /* Queue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Queue.swift; path = ../Queue.swift; sourceTree = "<group>"; };
 		9B5A181121E97EAE00B66783 /* Data+Crypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Crypto.swift"; sourceTree = "<group>"; };
 		9BA8885D22130765000D5E5B /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
 		9BA8885F221579F6000D5E5B /* CircularBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularBuffer.swift; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 				9BD86B1921C2D8B300958EAD /* AutoUpload.swift */,
 				9B2075EC21DE42B5006ECD02 /* Client.swift */,
 				9BA8885F221579F6000D5E5B /* CircularBuffer.swift */,
+				9B4CC80222620B1800A832EA /* Queue.swift */,
 				9BA8885D22130765000D5E5B /* Endpoint.swift */,
 				9B2075E621DB9890006ECD02 /* Utility.swift */,
 				9BA88861221A1DD6000D5E5B /* PHAsset.swift */,
@@ -346,6 +349,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9BA88862221A1DD6000D5E5B /* PHAsset.swift in Sources */,
+				9B4CC80322620B1800A832EA /* Queue.swift in Sources */,
 				9B2075E721DB9890006ECD02 /* Utility.swift in Sources */,
 				9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */,
 				9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */,

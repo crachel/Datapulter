@@ -32,8 +32,8 @@ class B2: Provider {
     var bucketId: String
     var versions: Bool
     var harddelete: Bool
-    var dispatchQueue = DispatchQueue(label: "thread-safe-circularbuffer", attributes: .concurrent)
-    var urlPool = CircularBuffer<GetUploadURLResponse?>()
+    
+    var pool = SynchronizedQueue<GetUploadURLResponse>()
     
     var authorizationToken: String? {
         get {
@@ -149,36 +149,15 @@ class B2: Provider {
             //return Promise(providerError.foundNil)
         }
         
-       
-        /*
-        let count = dispatchQueue.sync {
-            return urlPool.count
-        }
-        
-        if (count > 0) {
-            // get url out of the pool
-            
-            let data = dispatchQueue.sync {
-                return urlPool.remove(at: urlPool.headIdx)
-            }
-            
-            
-            print("got url out of pool")
-            print("url pool count \(urlPool.count)")
-            return self.prepareRequest(from: asset, with: data!)
-            
-            //wont check for 401. whole point is to do this with delegates for backgroundsession
-            
-            /*
-            if let data = urlPool.remove(at: urlPool.headIdx) {
-                print("got url out of pool")
-                print("url pool count \(urlPool.count)")
-                return self.prepareRequest(from: asset, with: data)
+        if (pool.count > 3) {
+            if let data = pool.dequeue() {
+                print("uploadUrl from Pool: \(data.uploadUrl)")
                 
-                //wont check for 401. whole point is to do this with delegates for backgroundsession
-            }*/
-    
-        }*/
+                print("got url out of pool")
+                
+                return self.prepareRequest(from: asset, with: data)
+            }
+        }
         
         var uploadData: Data
         
@@ -241,7 +220,7 @@ class B2: Provider {
     
     private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
 
-
+        /*
         let (count, capacity) = dispatchQueue.sync {
             return (urlPool.count, urlPool.capacity)
         }
@@ -252,6 +231,11 @@ class B2: Provider {
                 self.urlPool.append(result)
                 print("prepareRequest: appended result to urlPool. Count: \(count)")
             }
+        }*/
+        
+        if (pool.count < 50) {
+            pool.enqueue(result)
+            print("prepareRequest: appended result to pool. Count: \(pool.count)")
         }
         
         return Promise { fulfill, reject in
@@ -476,6 +460,7 @@ class B2: Provider {
     }
     
     private func fetch(from endpoint: Endpoint, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
+        print("*****CALLED FETCH")
         guard let url = URL(string: "\(apiUrl)\(endpoint.path)") else {
             return Promise(providerError.preparationFailed)
         }
