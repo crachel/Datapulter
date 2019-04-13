@@ -16,39 +16,14 @@ class B2: Provider {
 
     typealias NetworkCompletionHandler = (Data?, URLResponse?, Error?) -> Void
     
-    struct const {
-        
-        static let server = "https://www.backblaze.com/"
-        static let apiMainURL = "https://api.backblazeb2.com"
-        static let authorizeAccountUrl = URL(string: "\(const.apiMainURL)/b2api/v2/b2_authorize_account")
-        
-        //static let getUploadUrlEndpoint = "/b2api/v2/b2_get_upload_url"
-        //static let startLargeFileEndpoint = "/b2api/v2/b2_start_large_file"
-        static let finishLargeFileEndpoint = "/b2api/v2/b2_finish_large_file"
-        
-        static let headerPrefix = "X-Bz-Info-"
-        static let authorizationHeader = "Authorization"
-        static let fileNameHeader = "X-Bz-File-Name"
-        static let contentLengthHeader = "Content-Length"
-        static let contentType = "b2/x-auto"
-        static let contentTypeHeader = "Content-Type"
-        static let timeKey = "src_last_modified_millis"
-        static let timeHeader = headerPrefix + timeKey
-        static let sha1Key = "large_file_sha1"
-        static let sha1Header = "X-Bz-Content-Sha1"
-        static let sha1InfoHeader = headerPrefix + sha1Key
-        static let testModeHeader = "X-Bz-Test-Mode"
-        static let retryAfterHeader = "Retry-After"
-        static let mimeType = "application/json"
-        static let maxParts = 10000
-        static let maxVersions = 100 // maximum number of versions we search in --b2-versions mode
+    struct Defaults {
+        static let apiMainURL          = "https://api.backblazeb2.com"
+        static let authorizeAccountUrl = URL(string: "https://api.backblazeb2.com/b2api/v2/b2_authorize_account")
+    
+        static let maxParts            = 10_000
         static let defaultUploadCutoff = 200 * 1_000 * 1_000
-        static let defaultChunkSize = 100 * 1_000 * 1_000
+        static let defaultChunkSize    = 100 * 1_000 * 1_000
     }
-    
-    
-
-
     
     var account: String
     var key: String
@@ -79,7 +54,7 @@ class B2: Provider {
                 return url
             }
             
-            return const.apiMainURL // keeps urlsessiontask from failing
+            return Defaults.apiMainURL // keeps urlsessiontask from failing
         }
     }
     
@@ -99,42 +74,53 @@ class B2: Provider {
             }
         }
     }
-    var listBucketsResponse: ListBucketsResponse?
-    var getUploadUrlResponse: GetUploadURLResponse?
-    var getUploadPartUrlResponse: GetUploadPartURLResponse?
     
     //MARK: Types
     
     enum B2Error: String, Error {
-        // required. must match codes as defined by API
-        case bad_request // 400
-        case unauthorized // 401
-        case bad_auth_token // 401
-        case expired_auth_token // 401
+        // required. must match codes EXACTLY as defined by API
+        case bad_request         // 400
+        case unauthorized        // 401
+        case bad_auth_token      // 401
+        case expired_auth_token  // 401
         case service_unavailable // 503
         
         case unmatchedError
     }
     
-    enum Endpoints {
+    struct Endpoints {
         static let getUploadUrl     = Endpoint(path: "/b2api/v2/b2_get_upload_url")
         static let getUploadPartUrl = Endpoint(path: "/b2api/v2/b2_get_upload_part_url")
         static let startLargeFile   = Endpoint(path: "/b2api/v2/b2_start_large_file")
         static let finishLargeFile  = Endpoint(path: "/b2api/v2/b2_finish_large_file")
     }
+
+    struct HTTPHeaders {
+        static let prefix            = "X-Bz-Info-"
+        static let authorization     = "Authorization"
+        static let fileName          = "X-Bz-File-Name"
+        static let contentLength     = "Content-Length"
+        static let contentTypeValue  = "b2/x-auto"
+        static let contentType       = "Content-Type"
+        static let timeKey           = "src_last_modified_millis"
+        static let time              = prefix + timeKey
+        static let sha1Key           = "large_file_sha1"
+        static let sha1              = "X-Bz-Content-Sha1"
+        static let mimeType          = "application/json"
+    }
     
     struct PropertyKey {
-        static let account = "account"
-        static let key = "key"
-        static let bucket = "bucket"
-        static let versions = "versions"
-        static let harddelete = "harddelete"
-        static let uploadList = "uploadList"
-        static let accountId = "accountId"
-        static let bucketId = "bucketId"
+        static let account             = "account"
+        static let key                 = "key"
+        static let bucket              = "bucket"
+        static let versions            = "versions"
+        static let harddelete          = "harddelete"
+        static let uploadList          = "uploadList"
+        static let accountId           = "accountId"
+        static let bucketId            = "bucketId"
         
-        static let authorizationToken = "authorizationToken"
-        static let apiUrl = "apiUrl"
+        static let authorizationToken  = "authorizationToken"
+        static let apiUrl              = "apiUrl"
         static let recommendedPartSize = "recommendedPartSize"
     }
     
@@ -154,25 +140,17 @@ class B2: Provider {
     
     //MARK: Public methods
     
-    
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
         
-        if (asset.size > const.defaultUploadCutoff ) {
+        if (asset.size > Defaults.defaultUploadCutoff ) {
             //startLargeFile(asset)
             return Promise(providerError.foundNil) //need to return here so we don't try to process large file anyway
         } else {
             //return Promise(providerError.foundNil)
         }
         
+       
         /*
-        let dispatchQueue = DispatchQueue(label: "com.example.Datapulter.background")
-        
-        //var count = 0
-        /*
-        dispatchQueue.sync {
-            count = urlPool.count
-        }*/
-        
         let count = dispatchQueue.sync {
             return urlPool.count
         }
@@ -199,8 +177,9 @@ class B2: Provider {
                 
                 //wont check for 401. whole point is to do this with delegates for backgroundsession
             }*/
-            
-       }*/
+    
+        }*/
+        
         var uploadData: Data
         
         do {
@@ -247,13 +226,13 @@ class B2: Provider {
             return Promise(providerError.preparationFailed)
         }
         
-        guard let url = const.authorizeAccountUrl else {
+        guard let url = Defaults.authorizeAccountUrl else {
             return Promise(providerError.preparationFailed)
         }
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = HttpMethod.get
-        urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: const.authorizationHeader)
+        urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: HTTPHeaders.authorization)
         
         return fetch(from: urlRequest)
     }
@@ -271,6 +250,7 @@ class B2: Provider {
         dispatchQueue.async(flags: .barrier) {
             if (count < (capacity - 1)) {
                 self.urlPool.append(result)
+                print("prepareRequest: appended result to urlPool. Count: \(count)")
             }
         }
         
@@ -278,26 +258,26 @@ class B2: Provider {
             var urlRequest: URLRequest
             urlRequest = URLRequest(url: result.uploadUrl)
             urlRequest.httpMethod = HttpMethod.post
-            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-            urlRequest.setValue(const.contentType, forHTTPHeaderField: const.contentTypeHeader)
+            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+            urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
             
-            urlRequest.setValue(String(asset.size), forHTTPHeaderField: const.contentLengthHeader)
+            urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
             
             if let fileName = asset.percentEncodedFilename {
-                urlRequest.setValue(fileName, forHTTPHeaderField: const.fileNameHeader)
+                urlRequest.setValue(fileName, forHTTPHeaderField: HTTPHeaders.fileName)
             } else {
                 reject (providerError.foundNil)
             }
             
             if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
-                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: const.timeHeader)
+                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
             } else {
                 reject(providerError.foundNil)
             }
             
             Utility.getData(from: asset) { data, url in
                 
-                urlRequest.setValue(data.sha1, forHTTPHeaderField: const.sha1Header)
+                urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
             
                 fulfill((urlRequest, url))
             }
@@ -315,7 +295,7 @@ class B2: Provider {
         
         let request = StartLargeFileRequest(bucketId: bucketId,
                                             fileName: fileName,
-                                            contentType: const.contentType)
+                                            contentType: HTTPHeaders.contentTypeValue)
         
         do {
             uploadData = try JSONEncoder().encode(request)
@@ -348,7 +328,10 @@ class B2: Provider {
         }.then { parsedResult in
             self.processLargeFile(asset, parsedResult["fileId"] as! String)
         }.then { fileId, partSha1Array in
-            self.finishLargeFile(fileId, partSha1Array)
+            try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
+        }.then { uploadData in
+            self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
+            //self.finishLargeFile(fileId, partSha1Array)
         }
     }
     //private func uploadPart(_ result: GetUploadPartURLResponse,_ data: Data,_ url: URL,_ partNumber: Int) {
@@ -356,19 +339,16 @@ class B2: Provider {
         var urlRequest: URLRequest
         urlRequest = URLRequest(url: result.uploadUrl)
         urlRequest.httpMethod = HttpMethod.post
-        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
         
         urlRequest.setValue(String(partNumber), forHTTPHeaderField: "X-Bz-Part-Number")
         
-        urlRequest.setValue(String(data.count), forHTTPHeaderField: const.contentLengthHeader)
+        urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
         
-        urlRequest.setValue(data.sha1, forHTTPHeaderField: const.sha1Header)
+        urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
         
         return fetch(from: urlRequest, with: data)
     }
-    
-    
-    
     
     private func processLargeFile(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])> {
         return Promise { fulfill, _ in
@@ -393,51 +373,38 @@ class B2: Provider {
                     var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
                     var bytes = 0
                     
-                        func readBytes() {
+                    func readBytes() {
+                        
+                        bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                        
+                        if bytes > 0 && part < Defaults.maxParts {
+                            part += 1
+                            let data = Data(bytes: buffer, count: bytes)
+                            partSha1Array.append(data.sha1)
+                            let written = outputStream.write(buffer, maxLength: bytes)
                             
-                            bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
-                            
-                            if bytes > 0 {
-                                part += 1
-                                let data = Data(bytes: buffer, count: bytes)
-                                partSha1Array.append(data.sha1)
-                                let written = outputStream.write(buffer, maxLength: bytes)
-                                
-                                print("bytes written to outputStream: \(written)")
-                                preparePart(data).then { _, _ in
-                                    readBytes()
-                                }
-                            } else {
-                                do {
-                                    print("processLargeFile: Trying to remove payloadFileURL...", terminator:"")
-                                    try FileManager.default.removeItem(at: payloadFileURL)
-                                    print("done")
-                                } catch let error as NSError {
-                                    print("failed")
-                                    print("Error: \(error.domain)")
-                                }
-                                
-                                inputStream.close()
-                                outputStream.close()
-                                
-                                fulfill((fileId, partSha1Array))
+                            print("bytes written to outputStream: \(written)")
+                            preparePart(data).then { _, _ in
+                                readBytes()
                             }
+                        } else {
+                            do {
+                                print("processLargeFile: Trying to remove payloadFileURL...", terminator:"")
+                                try FileManager.default.removeItem(at: payloadFileURL)
+                                print("done")
+                            } catch let error as NSError {
+                                print("failed")
+                                print("Error: \(error.domain)")
+                            }
+                            
+                            inputStream.close()
+                            outputStream.close()
+                            
+                            fulfill((fileId, partSha1Array))
                         }
-                        readBytes()
-  
-                    /*func preparePart(_ data: Data) -> Promise<(Data?, URLResponse?)> {
-                        return self.getUploadPartUrlApi(fileId).then { data, response in
-                            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-                        }.then { data in
-                            try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                        }.then { parsedResponse in
-                            self.uploadPart(parsedResponse, data, payloadFileURL, part)
-                        }.catch { error in
-                            print("\(error)")
-                        }
-                    }*/
+                    }
+                    readBytes()
                     
-                    //func preparePart(_ data: Data) {
                     func preparePart(_ data: Data) -> Promise<(Data?, URLResponse?)> {
                         var uploadData: Data
                         
@@ -448,7 +415,6 @@ class B2: Provider {
                         }
                         
                         return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).then { data, response in
-                        //return self.apiOperation(on: Endpoints.getUploadPartUrl, with: uploadData).then { data, response in
                             Utility.objectIsType(object: data, someObjectOfType: Data.self)
                         }.then { data in
                             try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
@@ -477,7 +443,7 @@ class B2: Provider {
                 
                 if let response = response as? HTTPURLResponse,
                     let mimeType = response.mimeType,
-                    mimeType == const.mimeType,
+                    mimeType == HTTPHeaders.mimeType,
                     let data = data {
                     
                     if (response.statusCode == 200) {
@@ -520,7 +486,7 @@ class B2: Provider {
         if (authorizationToken == nil) {
             return Promise(B2Error.bad_auth_token)
         } else {
-            urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
+            urlRequest.setValue(authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
         }
         return Promise { fulfill, reject in
             
@@ -535,7 +501,7 @@ class B2: Provider {
                 
                 if let response = response as? HTTPURLResponse,
                     let mimeType = response.mimeType,
-                    mimeType == const.mimeType,
+                    mimeType == HTTPHeaders.mimeType,
                     let data = data {
                     
                     if (response.statusCode == 200) {
@@ -565,31 +531,6 @@ class B2: Provider {
                 URLSession.shared.dataTask(with: urlRequest, completionHandler: completionHandler).resume()
             }
         }
-    }
-    
-    private func finishLargeFile(_ fileId: String,_ partSha1Array: [String]) -> Promise<(Data?, URLResponse?)> {
-        var urlRequest: URLRequest
-        var uploadData: Data
-        
-        let request = FinishLargeUploadRequest(fileId: fileId,
-                                               partSha1Array: partSha1Array)
-        
-        do {
-            uploadData = try JSONEncoder().encode(request)
-        } catch {
-            return Promise(error)
-        }
-        
-        guard let url = URL(string: "\(apiUrl)\(const.finishLargeFileEndpoint)") else {
-            return Promise(providerError.preparationFailed)
-        }
-        
-        urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = HttpMethod.post
-        
-        urlRequest.setValue(authorizationToken, forHTTPHeaderField: const.authorizationHeader)
-        
-        return fetch(from: urlRequest, with: uploadData)
     }
     
     //MARK: NSCoding
