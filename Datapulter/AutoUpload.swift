@@ -33,7 +33,6 @@ class AutoUpload {
     //MARK: Public Methods
     
     public func start() {
-        
         assets = Utility.getCameraRollAssets()
         
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {

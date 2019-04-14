@@ -9,7 +9,7 @@
 import UIKit
 import Promises
 
-class Managed: B2 {
+final class Managed: B2 {
     
     private func createKey() {
         // unique user id: keyName, applicationKeyId, applicationKey

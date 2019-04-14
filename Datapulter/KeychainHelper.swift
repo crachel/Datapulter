@@ -17,7 +17,7 @@ class KeychainHelper {
                                     kSecAttrServer as String: server]
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
-            print("keychain set error")
+            print("keychain: set error")
             return false
         }
         return true
@@ -30,7 +30,7 @@ class KeychainHelper {
                                          kSecAttrServer as String: server]
         let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         guard status == errSecSuccess else {
-            print("keychain update error. trying set")
+            print("keychain: update error. trying set")
             return set(account: account, value: value, server: server)
         }
         
@@ -56,7 +56,7 @@ class KeychainHelper {
         }
         
         guard let result = item as? [String : Any] else {
-            print("Unexpected nil returned from keychain")
+            print("keychain: unexpected nil returned")
             return nil
         }
         return result
@@ -68,7 +68,7 @@ class KeychainHelper {
                                     kSecAttrAccount as String: account]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess else {
-            print("keychain delete error: \(SecItemDelete(query as CFDictionary))")
+            print("keychain: delete error: \(SecItemDelete(query as CFDictionary))")
             return false
         }
         return true

@@ -135,6 +135,10 @@ extension Client: URLSessionDataDelegate {
             } else {
                 
                 print("urlSession -> UNHANDLED ERROR")
+                print("unhandled: \(task.originalRequest?.allHTTPHeaderFields)")
+                print("unhandled: \(task.originalRequest?.url)")
+                print(String(data: (task.originalRequest?.httpBody)!, encoding: .utf8)!)
+                //print(String(data: data, encoding: .utf8)!)
             }
         }
     }

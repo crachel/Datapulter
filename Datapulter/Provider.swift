@@ -85,9 +85,10 @@ class Provider: NSObject, NSCoding  {
         fatalError("Must Override")
     }
     
+    /*
     public func getUploadObject<T>(_ asset: PHAsset, _ urlPoolObject: T) -> Promise<(UploadObject<T>?)> {
         fatalError("Must Override")
-    }
+    }*/
     
     public func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
         fatalError("Must Override")

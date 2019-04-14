@@ -9,26 +9,31 @@
 import UIKit
 import Photos
 
-//typealias Parameters = [String: Any]
-//typealias Path = String
-
 struct Endpoint {
-    var method, path, scheme: String
+    var components = URLComponents()
     
-    init(method: String = HttpMethod.post,
-         path: String,
-         scheme: String = "https") {
+    var method: String?
+    
+    init(components: URLComponents, method: String = HTTPMethod.post) {
+        self.components = components
         self.method = method
-        self.path = path
-        self.scheme = scheme
+    }
+    
+    init(scheme: String? = "https",
+         path: String,
+        method: String? = HTTPMethod.post) {
+        self.components.scheme = scheme
+        self.components.path = path
+        self.method = method
     }
 }
 
-enum HttpMethod {
+enum HTTPMethod {
     static let post = "POST"
     static let get = "GET"
 }
 
+/*
 struct UploadObject<T> {
     let asset: PHAsset
     let urlPoolObject: T
@@ -49,4 +54,4 @@ enum APIError: Error {
         case .jsonConversionFailure: return "JSON Conversion Failure"
         }
     }
-}
+}*/
