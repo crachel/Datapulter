@@ -179,7 +179,7 @@ struct UploadFileResponse: Codable {
     var contentType: String
     var fileId: String
     var fileName: String
-    var uploadTimestamp: String
+    var uploadTimestamp: Int64
     var fileInfo: [String: String]?
     
     private enum CodingKeys: String, CodingKey {
@@ -205,7 +205,7 @@ struct UploadFileResponse: Codable {
         contentType = try container.decode(String.self, forKey: .contentType)
         fileId = try container.decode(String.self, forKey: .fileId)
         fileName = try container.decode(String.self, forKey: .fileName)
-        uploadTimestamp = try container.decode(String.self, forKey: .uploadTimestamp)
+        uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
         
         fileInfo = [String: String]()
         let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)

@@ -99,7 +99,7 @@ extension Client: URLSessionDataDelegate {
     }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        print("urlSession -> didReceiveData")
+        print("Client: task \(dataTask.taskIdentifier) -> didReceiveData")
         
         // downcast for access to statusCode
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
@@ -109,38 +109,20 @@ extension Client: URLSessionDataDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
 
-        print("urlSession -> didCompleteWithError")
+        print("Client: task \(task.taskIdentifier) -> didCompleteWithError")
+        
+        activeTasks.remove(task)
+        print("Client: task \(task.taskIdentifier) -> removed from activeTasks.")
+        
+        if let error = error {
+            // not a server error. client-side errors only ("unable to resolve the hostname or connect to the host")
+            print("Client: task \(task.taskIdentifier) -> \(error.localizedDescription)")
+        }
         
         // downcast for access to statusCode
         guard let httpResponse = task.response as? HTTPURLResponse else { return }
         
-        activeTasks.remove(task)
-        
-        if let error = error {
-            print("(didCompleteWithError) \(error.localizedDescription)")
-        } else {
-            
-            if (httpResponse.statusCode == 401) {
-                print("urlSession -> STATUS 401")
-      
-            } else if (httpResponse.statusCode == 503) {
-                
-                print("urlSession -> STATUS 503")
-                
-            } else if (httpResponse.statusCode == 200) {
-                
-                print("urlSession -> STATUS 200")
-                print("task \(task.taskIdentifier) finished successfully.")
-                
-            } else {
-                
-                print("urlSession -> UNHANDLED ERROR")
-                print("unhandled: \(task.originalRequest?.allHTTPHeaderFields)")
-                print("unhandled: \(task.originalRequest?.url)")
-                print(String(data: (task.originalRequest?.httpBody)!, encoding: .utf8)!)
-                //print(String(data: data, encoding: .utf8)!)
-            }
-        }
+        print("Client: task \(task.taskIdentifier) -> STATUS \(httpResponse.statusCode)")
     }
     
 }

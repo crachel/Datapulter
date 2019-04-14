@@ -80,6 +80,9 @@ class B2: Provider {
         case unauthorized        // 401
         case bad_auth_token      // 401
         case expired_auth_token  // 401
+        case cap_exceeded        // 403
+        case method_not_allowed  // 405
+        case request_timeout     // 408
         case service_unavailable // 503
         
         case unmatchedError
@@ -204,15 +207,64 @@ class B2: Provider {
         return fetch(from: urlRequest)
     }
     
+    override func uploadDidComplete(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
+        var uploadFileResponse: UploadFileResponse
+        var jsonError: JSONError
+        
+        if (response.statusCode == 200) {
+            do {
+                uploadFileResponse = try JSONDecoder().decode(UploadFileResponse.self, from: jsonObject)
+            } catch {
+                return
+            }
+            
+            if let url = task.originalRequest?.url,
+                let allHeaders = task.originalRequest?.allHTTPHeaderFields,
+                let token = allHeaders["Authorization"] {
+                
+                let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId, uploadUrl: url, authorizationToken: token)
+                
+                pool.enqueue(getUploadURLResponse)
+                print("provider.uploadDidComplete -> appended result to pool. Count: \(pool.count)")
+            }
+            
+            
+            
+            //print(String(data: data, encoding: .utf8)!)
+            //print(task.originalRequest?.allHTTPHeaderFields!)
+        } else {
+            do {
+                jsonError = try JSONDecoder().decode(JSONError.self, from: jsonObject)
+            } catch {
+                return
+            }
+            
+            switch jsonError.code {
+            case B2Error.bad_request.rawValue:
+                print("provider.uploadDidComplete -> bad_request")
+            case B2Error.unauthorized.rawValue:
+                print("provider.uploadDidComplete -> unauthorized")
+            case B2Error.bad_auth_token.rawValue, B2Error.expired_auth_token.rawValue:
+                print("provider.uploadDidComplete -> bad_auth_token expired_auth_token")
+            case B2Error.cap_exceeded.rawValue:
+                print("provider.uploadDidComplete -> cap_exceeded")
+            case B2Error.method_not_allowed.rawValue:
+                print("provider.uploadDidComplete -> method_not_allowed")
+            case B2Error.request_timeout.rawValue:
+                print("provider.uploadDidComplete -> request_timeout")
+            case B2Error.service_unavailable.rawValue:
+                print("provider.uploadDidComplete -> service_unavailable")
+            default:
+                print("provider.uploadDidComplete -> unhandled")
+            }
+        }
+        
+        
+    }
+    
     //MARK: Private methods
     
     private func prepareRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
-        
-        if (pool.count < 50) {
-            pool.enqueue(result)
-            print("prepareRequest: appended result to pool. Count: \(pool.count)")
-        }
-        
         return Promise { fulfill, reject in
             var urlRequest: URLRequest
             urlRequest = URLRequest(url: result.uploadUrl)

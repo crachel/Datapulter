@@ -37,13 +37,10 @@ class AutoUpload {
         
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             for provider in providers {
-                print("remoteFileList count: \(provider.remoteFileList.count)")
-                print("Autoupload: Checking for assets.")
-                DispatchQueue.main.async {
-                    provider.cell?.hudLabel.text = "Checking for new media..."
-                }
+                print("Provider: remoteFileList count: \(provider.remoteFileList.count)")
+                print("Autoupload: Checking for assets...", terminator:"")
+                
                 assets.enumerateObjects({ (asset, _, _) in
-                    
                     if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.insert(asset)
@@ -59,19 +56,9 @@ class AutoUpload {
                 }
                 
                 if (provider.totalAssetsToUpload > 0 && !Client.shared.isActive()) {
-                    /*while(Client.shared.activeTasks.count < 2 && provider.assetsToUpload.count > 0) {
-                        if let asset = provider.assetsToUpload.popFirst() {
-                            provider.getUrlRequest(asset).then { request, url in
-                                let task = Client.shared.upload(request!, url!)
-                                provider.uploadingAssets[task] = asset
-                                self.tasks[task] = provider
-                            }.catch { error in
-                                    print("Cannot get URLRequest: \(error)")
-                            }
-                        }
-                    }*/
+                    print("found \(provider.totalAssetsToUpload)")
                     func foo(_ N: Int) {
-                        if(N > 0) {
+                        if(N > 0) { // starts N
                             if let asset = provider.assetsToUpload.popFirst() {
                                 provider.getUrlRequest(asset).then { request, url in
                                     let task = Client.shared.upload(request!, url!)
@@ -79,50 +66,29 @@ class AutoUpload {
                                     self.tasks[task] = provider
                                     foo(N - 1)
                                 }.catch { error in
-                                    print("Cannot get URLRequest: \(error)")
+                                    print("AutoUpload: getUrlRequest -> \(error)")
                                 }
+                            } else {
+                                print("AutoUpload: assetsToUpload is empty. Stopping.")
                             }
                         }
                     }
-                    foo(10)
-                    /*
-                    provider.authorizeAccount().then { _, response in
-                        if let response = response as? HTTPURLResponse,
-                            response.statusCode == 200 {
-                            foo(10)
-                        }
-                    }*/
-                    
-                    /*for asset in provider.assetsToUpload {
-                        
-                        if(Client.shared.activeTasks.count < 50) {
-                            provider.getUrlRequest(asset).then { request, url in
-                                let task = Client.shared.upload(request!, url!)
-                                provider.uploadingAssets[task] = asset
-                                self.tasks[task] = provider
-                            }.catch { error in
-                                print("Cannot get URLRequest: \(error)")
-                            }
-                        } else {
-                            // exit loop and let delegates handle from here
-                            break
-                        }
-                       //break
-                    }*/
+                    foo(4)
                     
                 } else {
-                    print("Autoupload: No assets found.")
+                    print("found none")
                 }
             }
         } else {
             // No photo permission
-            print("Autoupload: No photo permission.")
+            print("AutoUpload: No photo permission.")
         }
     }
     
     public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: URLSessionTask) {
         if let provider = tasks.removeValue(forKey: task) {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
+                provider.uploadDidComplete(with: response, jsonObject: data, task)
                 if (response.statusCode == 200) {
                     do {
                         let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
@@ -137,17 +103,18 @@ class AutoUpload {
                     do {
                         let data = try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: false)
                         try data.write(to: fullPath)
-                        os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
+                        //os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
                     } catch {
                         os_log("Failed to save providers...", log: OSLog.default, type: .error)
                     }
                     
+                    /*
                     if let _ = provider.assetsToUpload.remove(asset) {
                         // do nothing
                     } else {
                         print ("assetsToUpload did not contain asset")
-                    }
-                    print ("remote file list count \(provider.remoteFileList.count)")
+                    }*/
+                    //print ("remote file list count \(provider.remoteFileList.count)")
                     
                     provider.totalAssetsUploaded += 1
                     
@@ -214,21 +181,7 @@ class AutoUpload {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0]
     }
-    
-    /*
-    public func hud (_ totalBytesSent: Float,_ totalBytesExpectedToSend: Float) {
-        DispatchQueue.main.async {
-            let value = (totalBytesSent / totalBytesExpectedToSend * 100)
-            self.providers[0].cell?.ringView.value = UICircularProgressRing.ProgressValue(value)
-        }
-    }
-    
-    public func hud (_ text: String) {
-        DispatchQueue.main.async {
-            self.providers[0].cell?.hudLabel.text = text
-        }
-    }
- */
+
 }
 
 

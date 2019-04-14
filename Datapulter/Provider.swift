@@ -28,6 +28,7 @@ class Provider: NSObject, NSCoding  {
     var assetsToUpload = Set<PHAsset>()
     var uploadingAssets = [URLSessionTask: PHAsset]()
     
+    
     enum Site {
         case Backblaze
         case Amazon
@@ -89,6 +90,10 @@ class Provider: NSObject, NSCoding  {
     public func getUploadObject<T>(_ asset: PHAsset, _ urlPoolObject: T) -> Promise<(UploadObject<T>?)> {
         fatalError("Must Override")
     }*/
+    
+    public func uploadDidComplete(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
+        fatalError("Must Override")
+    }
     
     public func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
         fatalError("Must Override")
