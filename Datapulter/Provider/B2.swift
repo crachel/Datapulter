@@ -97,11 +97,13 @@ class B2: Provider {
             return Endpoint(components: components, method: HTTPMethod.get)
         }()
         
-        // dynamic host for these endpoints not known at compile time
+        // host for these endpoints not known at compile time
+        static let finishLargeFile  = Endpoint(path: "/b2api/v2/b2_finish_large_file")
         static let getUploadUrl     = Endpoint(path: "/b2api/v2/b2_get_upload_url")
         static let getUploadPartUrl = Endpoint(path: "/b2api/v2/b2_get_upload_part_url")
         static let startLargeFile   = Endpoint(path: "/b2api/v2/b2_start_large_file")
-        static let finishLargeFile  = Endpoint(path: "/b2api/v2/b2_finish_large_file")
+        static let uploadFile       = Endpoint(path: "/b2api/v2/b2_upload_file")
+        static let uploadPart       = Endpoint(path: "/b2api/v2/b2_upload_part")
     }
 
     struct HTTPHeaders {
@@ -153,10 +155,10 @@ class B2: Provider {
         
         if (asset.size > Defaults.uploadCutoff ) {
             //startLargeFile(asset)
-            largeFileTest(asset)
+            //largeFileTest(asset)
             return Promise(providerError.connectionError) //need to return here so we don't try to process large file anyway
         } else {
-            return Promise(providerError.foundNil)
+            //return Promise(providerError.foundNil)
         }
     
         if (pool.count > 3) {
@@ -209,27 +211,54 @@ class B2: Provider {
     }
     
     override func uploadDidComplete(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
-        var uploadFileResponse: UploadFileResponse
-        var jsonError: JSONError
-        
+    
         if (response.statusCode == 200) {
-            // is this uploadfile or uploadpart
-            do {
-                uploadFileResponse = try JSONDecoder().decode(UploadFileResponse.self, from: jsonObject)
-            } catch {
-                return
-            }
-            
-            if let url = task.originalRequest?.url,
-                let allHeaders = task.originalRequest?.allHTTPHeaderFields,
-                let token = allHeaders["Authorization"] {
+            if let originalRequest = task.originalRequest,
+                let allHeaders = originalRequest.allHTTPHeaderFields,
+                let originalUrl = originalRequest.url {
                 
-                let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId, uploadUrl: url, authorizationToken: token)
-                
-                pool.enqueue(getUploadURLResponse)
-                print("provider.uploadDidComplete -> appended result to pool. Count: \(pool.count)")
+                if (originalUrl.path.contains(Endpoints.uploadFile.components.path)) { // alternative could be [URLRequest:Endpoint]
+                    var uploadFileResponse: UploadFileResponse
+                    
+                    do {
+                        uploadFileResponse = try JSONDecoder().decode(UploadFileResponse.self, from: jsonObject)
+                    } catch {
+                        return
+                    }
+                    
+                    if let token = allHeaders["Authorization"] {
+                        let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId, uploadUrl: originalUrl, authorizationToken: token)
+                        
+                        pool.enqueue(getUploadURLResponse)
+                        print("provider.uploadDidComplete -> appended result to pool. Count: \(pool.count)")
+                    }
+                } else if (originalUrl.path.contains(Endpoints.startLargeFile.components.path)) {
+                    // this is startlargefile response
+                    // build [fileId: someStruct] here
+                    // kick off getuploadparturl for part #1
+                } else if (originalUrl.path.contains(Endpoints.getUploadPartUrl.components.path)) {
+                    var getUploadPartURLResponse: GetUploadPartURLResponse
+                    
+                    do {
+                        getUploadPartURLResponse = try JSONDecoder().decode(GetUploadPartURLResponse.self, from: jsonObject)
+                    } catch {
+                        return
+                    }
+                    
+                    // hey i've got an uploadpartresponse, now what?
+                    // look for a dictionary keyed by fileId probably [fileId:someStruct]
+                    // uploadPart(getUploadPartURLResponse)
+                } else if (originalUrl.path.contains(Endpoints.uploadPart.components.path)) {
+                    // fileId  partNumber  contentLength  contentSha1  uploadTimestamp
+                    // a part uploaded. am i done. yes? finishlargefile. no? get another uploadparturl
+                } else if (originalUrl.path.contains(Endpoints.finishLargeFile.components.path)) {
+                    
+                    
+                }
             }
         } else {
+            var jsonError: JSONError
+            
             do {
                 jsonError = try JSONDecoder().decode(JSONError.self, from: jsonObject)
             } catch {
@@ -383,19 +412,10 @@ class B2: Provider {
                             let file = try FileHandle(forWritingTo: payloadFileURL)
                             file.write(data)
                             file.truncateFile(atOffset: UInt64(bytes))
-                            
                             file.closeFile()
                         } catch {
                             print (error)
                         }
-                        /*
-                        do {
-                            let theData = try Data(contentsOf: payloadFileURL as URL)
-                            
-                            print (theData.sha1)
-                        } catch {
-                            print("Error: \(error)")
-                        }*/
                         
                         readBytes()
                         
