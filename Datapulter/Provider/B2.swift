@@ -153,9 +153,10 @@ class B2: Provider {
         
         if (asset.size > Defaults.uploadCutoff ) {
             //startLargeFile(asset)
+            largeFileTest(asset)
             return Promise(providerError.connectionError) //need to return here so we don't try to process large file anyway
         } else {
-            //return Promise(providerError.foundNil)
+            return Promise(providerError.foundNil)
         }
     
         if (pool.count > 3) {
@@ -212,6 +213,7 @@ class B2: Provider {
         var jsonError: JSONError
         
         if (response.statusCode == 200) {
+            // is this uploadfile or uploadpart
             do {
                 uploadFileResponse = try JSONDecoder().decode(UploadFileResponse.self, from: jsonObject)
             } catch {
@@ -227,11 +229,6 @@ class B2: Provider {
                 pool.enqueue(getUploadURLResponse)
                 print("provider.uploadDidComplete -> appended result to pool. Count: \(pool.count)")
             }
-            
-            
-            
-            //print(String(data: data, encoding: .utf8)!)
-            //print(task.originalRequest?.allHTTPHeaderFields!)
         } else {
             do {
                 jsonError = try JSONDecoder().decode(JSONError.self, from: jsonObject)
@@ -358,10 +355,70 @@ class B2: Provider {
         urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
         
         urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
-        
+
         return fetch(from: urlRequest, with: data)
     }
-    
+    private func largeFileTest(_ asset: PHAsset) {
+        Utility.getData(from: asset) { _, url in
+            let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
+            
+            if let inputStream = InputStream.init(url: url) {
+                inputStream.open()
+                
+                var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
+                var bytes = 0
+                
+                func readBytes() {
+                    
+                    bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                    
+                    if (bytes > 0) { // add defaults.maxparts
+                        let data = Data(bytes: buffer, count: bytes)
+                        print (data.sha1)
+                        
+                        FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil)
+                    
+                        do {
+                            let file = try FileHandle(forWritingTo: payloadFileURL)
+                            file.write(data)
+                            file.truncateFile(atOffset: UInt64(bytes))
+                            
+                            file.closeFile()
+                        } catch {
+                            print (error)
+                        }
+                        /*
+                        do {
+                            let theData = try Data(contentsOf: payloadFileURL as URL)
+                            
+                            print (theData.sha1)
+                        } catch {
+                            print("Error: \(error)")
+                        }*/
+                        
+                        readBytes()
+                        
+                    } else {
+                        do {
+                            print("processLargeFile: Trying to remove payloadFileURL...", terminator:"")
+                            try FileManager.default.removeItem(at: payloadFileURL)
+                            print("done")
+                        } catch let error as NSError {
+                            print("failed")
+                            print("Error: \(error.domain)")
+                        }
+                        
+                        inputStream.close()
+                    }
+                }
+                readBytes()
+                
+            }
+        }
+        
+    }
+   
     private func processLargeFile(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])> {
         return Promise { fulfill, _ in
             let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -392,7 +449,10 @@ class B2: Provider {
                             part += 1
                             let data = Data(bytes: buffer, count: bytes)
                             partSha1Array.append(data.sha1)
+                            
+                            
                             let written = outputStream.write(buffer, maxLength: bytes)
+                            
                             
                             print("bytes written to outputStream: \(written)")
                             preparePart(data).then { _, _ in

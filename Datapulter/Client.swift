@@ -43,6 +43,18 @@ class Client: NSObject {
         activeTasks.insert(task)
         task.resume()
         
+        DispatchQueue.main.async {
+            UIApplication.shared.isNetworkActivityIndicatorVisible = true
+        }
+        
+        return task
+    }
+    
+    public func upload(_ urlrequest: URLRequest,from data: Data) -> URLSessionTask {
+        
+        let task = session.uploadTask(with: urlrequest, from: data)
+        activeTasks.insert(task)
+        task.resume()
         
         DispatchQueue.main.async {
             UIApplication.shared.isNetworkActivityIndicatorVisible = true

@@ -47,7 +47,7 @@ class AutoUpload {
                     }
                 })
                 
-                provider.totalAssetsToUpload = Float(provider.assetsToUpload.count)
+                provider.totalAssetsToUpload = provider.assetsToUpload.count
                 
                 DispatchQueue.main.async {
                     provider.cell?.ringView.value = 0
@@ -73,7 +73,7 @@ class AutoUpload {
                             }
                         }
                     }
-                    foo(4)
+                    foo(6)
                     
                 } else {
                     print("found none")
@@ -89,7 +89,10 @@ class AutoUpload {
         if let provider = tasks.removeValue(forKey: task) {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
                 provider.uploadDidComplete(with: response, jsonObject: data, task)
+                
                 if (response.statusCode == 200) {
+                    provider.totalAssetsUploaded += 1
+                    
                     do {
                         let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
                         provider.remoteFileList[asset.localIdentifier] = json
@@ -103,25 +106,17 @@ class AutoUpload {
                     do {
                         let data = try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: false)
                         try data.write(to: fullPath)
-                        //os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
                     } catch {
                         os_log("Failed to save providers...", log: OSLog.default, type: .error)
                     }
                     
-                    /*
-                    if let _ = provider.assetsToUpload.remove(asset) {
-                        // do nothing
-                    } else {
-                        print ("assetsToUpload did not contain asset")
-                    }*/
-                    //print ("remote file list count \(provider.remoteFileList.count)")
                     
-                    provider.totalAssetsUploaded += 1
                     
                     DispatchQueue.main.async {
                         provider.cell?.ringView.value = ((provider.cell?.ringView.value)! + 1)
                         
-                        if ( Float((provider.cell?.ringView.currentValue)!) == provider.totalAssetsToUpload ){
+                        
+                        if ( Int((provider.cell?.ringView.currentValue)!) == (provider.totalAssetsToUpload) ){
                             DispatchQueue.main.async {
                                 provider.cell?.hudLabel.text = "Done uploading!"
                             }

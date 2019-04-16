@@ -21,8 +21,8 @@ class Provider: NSObject, NSCoding  {
     var cell: ProviderTableViewCell?
     var authorized: Bool?
     
-    var totalAssetsToUpload: Float = 0
-    var totalAssetsUploaded: Float = 0
+    var totalAssetsToUpload: Int = 0
+    var totalAssetsUploaded: Int = 0
     
     var remoteFileList: [String: [String:Any]] // eventually use Cloudkit
     var assetsToUpload = Set<PHAsset>()
