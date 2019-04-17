@@ -66,6 +66,8 @@ class AutoUpload {
                                     self.tasks[task] = provider
                                     foo(N - 1)
                                 }.catch { error in
+                                    // probably recover with switch statement that retries call
+                                    // if large asset encountered
                                     print("AutoUpload: getUrlRequest -> \(error)")
                                 }
                             } else {
@@ -88,7 +90,8 @@ class AutoUpload {
     public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: URLSessionTask) {
         if let provider = tasks.removeValue(forKey: task) {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
-                provider.uploadDidComplete(with: response, jsonObject: data, task)
+                
+                provider.responseDecode(with: response, jsonObject: data, task)
                 
                 if (response.statusCode == 200) {
                     provider.totalAssetsUploaded += 1
@@ -96,10 +99,11 @@ class AutoUpload {
                     do {
                         let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
                         provider.remoteFileList[asset.localIdentifier] = json
-                    
+                        
                     } catch {
                         print("\(error.localizedDescription)")
                     }
+                    
                     
                     let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
                     
@@ -131,7 +135,9 @@ class AutoUpload {
                             provider.cell?.ringView.value = 100
                         }
                     }
-                    
+                    /*
+                     might not work in the background with the promises
+                     */
                     //start another task, if asset exists
                     if(Client.shared.activeTasks.count < 50 && provider.assetsToUpload.count > 0) {
                         print("delegate started new task")
@@ -161,8 +167,6 @@ class AutoUpload {
                     }
                 } // else if response 500 etc
                 
-                print("tasks count \(tasks.count)")
-                print("uploadingassets count \(provider.uploadingAssets.count)")
             } else {
                 // no asset associated with task.
             }

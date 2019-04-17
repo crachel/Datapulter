@@ -154,7 +154,11 @@ class B2: Provider {
     override func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
         
         if (asset.size > Defaults.uploadCutoff ) {
-            //startLargeFile(asset)
+            do {
+            try startLargeFile(asset)
+            } catch {
+                
+            }
             //largeFileTest(asset)
             return Promise(providerError.connectionError) //need to return here so we don't try to process large file anyway
         } else {
@@ -210,7 +214,7 @@ class B2: Provider {
         return fetch(from: urlRequest)
     }
     
-    override func uploadDidComplete(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
+    override func responseDecode(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
     
         if (response.statusCode == 200) {
             if let originalRequest = task.originalRequest,
@@ -236,12 +240,25 @@ class B2: Provider {
                     // this is startlargefile response
                     // build [fileId: someStruct] here
                     // kick off getuploadparturl for part #1
+                    var startLargeFileResponse: StartLargeFileResponse
+                    
+                    do {
+                        startLargeFileResponse = try JSONDecoder().decode(StartLargeFileResponse.self, from: jsonObject)
+                    } catch {
+                        print (error)
+                        print (String(data: jsonObject, encoding: .utf8))
+                        return
+                    }
+                    
+                    print ("startLargeFileResponse is good. fileid: \(startLargeFileResponse.fileId)")
                 } else if (originalUrl.path.contains(Endpoints.getUploadPartUrl.components.path)) {
                     var getUploadPartURLResponse: GetUploadPartURLResponse
                     
                     do {
                         getUploadPartURLResponse = try JSONDecoder().decode(GetUploadPartURLResponse.self, from: jsonObject)
                     } catch {
+                        print (error)
+                        print (String(data: jsonObject, encoding: .utf8))
                         return
                     }
                     
@@ -249,11 +266,28 @@ class B2: Provider {
                     // look for a dictionary keyed by fileId probably [fileId:someStruct]
                     // uploadPart(getUploadPartURLResponse)
                 } else if (originalUrl.path.contains(Endpoints.uploadPart.components.path)) {
+                    var uploadPartResponse: UploadPartResponse
+                    
+                    do {
+                        uploadPartResponse = try JSONDecoder().decode(UploadPartResponse.self, from: jsonObject)
+                    } catch {
+                        print (error)
+                        print (String(data: jsonObject, encoding: .utf8))
+                        return
+                    }
                     // fileId  partNumber  contentLength  contentSha1  uploadTimestamp
                     // a part uploaded. am i done. yes? finishlargefile. no? get another uploadparturl
                 } else if (originalUrl.path.contains(Endpoints.finishLargeFile.components.path)) {
+                    var finishLargeFileResponse: FinishLargeFileResponse
                     
-                    
+                    do {
+                        finishLargeFileResponse = try JSONDecoder().decode(FinishLargeFileResponse.self, from: jsonObject)
+                    } catch {
+                        print (error)
+                        print (String(data: jsonObject, encoding: .utf8))
+                        return
+                    }
+                   
                 }
             }
         } else {
@@ -341,8 +375,55 @@ class B2: Provider {
         }
     }
     
+    private func startLargeFile(_ asset: PHAsset) throws -> (urlRequest: URLRequest, payloadFileURL: URL) {
+        guard let fileName = asset.originalFilename else {
+            throw providerError.preparationFailed
+        }
+        
+        guard let url = URL(string: "\(apiUrl)\(Endpoints.startLargeFile.components.path)") else {
+            throw providerError.preparationFailed
+        }
+        
+        let request = StartLargeFileRequest(bucketId: bucketId,
+                                            fileName: fileName,
+                                            contentType: HTTPHeaders.contentTypeValue)
+        
+        var uploadData: Data
+        
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            throw error
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        
+        urlRequest.httpMethod = Endpoints.startLargeFile.method
+        
+        if (authorizationToken == nil) {
+            throw B2Error.bad_auth_token
+        } else {
+            urlRequest.setValue(authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+        }
+        
+        let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
+        let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
+        
+        FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil)
+        
+        do {
+            let file = try FileHandle(forWritingTo: payloadFileURL)
+            file.write(uploadData)
+            file.truncateFile(atOffset: UInt64(uploadData.count))
+            file.closeFile()
+        } catch {
+            throw error
+        }
+        
+        return (urlRequest, payloadFileURL)
+    }
 
-    private func startLargeFile(_ asset: PHAsset) -> Promise<(Data?, URLResponse?)> {
+   /* private func startLargeFile(_ asset: PHAsset) -> Promise<(Data?, URLResponse?)> {
         guard let fileName = asset.originalFilename else {
             
             return Promise(providerError.preparationFailed)
@@ -371,7 +452,7 @@ class B2: Provider {
         }.then { uploadData in
             self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
         }
-    }
+    }*/
     
     private func uploadPart(_ result: GetUploadPartURLResponse,_ data: Data,_ url: URL,_ partNumber: Int) -> Promise<(Data?, URLResponse?)> {
         var urlRequest: URLRequest

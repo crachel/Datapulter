@@ -91,7 +91,7 @@ class Provider: NSObject, NSCoding  {
         fatalError("Must Override")
     }*/
     
-    public func uploadDidComplete(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
+    public func responseDecode(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
         fatalError("Must Override")
     }
     

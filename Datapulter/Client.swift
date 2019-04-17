@@ -50,19 +50,6 @@ class Client: NSObject {
         return task
     }
     
-    public func upload(_ urlrequest: URLRequest,from data: Data) -> URLSessionTask {
-        
-        let task = session.uploadTask(with: urlrequest, from: data)
-        activeTasks.insert(task)
-        task.resume()
-        
-        DispatchQueue.main.async {
-            UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        }
-        
-        return task
-    }
-    
     public func cancel() {
         print("Client: cancel all tasks")
         for task in activeTasks {
@@ -115,7 +102,7 @@ extension Client: URLSessionDataDelegate {
         
         // downcast for access to statusCode
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
-        
+
         AutoUpload.shared.handler(data, httpResponse, dataTask)
     }
     
