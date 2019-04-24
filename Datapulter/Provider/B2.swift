@@ -13,8 +13,6 @@ import Photos
 class B2: Provider {
 
     //MARK: Properties
-
-    typealias NetworkCompletionHandler = (Data?, URLResponse?, Error?) -> Void
     
     struct Defaults {
         static let maxParts     = 10_000
@@ -33,6 +31,7 @@ class B2: Provider {
     var harddelete: Bool
     
     var pool = SynchronizedQueue<GetUploadURLResponse>()
+    var largeFilePool = Set<PHAsset>()
     
     var authorizationToken: String? {
         get {
@@ -123,6 +122,181 @@ class B2: Provider {
         static let mimeType          = "application/json"
     }
     
+    struct AuthorizeAccountResponse: Codable {
+        var absoluteMinimumPartSize: Int64
+        var accountId: String
+        struct Allowed: Codable {
+            var capabilities: [String]
+            var bucketId: String?
+            var bucketName: String?
+            var namePrefix: String?
+        }
+        var apiUrl: String
+        var authorizationToken: String
+        var recommendedPartSize: Int
+        var downloadUrl: String
+        let allowed: Allowed
+    }
+    
+    struct FinishLargeFileResponse: Codable {
+        var accountId: String
+        var action: String
+        var bucketId: String
+        var contentLength: Int64
+        var contentSha1: String
+        var contentType: String
+        var fileId: String
+        var fileName: String
+        var uploadTimestamp: Int64
+        var fileInfo: [String: String]?
+        
+        private enum CodingKeys: String, CodingKey {
+            case accountId
+            case action
+            case bucketId
+            case contentLength
+            case contentSha1
+            case contentType
+            case fileId
+            case fileName
+            case uploadTimestamp
+            case fileInfo
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            accountId = try container.decode(String.self, forKey: .accountId)
+            action = try container.decode(String.self, forKey: .action)
+            bucketId = try container.decode(String.self, forKey: .bucketId)
+            contentLength = try container.decode(Int64.self, forKey: .contentLength)
+            contentSha1 = try container.decode(String.self, forKey: .contentSha1)
+            contentType = try container.decode(String.self, forKey: .contentType)
+            fileId = try container.decode(String.self, forKey: .fileId)
+            fileName = try container.decode(String.self, forKey: .fileName)
+            uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
+            
+            fileInfo = [String: String]()
+            let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
+            for key in subContainer.allKeys {
+                fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
+            }
+            
+        }
+    }
+    
+    struct GetUploadPartURLResponse: Codable {
+        var fileId: String
+        var uploadUrl: URL
+        var authorizationToken: String
+    }
+    
+    struct GetUploadURLResponse: Codable {
+        var bucketId: String
+        var uploadUrl: URL
+        var authorizationToken: String
+    }
+    
+    struct StartLargeFileResponse: Codable {
+        var accountId: String
+        var action: String
+        var bucketId: String
+        var contentLength: Int64
+        var contentSha1: String
+        var contentType: String
+        var fileId: String
+        var fileName: String
+        var uploadTimestamp: Int64
+        var fileInfo: [String: String]?
+        
+        private enum CodingKeys: String, CodingKey {
+            case accountId
+            case action
+            case bucketId
+            case contentLength
+            case contentSha1
+            case contentType
+            case fileId
+            case fileName
+            case uploadTimestamp
+            case fileInfo
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            accountId = try container.decode(String.self, forKey: .accountId)
+            action = try container.decode(String.self, forKey: .action)
+            bucketId = try container.decode(String.self, forKey: .bucketId)
+            contentLength = try container.decode(Int64.self, forKey: .contentLength)
+            contentSha1 = try container.decode(String.self, forKey: .contentSha1)
+            contentType = try container.decode(String.self, forKey: .contentType)
+            fileId = try container.decode(String.self, forKey: .fileId)
+            fileName = try container.decode(String.self, forKey: .fileName)
+            uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
+            
+            fileInfo = [String: String]()
+            let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
+            for key in subContainer.allKeys {
+                fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
+            }
+            
+        }
+        
+    }
+    
+    struct UploadFileResponse: Codable {
+        var accountId: String
+        var action: String
+        var bucketId: String
+        var contentLength: Int64
+        var contentSha1: String
+        var contentType: String
+        var fileId: String
+        var fileName: String
+        var uploadTimestamp: Int64
+        var fileInfo: [String: String]?
+        
+        private enum CodingKeys: String, CodingKey {
+            case accountId
+            case action
+            case bucketId
+            case contentLength
+            case contentSha1
+            case contentType
+            case fileId
+            case fileName
+            case uploadTimestamp
+            case fileInfo
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            accountId = try container.decode(String.self, forKey: .accountId)
+            action = try container.decode(String.self, forKey: .action)
+            bucketId = try container.decode(String.self, forKey: .bucketId)
+            contentLength = try container.decode(Int64.self, forKey: .contentLength)
+            contentSha1 = try container.decode(String.self, forKey: .contentSha1)
+            contentType = try container.decode(String.self, forKey: .contentType)
+            fileId = try container.decode(String.self, forKey: .fileId)
+            fileName = try container.decode(String.self, forKey: .fileName)
+            uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
+            
+            fileInfo = [String: String]()
+            let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
+            for key in subContainer.allKeys {
+                fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
+            }
+            
+        }
+    }
+    
+    struct UploadPartResponse: Codable {
+        var fileId: String
+        var partNumber: Int64
+        var contentLength: Int64
+        var contentSha1: String
+        var uploadTimestamp: Int64
+    }
+    
     struct PropertyKey {
         static let account             = "account"
         static let key                 = "key"
@@ -170,23 +344,28 @@ class B2: Provider {
         return fetch(from: urlRequest)
     }
     
-    override func getURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+    override func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+        struct GetUploadURLRequest: Codable {
+            var bucketId: String
+        }
         
         if (asset.size > Defaults.uploadCutoff ) {
-            startLargeFile(asset)
+            processLargeFile(asset)
             
             return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
         }
     
         if (pool.count > Defaults.poolMinimum) {
             if let data = pool.dequeue() {
-                return self.uploadFileRequest(from: asset, with: data)
+                return self.buildUploadFileRequest(from: asset, with: data)
             }
         }
         
+        let request = GetUploadURLRequest(bucketId: bucketId)
+        
         var uploadData: Data
         do {
-            uploadData = try JSONEncoder().encode(GetUploadURLRequest(bucketId: bucketId))
+            uploadData = try JSONEncoder().encode(request)
         } catch {
             return Promise(error)
         }
@@ -198,7 +377,7 @@ class B2: Provider {
         }.then { data in
             try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
         }.then { result in
-            self.uploadFileRequest(from: asset, with: result)
+            self.buildUploadFileRequest(from: asset, with: result)
         }
     }
 
@@ -312,190 +491,6 @@ class B2: Provider {
     
     //MARK: Private methods
     
-    private func startLargeFile(_ asset: PHAsset) {
-        guard let fileName = asset.originalFilename else {
-            //return Promise(providerError.preparationFailed)
-            return
-        }
-        
-        let request = StartLargeFileRequest(bucketId: bucketId,
-                                            fileName: fileName,
-                                            contentType: HTTPHeaders.contentTypeValue)
-        
-        var uploadData: Data
-        
-        do {
-            uploadData = try JSONEncoder().encode(request)
-        } catch {
-            return
-        }
-        
-        self.fetch(from: Endpoints.startLargeFile, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
-            self.recover(from: error, retry: Endpoints.startLargeFile, with: uploadData)
-        }.then { data, _ in
-            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-        }.then { data in
-            try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
-        }.then { parsedResult in
-            self.largeFileTest(asset, parsedResult.fileId)
-        }.then { fileId, partSha1Array in
-            try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
-        }.then { uploadData in
-            // check queue for another one
-            self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
-        }
-    }
-    
-    private func uploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
-        return Promise { fulfill, reject in
-            var urlRequest = URLRequest(url: result.uploadUrl)
-            
-            urlRequest.httpMethod = HTTPMethod.post
-            
-            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
-            urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
-            urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
-            
-            if let fileName = asset.percentEncodedFilename {
-                urlRequest.setValue(fileName, forHTTPHeaderField: HTTPHeaders.fileName)
-            } else {
-                reject (providerError.foundNil)
-            }
-            
-            if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
-                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
-            } else {
-                reject(providerError.foundNil)
-            }
-            
-            Utility.getData(from: asset) { data, url in
-                
-                urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
-            
-                fulfill((urlRequest, url))
-            }
-        }
-    }
-    
-    private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
-        
-        print("bad or expired auth token. attempting refresh then retrying API call.")
-        
-        switch error {
-        case B2Error.bad_auth_token, B2Error.expired_auth_token:
-            return self.authorizeAccount().then { data, _ in
-                Utility.objectIsType(object: data, someObjectOfType: Data.self)
-            }.then { data in
-                try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-            }.then { parsedResult in
-                self.authorizeAccountResponse = parsedResult
-            }.then {
-                self.fetch(from: endpoint, with: uploadData) // retry call
-            }
-        default:
-            return Promise(error)
-        }
-    }
-
-    private func uploadPart(_ result: GetUploadPartURLResponse,_ data: Data,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
-        var urlRequest = URLRequest(url: result.uploadUrl)
-        
-        urlRequest.httpMethod = HTTPMethod.post
-        
-        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
-        urlRequest.setValue(String(partNumber), forHTTPHeaderField: HTTPHeaders.partNumber)
-        urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
-        urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
-        //urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1) // remove this. too many commoncrypto calls
-
-        return fetch(from: urlRequest, with: data)
-    }
-    
-    private func largeFileTest(_ asset: PHAsset, _ fileId: String) -> Promise<(String, [String])>  {
-        return Promise { fulfill, _ in
-            Utility.getData(from: asset) { _, url in
-                let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
-                let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
-                
-                var partSha1Array = [String]()
-                var part = 0
-                
-                if let inputStream = InputStream.init(url: url),
-                    FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil) {
-                    
-                    inputStream.open()
-                    
-                    var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
-                    var bytes = 0
-                    
-                    func readBytes() {
-                        
-                        bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
-                        
-                        if (bytes > 0 && part < Defaults.maxParts) {
-                            part += 1
-                            
-                            let data = Data(bytes: buffer, count: bytes)
-                            partSha1Array.append(data.sha1)
-                            //print(partSha1Array.last)
-                        
-                            do {
-                                    let file = try FileHandle(forWritingTo: payloadFileURL)
-                                file.write(data)
-                                file.truncateFile(atOffset: UInt64(bytes))
-                                file.closeFile()
-                            } catch {
-                                print (error)
-                            }
-                            
-                            preparePart(data).then { _, _ in
-                                readBytes()
-                            }
-                            
-                        } else {
-                            do {
-                                print("processLargeFile: Trying to remove payloadFileURL...", terminator:"")
-                                try FileManager.default.removeItem(at: payloadFileURL)
-                                print("done")
-                            } catch let error as NSError {
-                                print("failed")
-                                print("Error: \(error.domain)")
-                            }
-                            
-                            inputStream.close()
-                            
-                            fulfill((fileId, partSha1Array))
-                        }
-                    }
-                    readBytes()
-                    
-                    func preparePart(_ data: Data) -> Promise<(Data?, URLResponse?)> {
-                        var uploadData: Data
-                        
-                        do {
-                            uploadData = try JSONEncoder().encode(GetUploadPartURLRequest(fileId: fileId))
-                        } catch {
-                            return Promise(error)
-                        }
-                        
-                        
-                        
-                        return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).then { data, response in
-                            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-                        }.then { data in
-                            try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                        }.then { parsedResponse in
-                            self.uploadPart(parsedResponse, data, payloadFileURL, part, partSha1Array.last!)
-                        }.catch { error in
-                            print("\(error)")
-                        }
-                    }
-                }
-            }
-        }
-        
-    }
-    
     private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
@@ -539,7 +534,7 @@ class B2: Provider {
             } else if (urlRequest.httpMethod == HTTPMethod.get) {
                 URLSession.shared.dataTask(with: urlRequest, completionHandler: completionHandler).resume()
             }
-       }
+        }
     }
     
     private func fetch(from endpoint: Endpoint, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
@@ -558,6 +553,202 @@ class B2: Provider {
         }
         
         return fetch(from: urlRequest,with: uploadData)
+    }
+    
+    private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
+        
+        print("bad or expired auth token. attempting refresh then retrying API call.")
+        
+        switch error {
+        case B2Error.bad_auth_token, B2Error.expired_auth_token:
+            return self.authorizeAccount().then { data, _ in
+                Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                }.then { data in
+                    try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+                }.then { parsedResult in
+                    self.authorizeAccountResponse = parsedResult
+                }.then {
+                    self.fetch(from: endpoint, with: uploadData) // retry call
+            }
+        default:
+            return Promise(error)
+        }
+    }
+    
+    private func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
+        return Promise { fulfill, reject in
+            var urlRequest = URLRequest(url: result.uploadUrl)
+            
+            urlRequest.httpMethod = HTTPMethod.post
+            
+            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+            urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
+            urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+            
+            if let fileName = asset.percentEncodedFilename {
+                urlRequest.setValue(fileName, forHTTPHeaderField: HTTPHeaders.fileName)
+            } else {
+                reject (providerError.foundNil)
+            }
+            
+            if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
+                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
+            } else {
+                reject(providerError.foundNil)
+            }
+            
+            Utility.getData(from: asset) { data, url in
+                
+                urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
+            
+                fulfill((urlRequest, url))
+            }
+        }
+    }
+    
+    private func processLargeFile(_ asset: PHAsset) {
+        struct StartLargeFileRequest: Codable {
+            var bucketId: String
+            var fileName: String
+            var contentType: String
+        }
+        
+        struct FinishLargeUploadRequest: Codable {
+            var fileId: String
+            var partSha1Array: [String]
+        }
+        
+        guard let fileName = asset.originalFilename else {
+            //return Promise(providerError.preparationFailed)
+            return
+        }
+        
+        let request = StartLargeFileRequest(bucketId: bucketId,
+                                            fileName: fileName,
+                                            contentType: HTTPHeaders.contentTypeValue)
+        
+        var uploadData: Data
+        
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            return
+        }
+        
+        self.fetch(from: Endpoints.startLargeFile, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
+            self.recover(from: error, retry: Endpoints.startLargeFile, with: uploadData)
+            }.then { data, _ in
+                Utility.objectIsType(object: data, someObjectOfType: Data.self)
+            }.then { data in
+                try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
+            }.then { parsedResult in
+                self.createParts(asset, parsedResult.fileId)
+            }.then { fileId, partSha1Array in
+                try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
+            }.then { uploadData in
+                self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
+        }//.then { check queue for another one
+    }
+    
+    private func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])>  {
+        struct GetUploadPartURLRequest: Codable {
+            var fileId: String
+        }
+        return Promise { fulfill, _ in
+            Utility.getData(from: asset) { _, url in
+                let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
+                
+                var partSha1Array = [String]()
+                var part = 0
+                
+                if let inputStream = InputStream.init(url: url),
+                    FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil) {
+                    
+                    inputStream.open()
+                    
+                    var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
+                    var bytes = 0
+                    
+                    func readBytes() {
+                        
+                        bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                        
+                        if (bytes > 0 && part < Defaults.maxParts) {
+                            part += 1
+                            
+                            let data = Data(bytes: buffer, count: bytes)
+                            partSha1Array.append(data.sha1)
+                            //print(partSha1Array.last)
+                            
+                            do {
+                                let file = try FileHandle(forWritingTo: payloadFileURL)
+                                file.write(data)
+                                file.truncateFile(atOffset: UInt64(bytes))
+                                file.closeFile()
+                            } catch {
+                                print (error)
+                            }
+                            
+                            buildUploadPartRequest(data).then { _, _ in
+                                readBytes()
+                            }
+                            
+                        } else {
+                            do {
+                                print("processLargeFile: Trying to remove payloadFileURL...", terminator:"")
+                                try FileManager.default.removeItem(at: payloadFileURL)
+                                print("done")
+                            } catch let error as NSError {
+                                print("failed")
+                                print("Error: \(error.domain)")
+                            }
+                            
+                            inputStream.close()
+                            
+                            fulfill((fileId, partSha1Array))
+                        }
+                    }
+                    readBytes()
+                    
+                    func buildUploadPartRequest(_ data: Data) -> Promise<(Data?, URLResponse?)> {
+                        var uploadData: Data
+                        
+                        do {
+                            uploadData = try JSONEncoder().encode(GetUploadPartURLRequest(fileId: fileId))
+                        } catch {
+                            return Promise(error)
+                        }
+                        
+                        
+                        
+                        return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).then { data, response in
+                            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                            }.then { data in
+                                try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+                            }.then { parsedResponse in
+                                self.uploadPart(parsedResponse, data, payloadFileURL, part, partSha1Array.last!)
+                            }.catch { error in
+                                print("\(error)")
+                        }
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    private func uploadPart(_ result: GetUploadPartURLResponse,_ data: Data,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
+        var urlRequest = URLRequest(url: result.uploadUrl)
+        
+        urlRequest.httpMethod = HTTPMethod.post
+        
+        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+        urlRequest.setValue(String(partNumber), forHTTPHeaderField: HTTPHeaders.partNumber)
+        urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
+        urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
+
+        return fetch(from: urlRequest, with: data)
     }
     
     //MARK: NSCoding

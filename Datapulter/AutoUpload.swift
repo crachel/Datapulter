@@ -59,7 +59,7 @@ class AutoUpload {
                     func initiate(_ N: Int) {
                         if (N > 0) {
                             if let asset = provider.assetsToUpload.popFirst() {
-                                provider.getURLRequest(from: asset).then { request, url in
+                                provider.getUploadFileURLRequest(from: asset).then { request, url in
                                     if let request = request,
                                         let url = url {
                                         let task = Client.shared.upload(request, url)
@@ -152,7 +152,7 @@ class AutoUpload {
                     if(Client.shared.activeTasks.count < 50 && provider.assetsToUpload.count > 0) {
                         print("delegate started new task")
                         if let asset = provider.assetsToUpload.popFirst() {
-                            provider.getURLRequest(from: asset).then { request, url in
+                            provider.getUploadFileURLRequest(from: asset).then { request, url in
                                 let task = Client.shared.upload(request!, url!)
                                 provider.uploadingAssets[task] = asset
                                 self.tasks[task] = provider
@@ -168,7 +168,7 @@ class AutoUpload {
                 } else if (response.statusCode == 503) {
                     //retry
                     print("delegate retry 503 task")
-                    provider.getURLRequest(from: asset).then { request, url in
+                    provider.getUploadFileURLRequest(from: asset).then { request, url in
                         let task = Client.shared.upload(request!, url!)
                         provider.uploadingAssets[task] = asset
                         self.tasks[task] = provider

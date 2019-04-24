@@ -87,7 +87,7 @@ class Provider: NSObject, NSCoding  {
     
     //MARK: Public methods
     
-    public func getURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+    public func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
         fatalError("Must Override")
     }
     
