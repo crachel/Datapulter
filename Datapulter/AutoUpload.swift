@@ -33,9 +33,9 @@ class AutoUpload {
     //MARK: Public Methods
     
     public func start() {
-        assets = Utility.getCameraRollAssets()
-        
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
+            assets = Utility.getCameraRollAssets()
+            
             for provider in providers {
                 print("Provider: remoteFileList count: \(provider.remoteFileList.count)")
                 print("Autoupload: Checking for assets...", terminator:"")
@@ -44,10 +44,9 @@ class AutoUpload {
                     if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
                         // object has not been uploaded & is not already in upload queue
                         provider.assetsToUpload.insert(asset)
+                        provider.totalAssetsToUpload += 1
                     }
                 })
-                
-                provider.totalAssetsToUpload = provider.assetsToUpload.count
                 
                 DispatchQueue.main.async {
                     provider.cell?.ringView.value = 0
@@ -57,26 +56,44 @@ class AutoUpload {
                 
                 if (provider.totalAssetsToUpload > 0 && !Client.shared.isActive()) {
                     print("found \(provider.totalAssetsToUpload)")
-                    func foo(_ N: Int) {
-                        if(N > 0) { // starts N
+                    func initiate(_ N: Int) {
+                        if (N > 0) {
                             if let asset = provider.assetsToUpload.popFirst() {
-                                provider.getUrlRequest(asset).then { request, url in
-                                    let task = Client.shared.upload(request!, url!)
-                                    provider.uploadingAssets[task] = asset
-                                    self.tasks[task] = provider
-                                    foo(N - 1)
+                                provider.getURLRequest(from: asset).then { request, url in
+                                    if let request = request,
+                                        let url = url {
+                                        let task = Client.shared.upload(request, url)
+                                        provider.uploadingAssets[task] = asset
+                                        self.tasks[task] = provider
+                                        
+                                        initiate(N - 1)
+                                    }
                                 }.catch { error in
-                                    // probably recover with switch statement that retries call
-                                    // if large asset encountered
                                     print("AutoUpload: getUrlRequest -> \(error)")
+                                    switch error {
+                                    case Provider.providerError.largeFile:
+                                        /*
+                                         skip largeFile, allowing the provider to handle the particulars of uploading it.
+                                         this shouldnt be N-1. probably just N. then the provider keeps track of large
+                                         assets?
+                                         */
+                                        initiate(N)
+                                    default:
+                                        break
+                                    }
                                 }
                             } else {
                                 print("AutoUpload: assetsToUpload is empty. Stopping.")
                             }
                         }
                     }
-                    foo(6)
+                    /*
+                     start N threads to "charge" the url pool. they will complete then delegate->handler pulls urls
+                     out of the pool with no network call needed.
+                     */
+                    initiate(6)
                     
+                  
                 } else {
                     print("found none")
                 }
@@ -91,19 +108,12 @@ class AutoUpload {
         if let provider = tasks.removeValue(forKey: task) {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
                 
-                provider.responseDecode(with: response, jsonObject: data, task)
+                provider.decodeURLResponse(response: response, data: data,task: task)
                 
                 if (response.statusCode == 200) {
                     provider.totalAssetsUploaded += 1
-                    
-                    do {
-                        let json = try JSONSerialization.jsonObject(with: data) as! [String:Any]
-                        provider.remoteFileList[asset.localIdentifier] = json
-                        
-                    } catch {
-                        print("\(error.localizedDescription)")
-                    }
-                    
+                
+                    provider.remoteFileList[asset.localIdentifier] = data
                     
                     let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
                     
@@ -142,7 +152,7 @@ class AutoUpload {
                     if(Client.shared.activeTasks.count < 50 && provider.assetsToUpload.count > 0) {
                         print("delegate started new task")
                         if let asset = provider.assetsToUpload.popFirst() {
-                            provider.getUrlRequest(asset).then { request, url in
+                            provider.getURLRequest(from: asset).then { request, url in
                                 let task = Client.shared.upload(request!, url!)
                                 provider.uploadingAssets[task] = asset
                                 self.tasks[task] = provider
@@ -158,7 +168,7 @@ class AutoUpload {
                 } else if (response.statusCode == 503) {
                     //retry
                     print("delegate retry 503 task")
-                    provider.getUrlRequest(asset).then { request, url in
+                    provider.getURLRequest(from: asset).then { request, url in
                         let task = Client.shared.upload(request!, url!)
                         provider.uploadingAssets[task] = asset
                         self.tasks[task] = provider

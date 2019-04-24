@@ -24,15 +24,17 @@ class Provider: NSObject, NSCoding  {
     var totalAssetsToUpload: Int = 0
     var totalAssetsUploaded: Int = 0
     
-    var remoteFileList: [String: [String:Any]] // eventually use Cloudkit
+    var remoteFileList: [String: Data]
     var assetsToUpload = Set<PHAsset>()
+    var largeFiles = Set<PHAsset>()
     var uploadingAssets = [URLSessionTask: PHAsset]()
     
     
     enum Site {
-        case Backblaze
         case Amazon
+        case Backblaze
         case DigitalOcean
+        case Managed
     }
     
     //MARK: Archiving Paths
@@ -48,6 +50,7 @@ class Provider: NSObject, NSCoding  {
         static let remoteFileList = "remoteFileList"
         static let assetsToUpload = "assetsToUpload"
         static let uploadQueue = "uploadQueue"
+        static let largeFiles = "largeFiles"
     }
     
     enum providerError: Error {
@@ -58,6 +61,7 @@ class Provider: NSObject, NSCoding  {
         case preparationFailed
         case unhandledStatusCode
         case foundNil
+        case largeFile
     }
     
     //MARK: Initialization
@@ -71,27 +75,23 @@ class Provider: NSObject, NSCoding  {
         self.assetsToUpload = []
     }
     
-    init(name: String, backend: Site, remoteFileList: [String: [String:Any]], assetsToUpload: Set<PHAsset>) {
+    init(name: String, backend: Site, remoteFileList: [String: Data], assetsToUpload: Set<PHAsset>, largeFiles: Set<PHAsset>) {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
         self.innerRing = .blue
         self.remoteFileList = remoteFileList
         self.assetsToUpload = []
+        self.largeFiles = []
     }
     
     //MARK: Public methods
     
-    public func getUrlRequest(_ asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+    public func getURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
         fatalError("Must Override")
     }
     
-    /*
-    public func getUploadObject<T>(_ asset: PHAsset, _ urlPoolObject: T) -> Promise<(UploadObject<T>?)> {
-        fatalError("Must Override")
-    }*/
-    
-    public func responseDecode(with response: HTTPURLResponse,jsonObject: Data,_ task: URLSessionTask) {
+    public func decodeURLResponse(response: HTTPURLResponse,data: Data,task: URLSessionTask) {
         fatalError("Must Override")
     }
     
@@ -105,6 +105,7 @@ class Provider: NSObject, NSCoding  {
         aCoder.encode(name, forKey: PropertyKey.name)
         aCoder.encode(backend, forKey: PropertyKey.backend)
         aCoder.encode(assetsToUpload, forKey: PropertyKey.assetsToUpload)
+        aCoder.encode(largeFiles, forKey: PropertyKey.largeFiles)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -115,11 +116,12 @@ class Provider: NSObject, NSCoding  {
         }
         
         let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
-        let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [String: [String:Any]]
+        let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [String: Data]
         let assetsToUpload = aDecoder.decodeObject(forKey: PropertyKey.assetsToUpload) as! Set<PHAsset>
+        let largeFiles = aDecoder.decodeObject(forKey: PropertyKey.largeFiles) as! Set<PHAsset>
         
         // Must call designated initializer.
-        self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload)
+        self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload, largeFiles: largeFiles)
     }
     
 }

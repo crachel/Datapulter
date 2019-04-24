@@ -43,10 +43,6 @@ class Client: NSObject {
         activeTasks.insert(task)
         task.resume()
         
-        DispatchQueue.main.async {
-            UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        }
-        
         return task
     }
     
@@ -81,7 +77,6 @@ extension Client: URLSessionDelegate {
         DispatchQueue.main.async {
             self.backgroundCompletionHandler?()
             self.backgroundCompletionHandler = nil
-            UIApplication.shared.isNetworkActivityIndicatorVisible = false
         }
     }
     
