@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import WLEmptyState
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -50,6 +51,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }*/
         
         // Other initialization…
+        WLEmptyState.configure()
         return true
     }
 

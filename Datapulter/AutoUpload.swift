@@ -91,7 +91,7 @@ class AutoUpload {
                      start N threads to "charge" the url pool. they will complete then delegate->handler pulls urls
                      out of the pool with no network call needed.
                      */
-                    initiate(6)
+                    //initiate(6)
                     
                   
                 } else {

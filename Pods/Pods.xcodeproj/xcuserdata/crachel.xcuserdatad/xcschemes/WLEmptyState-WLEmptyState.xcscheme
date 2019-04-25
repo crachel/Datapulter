@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7ED9D374912A72D4C90BDB9F2AF0267C"
-               BuildableName = "Pods_Datapulter.framework"
-               BlueprintName = "Pods-Datapulter"
+               BlueprintIdentifier = "CC2F3BC82FFADA9810EFA797021D451E"
+               BuildableName = "WLEmptyState.bundle"
+               BlueprintName = "WLEmptyState-WLEmptyState"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,9 +45,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7ED9D374912A72D4C90BDB9F2AF0267C"
-            BuildableName = "Pods_Datapulter.framework"
-            BlueprintName = "Pods-Datapulter"
+            BlueprintIdentifier = "CC2F3BC82FFADA9810EFA797021D451E"
+            BuildableName = "WLEmptyState.bundle"
+            BlueprintName = "WLEmptyState-WLEmptyState"
             ReferencedContainer = "container:Pods.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

@@ -26,8 +26,9 @@ class Provider: NSObject, NSCoding  {
     
     var remoteFileList: [String: Data]
     var assetsToUpload = Set<PHAsset>()
-    var largeFiles = Set<PHAsset>()
+    var largeFilePool = Set<PHAsset>()
     var uploadingAssets = [URLSessionTask: PHAsset]()
+    var processingLargeFile: Bool = false
     
     
     enum Site {
@@ -82,7 +83,7 @@ class Provider: NSObject, NSCoding  {
         self.innerRing = .blue
         self.remoteFileList = remoteFileList
         self.assetsToUpload = []
-        self.largeFiles = []
+        //self.largeFiles = []
     }
     
     //MARK: Public methods
@@ -105,7 +106,7 @@ class Provider: NSObject, NSCoding  {
         aCoder.encode(name, forKey: PropertyKey.name)
         aCoder.encode(backend, forKey: PropertyKey.backend)
         aCoder.encode(assetsToUpload, forKey: PropertyKey.assetsToUpload)
-        aCoder.encode(largeFiles, forKey: PropertyKey.largeFiles)
+        //aCoder.encode(largeFiles, forKey: PropertyKey.largeFiles)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {

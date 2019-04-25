@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "26911AF1C80DBED88C7B1DF0E584FE01"
+               BlueprintIdentifier = "F0C62601B4876A4DDD86FFA6F0531132"
                BuildableName = "FBLPromises.framework"
                BlueprintName = "PromisesObjC"
                ReferencedContainer = "container:Pods.xcodeproj">
@@ -45,7 +45,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "26911AF1C80DBED88C7B1DF0E584FE01"
+            BlueprintIdentifier = "F0C62601B4876A4DDD86FFA6F0531132"
             BuildableName = "FBLPromises.framework"
             BlueprintName = "PromisesObjC"
             ReferencedContainer = "container:Pods.xcodeproj">

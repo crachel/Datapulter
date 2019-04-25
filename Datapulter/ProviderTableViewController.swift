@@ -10,11 +10,14 @@ import UIKit
 import os.log
 import Photos
 import UICircularProgressRing
+import WLEmptyState
 
-class ProviderTableViewController: UITableViewController {
+class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        tableView.emptyStateDataSource = self
         
         // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
@@ -111,6 +114,8 @@ class ProviderTableViewController: UITableViewController {
             saveProviders()
             
             tableView.deleteRows(at: [indexPath], with: .fade)
+            
+            tableView.reloadData()
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
         }    
@@ -153,6 +158,20 @@ class ProviderTableViewController: UITableViewController {
         default:
             fatalError("Unexpected Segue Identifier; \(String(describing: segue.identifier))")
         }
+    }
+    
+    func imageForEmptyDataSet() -> UIImage? {
+        return UIImage(named: "AppIcon")
+    }
+    
+    func titleForEmptyDataSet() -> NSAttributedString {
+        let title = NSAttributedString(string: "Datapulter", attributes: [NSAttributedString.Key.font: UIFont.preferredFont(forTextStyle: .headline)])
+        return title
+    }
+    
+    func descriptionForEmptyDataSet() -> NSAttributedString {
+        let title = NSAttributedString(string: "Add a provider above.", attributes: [NSAttributedString.Key.font: UIFont.preferredFont(forTextStyle: .caption1)])
+        return title
     }
     
     //MARK: Private Methods

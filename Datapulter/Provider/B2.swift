@@ -29,9 +29,9 @@ class B2: Provider {
     var bucketId: String
     var versions: Bool
     var harddelete: Bool
+    var filePrefix: String
     
     var pool = SynchronizedQueue<GetUploadURLResponse>()
-    var largeFilePool = Set<PHAsset>()
     
     var authorizationToken: String? {
         get {
@@ -306,6 +306,7 @@ class B2: Provider {
         static let uploadList          = "uploadList"
         static let accountId           = "accountId"
         static let bucketId            = "bucketId"
+        static let filePrefix          = "filePrefix"
         
         static let authorizationToken  = "authorizationToken"
         static let apiUrl              = "apiUrl"
@@ -314,7 +315,7 @@ class B2: Provider {
     
     //MARK: Initialization
     
-    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String, remoteFileList: [String: Data], assetsToUpload: Set<PHAsset>) {
+    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String, remoteFileList: [String: Data], assetsToUpload: Set<PHAsset>, filePrefix: String) {
         self.account = account
         self.key = key
         self.bucket = bucket
@@ -322,6 +323,7 @@ class B2: Provider {
         self.harddelete = harddelete
         self.accountId = accountId
         self.bucketId = bucketId
+        self.filePrefix = filePrefix
         
         super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList, assetsToUpload: [], largeFiles: [])
     }
@@ -350,7 +352,12 @@ class B2: Provider {
         }
         
         if (asset.size > Defaults.uploadCutoff ) {
-            processLargeFile(asset)
+            if(processingLargeFile) {
+                largeFilePool.insert(asset)
+            } else {
+                //processingLargeFile = true
+                //processLargeFile(asset)
+            }
             
             return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
         }
@@ -586,7 +593,7 @@ class B2: Provider {
             urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
             
             if let fileName = asset.percentEncodedFilename {
-                urlRequest.setValue(fileName, forHTTPHeaderField: HTTPHeaders.fileName)
+                urlRequest.setValue(self.filePrefix + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
             } else {
                 reject (providerError.foundNil)
             }
@@ -624,7 +631,7 @@ class B2: Provider {
         }
         
         let request = StartLargeFileRequest(bucketId: bucketId,
-                                            fileName: fileName,
+                                            fileName: self.filePrefix + fileName,
                                             contentType: HTTPHeaders.contentTypeValue)
         
         var uploadData: Data
@@ -637,17 +644,26 @@ class B2: Provider {
         
         self.fetch(from: Endpoints.startLargeFile, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
             self.recover(from: error, retry: Endpoints.startLargeFile, with: uploadData)
-            }.then { data, _ in
-                Utility.objectIsType(object: data, someObjectOfType: Data.self)
-            }.then { data in
-                try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
-            }.then { parsedResult in
-                self.createParts(asset, parsedResult.fileId)
-            }.then { fileId, partSha1Array in
-                try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
-            }.then { uploadData in
-                self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
-        }//.then { check queue for another one
+        }.then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
+        }.then { parsedResult in
+            self.createParts(asset, parsedResult.fileId)
+        }.then { fileId, partSha1Array in
+            try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
+        }.then { uploadData in
+            self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
+        }.then { data, _ in
+            self.remoteFileList[asset.localIdentifier] = data
+            self.totalAssetsUploaded += 1
+            if (self.largeFilePool.isEmpty) {
+                self.processingLargeFile = false
+            } else {
+                self.processLargeFile(self.largeFilePool.popFirst()!)
+            }
+        }
+        //.then { check queue for another one
     }
     
     private func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])>  {
@@ -763,6 +779,7 @@ class B2: Provider {
         aCoder.encode(accountId, forKey: PropertyKey.accountId)
         aCoder.encode(bucketId, forKey: PropertyKey.bucketId)
         aCoder.encode(remoteFileList, forKey: PropertyKey.remoteFileList)
+        aCoder.encode(filePrefix, forKey: PropertyKey.filePrefix)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -774,7 +791,8 @@ class B2: Provider {
             let bucket = aDecoder.decodeObject(forKey: PropertyKey.bucket) as? String,
             let accountId = aDecoder.decodeObject(forKey: PropertyKey.accountId) as? String,
             let bucketId = aDecoder.decodeObject(forKey: PropertyKey.bucketId) as? String,
-            let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as? [String: Data]
+            let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as? [String: Data],
+            let filePrefix = aDecoder.decodeObject(forKey: PropertyKey.filePrefix) as? String
         else
         {
             os_log("Unable to decode a B2 object.", log: OSLog.default, type: .debug)
@@ -786,7 +804,7 @@ class B2: Provider {
         
         
         // Must call designated initializer.
-        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, assetsToUpload: [])
+        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, assetsToUpload: [], filePrefix: filePrefix)
     }
  
 }

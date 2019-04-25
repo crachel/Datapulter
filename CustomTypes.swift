@@ -34,11 +34,6 @@ struct JSONError: Codable {
 }
 
 /*
- struct UploadObject<T> {
- let asset: PHAsset
- let urlPoolObject: T
- }
- 
  enum APIError: Error {
  case requestFailed
  case jsonConversionFailure

@@ -4,11 +4,13 @@ PODS:
   - PromisesSwift (1.2.7):
     - PromisesObjC (= 1.2.7)
   - UICircularProgressRing (6.1.0)
+  - WLEmptyState (1.0.2)
 
 DEPENDENCIES:
   - Eureka
   - PromisesSwift (~> 1.2.7)
   - UICircularProgressRing
+  - WLEmptyState
 
 SPEC REPOS:
   https://github.com/cocoapods/specs.git:
@@ -16,13 +18,15 @@ SPEC REPOS:
     - PromisesObjC
     - PromisesSwift
     - UICircularProgressRing
+    - WLEmptyState
 
 SPEC CHECKSUMS:
   Eureka: 0f64f477ec8ef6201c6fec143d60ff5c201cf654
   PromisesObjC: 7b28ddd1e78cce8f80f1ada927d2217663a9c672
   PromisesSwift: b27f410f9ea693753cfd4cfd8ac1c60a471f137b
   UICircularProgressRing: b3eba859a515e4d9d38503eec913f09c28450785
+  WLEmptyState: 083ceb8181b65b0008e1cca260b14a768f6c3ab6
 
-PODFILE CHECKSUM: bf652ca7de425051a1e660bd942ce7cad3849f72
+PODFILE CHECKSUM: c6dc1ccad007f9338f9d99a37f4e395efd249574
 
 COCOAPODS: 1.5.3
