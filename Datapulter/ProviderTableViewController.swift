@@ -161,7 +161,8 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     }
     
     func imageForEmptyDataSet() -> UIImage? {
-        return UIImage(named: "AppIcon")
+        //return UIImage(named: "AppIcon")
+        return UIImage(named: "Icon Grey")
     }
     
     func titleForEmptyDataSet() -> NSAttributedString {

@@ -27,5 +27,3 @@ struct Endpoint {
         self.method = method
     }
 }
-
-

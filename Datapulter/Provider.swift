@@ -83,21 +83,26 @@ class Provider: NSObject, NSCoding  {
         self.innerRing = .blue
         self.remoteFileList = remoteFileList
         self.assetsToUpload = []
-        //self.largeFiles = []
+        
+        
     }
     
     //MARK: Public methods
     
-    public func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+    public func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
         fatalError("Must Override")
     }
     
-    public func decodeURLResponse(response: HTTPURLResponse,data: Data,task: URLSessionTask) {
+    public func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask) {
         fatalError("Must Override")
     }
     
     public func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
         fatalError("Must Override")
+    }
+    
+    public func updateUI() {
+        
     }
     
     //MARK: NSCoding

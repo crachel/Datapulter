@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Datapulter.ipa</key>
+	<array>
+		<dict>
+			<key>architectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>certificate</key>
+			<dict>
+				<key>SHA1</key>
+				<string>64C3A738A14ACDC5179878FC53296256FA47EDA0</string>
+				<key>dateExpires</key>
+				<string>12/2/19</string>
+				<key>type</key>
+				<string>iOS Development</string>
+			</dict>
+			<key>embeddedBinaries</key>
+			<array>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>64C3A738A14ACDC5179878FC53296256FA47EDA0</string>
+						<key>dateExpires</key>
+						<string>12/2/19</string>
+						<key>type</key>
+						<string>iOS Development</string>
+					</dict>
+					<key>name</key>
+					<string>Eureka.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>KVL6Y4M2BU</string>
+						<key>name</key>
+						<string>Craig Rachel</string>
+					</dict>
+				</dict>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>64C3A738A14ACDC5179878FC53296256FA47EDA0</string>
+						<key>dateExpires</key>
+						<string>12/2/19</string>
+						<key>type</key>
+						<string>iOS Development</string>
+					</dict>
+					<key>name</key>
+					<string>FBLPromises.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>KVL6Y4M2BU</string>
+						<key>name</key>
+						<string>Craig Rachel</string>
+					</dict>
+				</dict>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>64C3A738A14ACDC5179878FC53296256FA47EDA0</string>
+						<key>dateExpires</key>
+						<string>12/2/19</string>
+						<key>type</key>
+						<string>iOS Development</string>
+					</dict>
+					<key>name</key>
+					<string>Promises.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>KVL6Y4M2BU</string>
+						<key>name</key>
+						<string>Craig Rachel</string>
+					</dict>
+				</dict>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>64C3A738A14ACDC5179878FC53296256FA47EDA0</string>
+						<key>dateExpires</key>
+						<string>12/2/19</string>
+						<key>type</key>
+						<string>iOS Development</string>
+					</dict>
+					<key>name</key>
+					<string>UICircularProgressRing.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>KVL6Y4M2BU</string>
+						<key>name</key>
+						<string>Craig Rachel</string>
+					</dict>
+				</dict>
+				<dict>
+					<key>architectures</key>
+					<array>
+						<string>arm64</string>
+					</array>
+					<key>certificate</key>
+					<dict>
+						<key>SHA1</key>
+						<string>64C3A738A14ACDC5179878FC53296256FA47EDA0</string>
+						<key>dateExpires</key>
+						<string>12/2/19</string>
+						<key>type</key>
+						<string>iOS Development</string>
+					</dict>
+					<key>name</key>
+					<string>WLEmptyState.framework</string>
+					<key>team</key>
+					<dict>
+						<key>id</key>
+						<string>KVL6Y4M2BU</string>
+						<key>name</key>
+						<string>Craig Rachel</string>
+					</dict>
+				</dict>
+			</array>
+			<key>entitlements</key>
+			<dict>
+				<key>application-identifier</key>
+				<string>KVL6Y4M2BU.com.craigrachel.datapulter</string>
+				<key>aps-environment</key>
+				<string>development</string>
+				<key>com.apple.developer.icloud-container-environment</key>
+				<string>Production</string>
+				<key>com.apple.developer.icloud-container-identifiers</key>
+				<array>
+					<string>iCloud.com.craigrachel.datapulter</string>
+				</array>
+				<key>com.apple.developer.icloud-services</key>
+				<array>
+					<string>CloudKit</string>
+				</array>
+				<key>com.apple.developer.team-identifier</key>
+				<string>KVL6Y4M2BU</string>
+				<key>get-task-allow</key>
+				<true/>
+			</dict>
+			<key>name</key>
+			<string>Datapulter.app</string>
+			<key>profile</key>
+			<dict>
+				<key>UUID</key>
+				<string>e163d946-e528-4d55-a62c-eb9039f4cbd0</string>
+				<key>name</key>
+				<string>iOS Team Provisioning Profile: com.craigrachel.datapulter</string>
+			</dict>
+			<key>team</key>
+			<dict>
+				<key>id</key>
+				<string>KVL6Y4M2BU</string>
+				<key>name</key>
+				<string>Craig Rachel</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

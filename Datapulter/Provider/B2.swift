@@ -9,6 +9,7 @@ import UIKit
 import os.log
 import Promises
 import Photos
+import UICircularProgressRing
 
 class B2: Provider {
 
@@ -346,17 +347,18 @@ class B2: Provider {
         return fetch(from: urlRequest)
     }
     
-    override func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, URL?)> {
+    override func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
         struct GetUploadURLRequest: Codable {
             var bucketId: String
         }
         
         if (asset.size > Defaults.uploadCutoff ) {
+            
             if(processingLargeFile) {
                 largeFilePool.insert(asset)
             } else {
-                //processingLargeFile = true
-                //processLargeFile(asset)
+                processingLargeFile = true
+                processLargeFile(asset)
             }
             
             return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
@@ -388,7 +390,7 @@ class B2: Provider {
         }
     }
 
-    override func decodeURLResponse(response: HTTPURLResponse,data: Data,task: URLSessionTask) {
+    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask) {
     
         if (response.statusCode == 200) {
             if let originalRequest = task.originalRequest,
@@ -408,60 +410,8 @@ class B2: Provider {
                         let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId, uploadUrl: originalUrl, authorizationToken: token)
                         
                         pool.enqueue(getUploadURLResponse)
-                        print("provider.uploadDidComplete -> appended result to pool. Count: \(pool.count)")
+                        print("B2.decodeURLResponse -> appended Response to pool. Count: \(pool.count)")
                     }
-                } else if (originalUrl.path.contains(Endpoints.startLargeFile.components.path)) {
-                    // this is startlargefile response
-                    // build [fileId: someStruct] here
-                    // kick off getuploadparturl for part #1
-                    var startLargeFileResponse: StartLargeFileResponse
-                    
-                    do {
-                        startLargeFileResponse = try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
-                    } catch {
-                        print (error)
-                        print (String(data: data, encoding: .utf8))
-                        return
-                    }
-                    
-                    print ("startLargeFileResponse is good. fileid: \(startLargeFileResponse.fileId)")
-                } else if (originalUrl.path.contains(Endpoints.getUploadPartUrl.components.path)) {
-                    var getUploadPartURLResponse: GetUploadPartURLResponse
-                    
-                    do {
-                        getUploadPartURLResponse = try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                    } catch {
-                        print (error)
-                        print (String(data: data, encoding: .utf8))
-                        return
-                    }
-                    
-                    // hey i've got an uploadpartresponse, now what?
-                    // look for a dictionary keyed by fileId probably [fileId:someStruct]
-                    // uploadPart(getUploadPartURLResponse)
-                } else if (originalUrl.path.contains(Endpoints.uploadPart.components.path)) {
-                    var uploadPartResponse: UploadPartResponse
-                    
-                    do {
-                        uploadPartResponse = try JSONDecoder().decode(UploadPartResponse.self, from: data)
-                    } catch {
-                        print (error)
-                        print (String(data: data, encoding: .utf8))
-                        return
-                    }
-                    // fileId  partNumber  contentLength  contentSha1  uploadTimestamp
-                    // a part uploaded. am i done. yes? finishlargefile. no? get another uploadparturl
-                } else if (originalUrl.path.contains(Endpoints.finishLargeFile.components.path)) {
-                    var finishLargeFileResponse: FinishLargeFileResponse
-                    
-                    do {
-                        finishLargeFileResponse = try JSONDecoder().decode(FinishLargeFileResponse.self, from: data)
-                    } catch {
-                        print (error)
-                        print (String(data: data, encoding: .utf8))
-                        return
-                    }
-                   
                 }
             }
         } else {
@@ -475,21 +425,21 @@ class B2: Provider {
             
             switch jsonError.code {
             case B2Error.bad_request.rawValue:
-                print("provider.uploadDidComplete -> bad_request")
+                print("B2.decodeURLResponse -> bad_request")
             case B2Error.unauthorized.rawValue:
-                print("provider.uploadDidComplete -> unauthorized")
+                print("B2.decodeURLResponse -> unauthorized")
             case B2Error.bad_auth_token.rawValue, B2Error.expired_auth_token.rawValue:
-                print("provider.uploadDidComplete -> bad_auth_token expired_auth_token")
+                print("B2.decodeURLResponse -> bad_auth_token expired_auth_token")
             case B2Error.cap_exceeded.rawValue:
-                print("provider.uploadDidComplete -> cap_exceeded")
+                print("B2.decodeURLResponse -> cap_exceeded")
             case B2Error.method_not_allowed.rawValue:
-                print("provider.uploadDidComplete -> method_not_allowed")
+                print("B2.decodeURLResponse -> method_not_allowed")
             case B2Error.request_timeout.rawValue:
-                print("provider.uploadDidComplete -> request_timeout")
+                print("B2.decodeURLResponse -> request_timeout")
             case B2Error.service_unavailable.rawValue:
-                print("provider.uploadDidComplete -> service_unavailable")
+                print("B2.decodeURLResponse -> service_unavailable")
             default:
-                print("provider.uploadDidComplete -> unhandled")
+                print("B2.decodeURLResponse -> unhandled")
             }
         }
         
@@ -498,7 +448,7 @@ class B2: Provider {
     
     //MARK: Private methods
     
-    private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
+    private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
             let completionHandler: NetworkCompletionHandler = { data, response, error in
@@ -537,7 +487,12 @@ class B2: Provider {
             }
             
             if (urlRequest.httpMethod == HTTPMethod.post) {
-                URLSession.shared.uploadTask(with: urlRequest, from:uploadData, completionHandler: completionHandler).resume()
+                if let data = uploadData {
+                    URLSession.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler).resume()
+                }
+                if let url = uploadURL {
+                    URLSession.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler).resume()
+                }
             } else if (urlRequest.httpMethod == HTTPMethod.get) {
                 URLSession.shared.dataTask(with: urlRequest, completionHandler: completionHandler).resume()
             }
@@ -582,7 +537,7 @@ class B2: Provider {
         }
     }
     
-    private func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, URL?)> {
+    private func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, Data?)> {
         return Promise { fulfill, reject in
             var urlRequest = URLRequest(url: result.uploadUrl)
             
@@ -604,11 +559,10 @@ class B2: Provider {
                 reject(providerError.foundNil)
             }
             
-            Utility.getData(from: asset) { data, url in
-                
+            Utility.getData(from: asset) { data, _ in
                 urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
             
-                fulfill((urlRequest, url))
+                fulfill((urlRequest, data))
             }
         }
     }
@@ -657,6 +611,27 @@ class B2: Provider {
         }.then { data, _ in
             self.remoteFileList[asset.localIdentifier] = data
             self.totalAssetsUploaded += 1
+            
+            DispatchQueue.main.async {
+                self.cell?.ringView.value = ((self.cell?.ringView.value)! + 1)
+                
+                
+                if ( Int((self.cell?.ringView.currentValue)!) == (self.totalAssetsToUpload) ){
+                    DispatchQueue.main.async {
+                        self.cell?.hudLabel.text = "Done uploading!"
+                    }
+                }
+                
+                if(self.totalAssetsToUpload == self.totalAssetsUploaded) {
+                    self.cell?.ringView.innerRingColor = .green
+                    self.cell?.ringView.maxValue = 100
+                    //provider.cell?.ringView.valueIndicator = "%"
+                    self.cell?.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "%", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
+                    
+                    self.cell?.ringView.value = 100
+                }
+            }
+            
             if (self.largeFilePool.isEmpty) {
                 self.processingLargeFile = false
             } else {
@@ -764,7 +739,8 @@ class B2: Provider {
         urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
         urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
 
-        return fetch(from: urlRequest, with: data)
+        //return fetch(from: urlRequest, with: data)
+        return fetch(from: urlRequest, from: url)
     }
     
     //MARK: NSCoding

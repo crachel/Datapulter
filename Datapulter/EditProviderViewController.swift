@@ -54,6 +54,14 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             }.cellUpdate { cell, row in
                 cell.textField.delegate = self
             }
+            <<< AccountRow("tagPrefix"){ row in
+                row.title = "Prefix"
+                row.placeholder = "my/directory/"
+                row.value = backblaze.filePrefix
+                row.add(rule: RuleRequired())
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+            }
             +++ Section("OPTIONS")
             <<< SwitchRow("tagVersions"){ row in
                 row.title = "Versions"
@@ -109,6 +117,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 backblaze.bucket = valuesDictionary["tagBucket"] as! String
                 backblaze.versions = valuesDictionary["tagVersions"] as! Bool
                 backblaze.harddelete = valuesDictionary["tagHardDelete"] as! Bool
+                backblaze.filePrefix = valuesDictionary["tagPrefix"] as! String
             } // else if let s3
             os_log("Unwinding to provider list.", log: OSLog.default, type: .debug)
             

@@ -24,7 +24,7 @@ class ProviderTableViewCell: UITableViewCell {
     }
     
     @IBAction func pressed(_ sender: Any) {
-        Client.shared.cancel()
+        APIClient.shared.cancel()
     }
     
     override func setSelected(_ selected: Bool, animated: Bool) {

@@ -67,10 +67,9 @@ class Utility {
                 }
             }
             
-        }
+        } // TODO: else if (asset.mediaType == .livephoto) {}
+        
     }
-    
-    
    
     public static func objectIsType<T>(object: Any?, someObjectOfType: T.Type) -> Promise<T> {
         return Promise { fulfill, reject in
