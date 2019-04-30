@@ -43,6 +43,26 @@ class APIClient: NSObject {
         return task
     }
     
+    public func uploadTask(with urlRequest: URLRequest,from data: Data,completionHandler: @escaping NetworkCompletionHandler) -> URLSessionTask {
+        let task = session.uploadTask(with: urlRequest, from: data, completionHandler: completionHandler)
+        
+        activeTasks.insert(task)
+        
+        return task
+    }
+    
+    public func uploadTask(with urlRequest: URLRequest,fromFile url: URL,completionHandler: @escaping NetworkCompletionHandler) -> URLSessionTask {
+        let task = session.uploadTask(with: urlRequest, fromFile: url, completionHandler: completionHandler)
+        
+        activeTasks.insert(task)
+        
+        return task
+    }
+    
+    public func isActive() -> Bool {
+        return !activeTasks.isEmpty
+    }
+    
     public func cancel() {
         for task in activeTasks {
             task.cancel()
@@ -79,6 +99,8 @@ extension APIClient: URLSessionDataDelegate {
         if let error = error {
             // client-side errors only ("unable to resolve the hostname or connect to the host")
             print("APIClient: task \(task.taskIdentifier) -> \(error.localizedDescription)")
+            
+            AutoUpload.shared.clientError(task)
         }
         
         // downcast for access to statusCode

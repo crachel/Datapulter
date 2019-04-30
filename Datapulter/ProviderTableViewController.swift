@@ -240,7 +240,11 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
 extension ProviderTableViewController: PHPhotoLibraryChangeObserver {
 
     func photoLibraryDidChange(_ changeInstance: PHChange) {
-  
+        
+        if (APIClient.shared.isActive()) {
+            return
+        }
+        
         DispatchQueue.main.sync {
             let fetchResultChangeDetails = changeInstance.changeDetails(for: AutoUpload.shared.assets)
             

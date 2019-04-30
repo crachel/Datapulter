@@ -35,11 +35,12 @@ class Utility {
             imageRequestOptions.isSynchronous = false
             imageRequestOptions.isNetworkAccessAllowed = false
             
+            /*
             imageRequestOptions.progressHandler = {  (progress, error, stop, info) in
                 print("progress: \(progress)")
-            }
-            
-            PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
+            }*/
+            PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, _, _, info) in
+            //PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
                 if let data = data,
                     let url = info?["PHImageFileURLKey"] as? URL {
                     completion(data, url)
@@ -51,7 +52,7 @@ class Utility {
             let videoRequestOptions = PHVideoRequestOptions()
             
             videoRequestOptions.version = .current
-            PHImageManager.default().requestAVAsset(forVideo: asset, options: videoRequestOptions) { (data, _, info) in
+            PHImageManager.default().requestAVAsset(forVideo: asset, options: videoRequestOptions) { (data, _, _) in
                 if let data = data,
                     let asset = data as? AVURLAsset {
                     
@@ -68,6 +69,31 @@ class Utility {
             }
             
         } // TODO: else if (asset.mediaType == .livephoto) {}
+        
+    }
+    
+    public static func getURL(ofPhotoWith mPhasset: PHAsset, completionHandler : @escaping ((_ responseURL : URL?) -> Void)) {
+        
+        if mPhasset.mediaType == .image {
+            let options: PHContentEditingInputRequestOptions = PHContentEditingInputRequestOptions()
+            options.canHandleAdjustmentData = {(adjustmeta: PHAdjustmentData) -> Bool in
+                return true
+            }
+            mPhasset.requestContentEditingInput(with: options, completionHandler: { (contentEditingInput, info) in
+                completionHandler(contentEditingInput!.fullSizeImageURL)
+            })
+        } else if mPhasset.mediaType == .video {
+            let options: PHVideoRequestOptions = PHVideoRequestOptions()
+            options.version = .original
+            PHImageManager.default().requestAVAsset(forVideo: mPhasset, options: options, resultHandler: { (asset, audioMix, info) in
+                if let urlAsset = asset as? AVURLAsset {
+                    let localVideoUrl = urlAsset.url
+                    completionHandler(localVideoUrl)
+                } else {
+                    completionHandler(nil)
+                }
+            })
+        }
         
     }
    

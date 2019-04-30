@@ -35,6 +35,7 @@ class AutoUpload {
     //MARK: Public Methods
     
     public func start() {
+        //if(PHPhotoLibrary.authorizationStatus() == .authorized && UIDevice.current.batteryState == .charging) {
         if(PHPhotoLibrary.authorizationStatus() == .authorized) {
             assets = Utility.getCameraRollAssets()
             
@@ -70,6 +71,17 @@ class AutoUpload {
         } else {
             // No photo permission
             print("AutoUpload.start -> no photo permission")
+        }
+    }
+    
+    public func clientError(_ task: URLSessionTask) {
+        if let provider = tasks.removeValue(forKey: task) {
+            if let asset = provider.uploadingAssets.removeValue(forKey: task) {
+                provider.assetsToUpload.insert(asset)
+                
+                //start another task, if asset exists
+                initiate(1, provider)
+            }
         }
     }
     

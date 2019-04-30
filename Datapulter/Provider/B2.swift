@@ -17,8 +17,8 @@ class B2: Provider {
     
     struct Defaults {
         static let maxParts     = 10_000
-        static let uploadCutoff = 200 * 1_000 * 1_000
-        static let chunkSize    = 100 * 1_000 * 1_000
+        static let uploadCutoff = 50 * 1_000 * 1_000
+        static let chunkSize    = 50 * 1_000 * 1_000
         
         static let poolMinimum  = 3
     }
@@ -366,6 +366,7 @@ class B2: Provider {
     
         if (pool.count > Defaults.poolMinimum) {
             if let data = pool.dequeue() {
+                print("B2.getUploadFileURLRequest -> removed data from pool")
                 return self.buildUploadFileRequest(from: asset, with: data)
             }
         }
@@ -456,8 +457,8 @@ class B2: Provider {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                 }
                 
-                if let error = error {
-                    reject(error)
+                if (error != nil) {
+                    reject(providerError.connectionError)
                 }
                 
                 if let response = response as? HTTPURLResponse,
@@ -472,10 +473,10 @@ class B2: Provider {
                             let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
                             reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unmatchedError)
                         } catch {
-                            reject (error) // handled status code but unknown problem decoding JSON
+                            reject (providerError.invalidJson) // handled status code but unknown problem decoding JSON
                         }
                     } else {
-                        reject (providerError.unhandledStatusCode) // unhandled status code
+                        reject (providerError.unhandledStatusCode)
                     }
                 } else {
                     reject (providerError.invalidResponse)
@@ -488,10 +489,10 @@ class B2: Provider {
             
             if (urlRequest.httpMethod == HTTPMethod.post) {
                 if let data = uploadData {
-                    URLSession.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler).resume()
+                    APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler).resume()
                 }
                 if let url = uploadURL {
-                    URLSession.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler).resume()
+                    APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler).resume()
                 }
             } else if (urlRequest.httpMethod == HTTPMethod.get) {
                 URLSession.shared.dataTask(with: urlRequest, completionHandler: completionHandler).resume()
@@ -525,12 +526,12 @@ class B2: Provider {
         case B2Error.bad_auth_token, B2Error.expired_auth_token:
             return self.authorizeAccount().then { data, _ in
                 Utility.objectIsType(object: data, someObjectOfType: Data.self)
-                }.then { data in
-                    try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-                }.then { parsedResult in
-                    self.authorizeAccountResponse = parsedResult
-                }.then {
-                    self.fetch(from: endpoint, with: uploadData) // retry call
+            }.then { data in
+                try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+            }.then { parsedResult in
+                self.authorizeAccountResponse = parsedResult
+            }.then {
+                self.fetch(from: endpoint, with: uploadData) // retry call
             }
         default:
             return Promise(error)
@@ -645,32 +646,35 @@ class B2: Provider {
         struct GetUploadPartURLRequest: Codable {
             var fileId: String
         }
-        return Promise { fulfill, _ in
-            Utility.getData(from: asset) { _, url in
+        return Promise { fulfill, reject in
+            Utility.getURL(ofPhotoWith: asset) { url in
+            //Utility.getData(from: asset) { _, url in
                 let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
                 let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
                 
                 var partSha1Array = [String]()
                 var part = 0
                 
-                if let inputStream = InputStream.init(url: url),
+                if let url = url,
+                    let inputStream = InputStream.init(url: url),
                     FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil) {
                     
                     inputStream.open()
                     
-                    var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
+                    //var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
+                    var buffer = [UInt8](repeating: 0, count: Defaults.chunkSize)
                     var bytes = 0
                     
                     func readBytes() {
                         
-                        bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                        //bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
+                        bytes = inputStream.read(&buffer, maxLength: Defaults.chunkSize)
                         
                         if (bytes > 0 && part < Defaults.maxParts) {
                             part += 1
                             
                             let data = Data(bytes: buffer, count: bytes)
                             partSha1Array.append(data.sha1)
-                            //print(partSha1Array.last)
                             
                             do {
                                 let file = try FileHandle(forWritingTo: payloadFileURL)
@@ -678,10 +682,10 @@ class B2: Provider {
                                 file.truncateFile(atOffset: UInt64(bytes))
                                 file.closeFile()
                             } catch {
-                                print (error)
+                                reject (error)
                             }
                             
-                            buildUploadPartRequest(data).then { _, _ in
+                            buildUploadPartRequest().then { _, _ in
                                 readBytes()
                             }
                             
@@ -702,7 +706,7 @@ class B2: Provider {
                     }
                     readBytes()
                     
-                    func buildUploadPartRequest(_ data: Data) -> Promise<(Data?, URLResponse?)> {
+                    func buildUploadPartRequest() -> Promise<(Data?, URLResponse?)> {
                         var uploadData: Data
                         
                         do {
@@ -711,16 +715,37 @@ class B2: Provider {
                             return Promise(error)
                         }
                         
-                        
-                        
+                        //add recover here
                         return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).then { data, response in
                             Utility.objectIsType(object: data, someObjectOfType: Data.self)
-                            }.then { data in
-                                try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                            }.then { parsedResponse in
-                                self.uploadPart(parsedResponse, data, payloadFileURL, part, partSha1Array.last!)
-                            }.catch { error in
-                                print("\(error)")
+                        }.then { data in
+                            try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+                        }.then { parsedResponse in
+                            uploadPart(parsedResponse, bytes, payloadFileURL, part, partSha1Array.last!)
+                        }/*.catch { error in
+                            print("\(error)")
+                        }*/
+                    }
+                    
+                    func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
+                        var urlRequest = URLRequest(url: result.uploadUrl)
+                        
+                        urlRequest.httpMethod = HTTPMethod.post
+                        
+                        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+                        urlRequest.setValue(String(partNumber), forHTTPHeaderField: HTTPHeaders.partNumber)
+                        urlRequest.setValue(String(dataCount), forHTTPHeaderField: HTTPHeaders.contentLength)
+                        urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
+                        
+                        return self.fetch(from: urlRequest, from: url).recover { error -> Promise<(Data?, URLResponse?)> in
+                            switch error {
+                            case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.service_unavailable:
+                                return buildUploadPartRequest()
+                            case providerError.connectionError:
+                                return self.fetch(from: urlRequest, from: url)
+                            default:
+                                return Promise(error)
+                            }
                         }
                     }
                 }
@@ -729,19 +754,7 @@ class B2: Provider {
         
     }
     
-    private func uploadPart(_ result: GetUploadPartURLResponse,_ data: Data,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
-        var urlRequest = URLRequest(url: result.uploadUrl)
-        
-        urlRequest.httpMethod = HTTPMethod.post
-        
-        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
-        urlRequest.setValue(String(partNumber), forHTTPHeaderField: HTTPHeaders.partNumber)
-        urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
-        urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
-
-        //return fetch(from: urlRequest, with: data)
-        return fetch(from: urlRequest, from: url)
-    }
+    
     
     //MARK: NSCoding
     
