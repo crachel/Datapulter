@@ -74,6 +74,8 @@ class B2: Provider {
         }
     }
     
+    
+    
     //MARK: Types
     
     enum B2Error: String, Error {
@@ -313,7 +315,7 @@ class B2: Provider {
         static let apiUrl              = "apiUrl"
         static let recommendedPartSize = "recommendedPartSize"
     }
-    
+
     //MARK: Initialization
     
     init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String, remoteFileList: [String: Data], assetsToUpload: Set<PHAsset>, filePrefix: String) {
@@ -426,19 +428,19 @@ class B2: Provider {
             
             switch jsonError.code {
             case B2Error.bad_request.rawValue:
-                print("B2.decodeURLResponse -> bad_request")
+                print("B2.decodeURLResponse -> ERROR: bad_request")
             case B2Error.unauthorized.rawValue:
-                print("B2.decodeURLResponse -> unauthorized")
+                print("B2.decodeURLResponse -> ERROR: unauthorized")
             case B2Error.bad_auth_token.rawValue, B2Error.expired_auth_token.rawValue:
-                print("B2.decodeURLResponse -> bad_auth_token expired_auth_token")
+                print("B2.decodeURLResponse -> ERROR: bad_auth_token expired_auth_token")
             case B2Error.cap_exceeded.rawValue:
-                print("B2.decodeURLResponse -> cap_exceeded")
+                print("B2.decodeURLResponse -> ERROR: cap_exceeded")
             case B2Error.method_not_allowed.rawValue:
-                print("B2.decodeURLResponse -> method_not_allowed")
+                print("B2.decodeURLResponse -> ERROR: method_not_allowed")
             case B2Error.request_timeout.rawValue:
-                print("B2.decodeURLResponse -> request_timeout")
+                print("B2.decodeURLResponse -> ERROR: request_timeout")
             case B2Error.service_unavailable.rawValue:
-                print("B2.decodeURLResponse -> service_unavailable")
+                print("B2.decodeURLResponse -> ERROR: service_unavailable")
             default:
                 print("B2.decodeURLResponse -> unhandled")
             }
@@ -448,7 +450,7 @@ class B2: Provider {
     }
     
     //MARK: Private methods
-    
+   
     private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
@@ -490,8 +492,7 @@ class B2: Provider {
             if (urlRequest.httpMethod == HTTPMethod.post) {
                 if let data = uploadData {
                     APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler).resume()
-                }
-                if let url = uploadURL {
+                } else if let url = uploadURL {
                     APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler).resume()
                 }
             } else if (urlRequest.httpMethod == HTTPMethod.get) {
@@ -519,11 +520,9 @@ class B2: Provider {
     }
     
     private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
-        
-        print("bad or expired auth token. attempting refresh then retrying API call.")
-        
         switch error {
         case B2Error.bad_auth_token, B2Error.expired_auth_token:
+            print("B2.recover -> bad or expired auth token. attempting refresh then retrying API call.")
             return self.authorizeAccount().then { data, _ in
                 Utility.objectIsType(object: data, someObjectOfType: Data.self)
             }.then { data in
@@ -533,6 +532,8 @@ class B2: Provider {
             }.then {
                 self.fetch(from: endpoint, with: uploadData) // retry call
             }
+        case providerError.connectionError:
+            return self.fetch(from: endpoint, with: uploadData) // retry call
         default:
             return Promise(error)
         }
@@ -648,7 +649,6 @@ class B2: Provider {
         }
         return Promise { fulfill, reject in
             Utility.getURL(ofPhotoWith: asset) { url in
-            //Utility.getData(from: asset) { _, url in
                 let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
                 let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
                 
@@ -716,7 +716,9 @@ class B2: Provider {
                         }
                         
                         //add recover here
-                        return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).then { data, response in
+                        return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
+                            self.recover(from: error, retry: Endpoints.getUploadPartUrl, with: uploadData)
+                        }.then { data, response in
                             Utility.objectIsType(object: data, someObjectOfType: Data.self)
                         }.then { data in
                             try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)

@@ -90,9 +90,7 @@ extension APIClient: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         print("APIClient: task \(task.taskIdentifier) -> didCompleteWithError")
         
-        if (activeTasks.remove(task) != nil) {
-            print("APIClient: task \(task.taskIdentifier) -> removed from activeTasks.")
-        } else {
+        if (activeTasks.remove(task) == nil) {
             print("APIClient: task \(task.taskIdentifier) -> error removing from activeTasks.")
         }
         

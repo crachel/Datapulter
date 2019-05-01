@@ -84,7 +84,7 @@ class Utility {
             })
         } else if mPhasset.mediaType == .video {
             let options: PHVideoRequestOptions = PHVideoRequestOptions()
-            options.version = .original
+            options.version = .current
             PHImageManager.default().requestAVAsset(forVideo: mPhasset, options: options, resultHandler: { (asset, audioMix, info) in
                 if let urlAsset = asset as? AVURLAsset {
                     let localVideoUrl = urlAsset.url

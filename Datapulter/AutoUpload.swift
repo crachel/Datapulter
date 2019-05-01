@@ -77,6 +77,7 @@ class AutoUpload {
     public func clientError(_ task: URLSessionTask) {
         if let provider = tasks.removeValue(forKey: task) {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
+                print("AutoUpload.clientError -> initiating new request")
                 provider.assetsToUpload.insert(asset)
                 
                 //start another task, if asset exists
@@ -165,7 +166,7 @@ class AutoUpload {
                         self.initiate(N - 1, provider)
                     }
                 }.catch { error in
-                    print("AutoUpload.initiate -> getUploadFileURLRequest: \(error)")
+                    print("AutoUpload.initiate -> ERROR: \(error.localizedDescription)")
                     switch error {
                     case Provider.providerError.largeFile:
                         print("AutoUpload.initiate -> initiating new request")
