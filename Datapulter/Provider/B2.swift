@@ -74,8 +74,6 @@ class B2: Provider {
         }
     }
     
-    
-    
     //MARK: Types
     
     enum B2Error: String, Error {
@@ -393,14 +391,17 @@ class B2: Provider {
         }
     }
 
-    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask) {
-    
-        if (response.statusCode == 200) {
-            if let originalRequest = task.originalRequest,
-                let allHeaders = originalRequest.allHTTPHeaderFields,
-                let originalUrl = originalRequest.url {
-                
-                if (originalUrl.path.contains(Endpoints.uploadFile.components.path)) { // alternative could be [URLRequest:Endpoint]
+    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask,_ asset: PHAsset) {
+        if let originalRequest = task.originalRequest,
+            let allHeaders = originalRequest.allHTTPHeaderFields,
+            let originalUrl = originalRequest.url {
+            
+            if (originalUrl.path.contains(Endpoints.uploadFile.components.path)) { // alternative could be [URLRequest:Endpoint]
+                if (response.statusCode == 200) {
+                    
+                    totalAssetsUploaded += 1
+                    updateRing()
+                    
                     var uploadFileResponse: UploadFileResponse
                     
                     do {
@@ -409,15 +410,47 @@ class B2: Provider {
                         return
                     }
                     
+                    remoteFileList[asset.localIdentifier] = data
+                    
                     if let token = allHeaders["Authorization"] {
-                        let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId, uploadUrl: originalUrl, authorizationToken: token)
+                        let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId,
+                                                                        uploadUrl: originalUrl,
+                                                                        authorizationToken: token)
                         
                         pool.enqueue(getUploadURLResponse)
-                        print("B2.decodeURLResponse -> appended Response to pool. Count: \(pool.count)")
+                        print("B2.decodeURLResponse -> appended GetUploadURLResponse to pool. Count: \(pool.count)")
+                    }
+                    
+                    AutoUpload.shared.initiate(1, self)
+                } else {
+                    /*
+                     "File not uploaded. If possible the server will return a JSON error structure."
+                     */
+                    
+                    var jsonError: JSONError
+                    
+                    do {
+                        jsonError = try JSONDecoder().decode(JSONError.self, from: data)
+                    } catch {
+                        return
+                    }
+                    
+                    switch jsonError.code {
+                    case B2Error.bad_auth_token.rawValue, B2Error.expired_auth_token.rawValue, B2Error.service_unavailable.rawValue:
+                        print("B2.decodeURLResponse -> ERROR: \(jsonError.code)")
+                        /*
+                         Call b2_get_upload_url again to get a new auth token.
+                         */
+                        assetsToUpload.insert(asset)
+                        
+                        AutoUpload.shared.initiate(1, self)
+                    default:
+                        print("B2.decodeURLResponse -> ERROR: \(jsonError.code)")
                     }
                 }
             }
-        } else {
+        }
+        /*} else {
             var jsonError: JSONError
             
             do {
@@ -444,20 +477,24 @@ class B2: Provider {
             default:
                 print("B2.decodeURLResponse -> unhandled")
             }
-        }
+        }*/
         
         
     }
     
     //MARK: Private methods
-   
+    
     private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
+            
+            var task = URLSessionTask()
             
             let completionHandler: NetworkCompletionHandler = { data, response, error in
                 DispatchQueue.main.async {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                 }
+                
+                APIClient.shared.remove(task)
                 
                 if (error != nil) {
                     reject(providerError.connectionError)
@@ -491,9 +528,11 @@ class B2: Provider {
             
             if (urlRequest.httpMethod == HTTPMethod.post) {
                 if let data = uploadData {
-                    APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler).resume()
+                    task = APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler)
+                    task.resume()
                 } else if let url = uploadURL {
-                    APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler).resume()
+                    task = APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler)
+                    task.resume()
                 }
             } else if (urlRequest.httpMethod == HTTPMethod.get) {
                 URLSession.shared.dataTask(with: urlRequest, completionHandler: completionHandler).resume()
@@ -522,7 +561,7 @@ class B2: Provider {
     private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
         switch error {
         case B2Error.bad_auth_token, B2Error.expired_auth_token:
-            print("B2.recover -> bad or expired auth token. attempting refresh then retrying API call.")
+            print("B2.recover -> \(error). attempting refresh then retrying API call.")
             return self.authorizeAccount().then { data, _ in
                 Utility.objectIsType(object: data, someObjectOfType: Data.self)
             }.then { data in
@@ -552,7 +591,7 @@ class B2: Provider {
             if let fileName = asset.percentEncodedFilename {
                 urlRequest.setValue(self.filePrefix + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
             } else {
-                reject (providerError.foundNil)
+                reject(providerError.foundNil)
             }
             
             if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
@@ -613,26 +652,9 @@ class B2: Provider {
         }.then { data, _ in
             self.remoteFileList[asset.localIdentifier] = data
             self.totalAssetsUploaded += 1
+            self.updateRing()
+            AutoUpload.shared.save()
             
-            DispatchQueue.main.async {
-                self.cell?.ringView.value = ((self.cell?.ringView.value)! + 1)
-                
-                
-                if ( Int((self.cell?.ringView.currentValue)!) == (self.totalAssetsToUpload) ){
-                    DispatchQueue.main.async {
-                        self.cell?.hudLabel.text = "Done uploading!"
-                    }
-                }
-                
-                if(self.totalAssetsToUpload == self.totalAssetsUploaded) {
-                    self.cell?.ringView.innerRingColor = .green
-                    self.cell?.ringView.maxValue = 100
-                    //provider.cell?.ringView.valueIndicator = "%"
-                    self.cell?.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "%", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
-                    
-                    self.cell?.ringView.value = 100
-                }
-            }
             
             if (self.largeFilePool.isEmpty) {
                 self.processingLargeFile = false
@@ -640,7 +662,6 @@ class B2: Provider {
                 self.processLargeFile(self.largeFilePool.popFirst()!)
             }
         }
-        //.then { check queue for another one
     }
     
     private func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])>  {
@@ -755,8 +776,6 @@ class B2: Provider {
         }
         
     }
-    
-    
     
     //MARK: NSCoding
     

@@ -86,7 +86,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         cell.ringView.innerRingWidth = 12
         
         cell.ringView.style = .ontop
-        cell.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
+        //cell.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
         
         provider.cell = cell
 
@@ -111,7 +111,8 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             // Delete the row from the data source
             AutoUpload.shared.providers.remove(at: indexPath.row)
             
-            saveProviders()
+            //saveProviders()
+            AutoUpload.shared.save()
             
             tableView.deleteRows(at: [indexPath], with: .fade)
             
@@ -177,6 +178,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     
     //MARK: Private Methods
     
+    /*
     private func saveProviders() {
         let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
         
@@ -187,7 +189,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         } catch {
             os_log("Failed to save providers...", log: OSLog.default, type: .error)
         }
-    }
+    }*/
     
     private func loadProviders() -> [Provider]?  {
         let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
@@ -228,7 +230,8 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         }
         
         // Save the providers.
-        saveProviders()
+        //saveProviders()
+        AutoUpload.shared.save()
         
         print("unwindToProviderList: starting AutoUpload")
         AutoUpload.shared.start()
@@ -240,10 +243,10 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
 extension ProviderTableViewController: PHPhotoLibraryChangeObserver {
 
     func photoLibraryDidChange(_ changeInstance: PHChange) {
-        
+        /*
         if (APIClient.shared.isActive()) {
             return
-        }
+        }*/
         
         DispatchQueue.main.sync {
             let fetchResultChangeDetails = changeInstance.changeDetails(for: AutoUpload.shared.assets)

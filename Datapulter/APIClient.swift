@@ -67,6 +67,12 @@ class APIClient: NSObject {
         for task in activeTasks {
             task.cancel()
         }
+        
+        activeTasks.removeAll()
+    }
+    
+    public func remove(_ task: URLSessionTask) {
+        activeTasks.remove(task)
     }
 }
 

@@ -63,23 +63,16 @@ class Provider: NSObject, NSCoding  {
         case unhandledStatusCode
         case foundNil
         case largeFile
-    }
-    
-    enum APIError: Error {
-        case connectionError
-        case requestFailed
-        case jsonConversionFailure
-        case invalidData
-        case responseUnsuccessful
-        case jsonParsingFailure
         var localizedDescription: String {
             switch self {
+            case .optionalBinding: return "Optional binding"
             case .connectionError: return "Client side error"
-            case .requestFailed: return "Request Failed"
-            case .invalidData: return "Invalid Data"
-            case .responseUnsuccessful: return "Response Unsuccessful"
-            case .jsonParsingFailure: return "JSON Parsing Failure"
-            case .jsonConversionFailure: return "JSON Conversion Failure"
+            case .invalidResponse: return "Invalid response"
+            case .invalidJson: return "Could not decode JSON"
+            case .preparationFailed: return "Preparation failed"
+            case .unhandledStatusCode: return "Status code not handled"
+            case .foundNil: return "Found nil"
+            case .largeFile: return "Large file encountered"
             }
         }
     }
@@ -108,20 +101,28 @@ class Provider: NSObject, NSCoding  {
     
     //MARK: Public methods
     
-    public func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
-        fatalError("Must Override")
-    }
-    
-    public func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask) {
-        fatalError("Must Override")
-    }
-    
     public func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
         fatalError("Must Override")
     }
     
-    public func updateUI() {
+    public func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask,_ asset: PHAsset) {
+        fatalError("Must Override")
+    }
+    
+    public func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
+        fatalError("Must Override")
+    }
+    
+    public func updateRing() {
+        let percentDone = CGFloat((totalAssetsUploaded * 100) / totalAssetsToUpload)
         
+        DispatchQueue.main.async {
+            self.cell?.ringView.startProgress(to: percentDone, duration: 0) {
+                if (self.totalAssetsUploaded == self.totalAssetsToUpload) {
+                    self.cell?.ringView.innerRingColor = .green
+                }
+            }
+        }
     }
     
     //MARK: NSCoding

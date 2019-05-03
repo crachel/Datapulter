@@ -30,13 +30,15 @@ class AutoUpload {
         PHPhotoLibrary.requestAuthorization { (status) in
             print("Status: \(status)")
         }
+        
+        print("batteryState \(UIDevice.current.batteryState.rawValue)")
     }
     
     //MARK: Public Methods
     
     public func start() {
         //if(PHPhotoLibrary.authorizationStatus() == .authorized && UIDevice.current.batteryState == .charging) {
-        if(PHPhotoLibrary.authorizationStatus() == .authorized) {
+        if(PHPhotoLibrary.authorizationStatus() == .authorized && !APIClient.shared.isActive()) {
             assets = Utility.getCameraRollAssets()
             
             for provider in providers {
@@ -52,18 +54,14 @@ class AutoUpload {
                 })
                 
                 DispatchQueue.main.async {
-                    provider.cell?.ringView.value = 0
-                    provider.cell?.ringView.maxValue = CGFloat(provider.totalAssetsToUpload)
                     provider.cell?.hudLabel.text = "\(provider.totalAssetsToUpload) objects found."
                 }
                 
                 if (provider.totalAssetsToUpload > 0) {
-                //if (provider.totalAssetsToUpload > 0 && !Client.shared.isActive()) {
                     print("found \(provider.totalAssetsToUpload)")
                     
                     print("AutoUpload.initiate -> initiating \(initialRequests) requests")
                     initiate(initialRequests, provider)
-                  
                 } else {
                     print("found none")
                 }
@@ -91,64 +89,28 @@ class AutoUpload {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
                 
                 // perform any provider specific response handling
-                provider.decodeURLResponse(response, data, task)
+                provider.decodeURLResponse(response, data, task, asset)
                 
                 if (response.statusCode == 200) {
-                    
-                    // update
-                    provider.totalAssetsUploaded += 1
-                    provider.remoteFileList[asset.localIdentifier] = data
-                    
-                    // save
-                    let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
-                    
-                    do {
-                        let data = try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: false)
-                        try data.write(to: fullPath)
-                    } catch {
-                        os_log("Failed to save providers...", log: OSLog.default, type: .error)
-                    }
-                    
-                    // refresh ui
-                    DispatchQueue.main.async {
-                        provider.cell?.ringView.value = ((provider.cell?.ringView.value)! + 1)
-                        
-                        
-                        if ( Int((provider.cell?.ringView.currentValue)!) == (provider.totalAssetsToUpload) ){
-                            DispatchQueue.main.async {
-                                provider.cell?.hudLabel.text = "Done uploading!"
-                            }
-                        }
-                        
-                        if(provider.totalAssetsToUpload == provider.totalAssetsUploaded) {
-                            provider.cell?.ringView.innerRingColor = .green
-                            provider.cell?.ringView.maxValue = 100
-                            //provider.cell?.ringView.valueIndicator = "%"
-                            provider.cell?.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "%", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
-                            
-                            provider.cell?.ringView.value = 100
-                        }
-                    }
-                    
-                    //start another task, if asset exists
-                    initiate(1, provider)
-                    
-                } else if (400...401).contains(response.statusCode)  {
-                    print("AutoUpload.handler -> response statuscode 400 or 401")
-                } else if (response.statusCode == 503) {
-                    print("AutoUpload.handler -> retry 503 task")
-                    
-                    // re insert failed asset and initiate another request
-                    provider.assetsToUpload.insert(asset)
-                    initiate(1, provider)
-                } // else if response 500 etc
-                
+                    save()
+                }
             } else {
                 // no asset associated with task.
             }
         } else {
             // no provider associated with task. likely user quit app while task was running.
             // need to save to disk some how. core data or realm or something
+        }
+    }
+    
+    public func save() {
+        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
+        
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: providers, requiringSecureCoding: false)
+            try data.write(to: fullPath)
+        } catch {
+            os_log("Failed to save providers...", log: OSLog.default, type: .error)
         }
     }
     
