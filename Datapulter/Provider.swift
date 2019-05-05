@@ -17,24 +17,20 @@ class Provider: NSObject, NSCoding  {
     
     var name: String 
     var backend: Site
-    var innerRing: UIColor
-    var cell: ProviderTableViewCell?
-    var authorized: Bool?
-    
-    var totalAssetsToUpload: Int = 0
-    var totalAssetsUploaded: Int = 0
-    
     var remoteFileList: [String: Data]
+    
+    var cell: ProviderTableViewCell?
+
     var assetsToUpload = Set<PHAsset>()
     var largeFilePool = Set<PHAsset>()
     var uploadingAssets = [URLSessionTask: PHAsset]()
     var processingLargeFile: Bool = false
     
+    var totalAssetsToUpload: Int = 0
+    var totalAssetsUploaded: Int = 0
     
     enum Site {
-        case Amazon
         case Backblaze
-        case DigitalOcean
         case Managed
     }
     
@@ -77,26 +73,11 @@ class Provider: NSObject, NSCoding  {
         }
     }
     
-    //MARK: Initialization
-    
-    init(name: String, backend: Site) {
+    init(name: String, backend: Site, remoteFileList: [String: Data]) {
         // Initialize stored properties.
         self.name = name
         self.backend = backend
-        self.innerRing = .blue
-        self.remoteFileList = [:]
-        self.assetsToUpload = []
-    }
-    
-    init(name: String, backend: Site, remoteFileList: [String: Data], assetsToUpload: Set<PHAsset>, largeFiles: Set<PHAsset>) {
-        // Initialize stored properties.
-        self.name = name
-        self.backend = backend
-        self.innerRing = .blue
         self.remoteFileList = remoteFileList
-        self.assetsToUpload = []
-        
-        
     }
     
     //MARK: Public methods
@@ -120,8 +101,18 @@ class Provider: NSObject, NSCoding  {
             self.cell?.ringView.startProgress(to: percentDone, duration: 0) {
                 if (self.totalAssetsUploaded == self.totalAssetsToUpload) {
                     self.cell?.ringView.innerRingColor = .green
+                    
+                    self.hud("Done uploading!")
+                } else {
+                    self.hud("\(self.totalAssetsUploaded) of \(self.totalAssetsToUpload)")
                 }
             }
+        }
+    }
+    
+    public func hud(_ display: String) {
+        DispatchQueue.main.async {
+            self.cell?.hudLabel.text = display
         }
     }
     
@@ -130,8 +121,7 @@ class Provider: NSObject, NSCoding  {
     func encode(with aCoder: NSCoder) {
         aCoder.encode(name, forKey: PropertyKey.name)
         aCoder.encode(backend, forKey: PropertyKey.backend)
-        aCoder.encode(assetsToUpload, forKey: PropertyKey.assetsToUpload)
-        //aCoder.encode(largeFiles, forKey: PropertyKey.largeFiles)
+        aCoder.encode(remoteFileList, forKey: PropertyKey.remoteFileList)
     }
     
     required convenience init?(coder aDecoder: NSCoder) {
@@ -143,11 +133,9 @@ class Provider: NSObject, NSCoding  {
         
         let backend = aDecoder.decodeObject(forKey: PropertyKey.backend) as! Site
         let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as! [String: Data]
-        let assetsToUpload = aDecoder.decodeObject(forKey: PropertyKey.assetsToUpload) as! Set<PHAsset>
-        let largeFiles = aDecoder.decodeObject(forKey: PropertyKey.largeFiles) as! Set<PHAsset>
         
         // Must call designated initializer.
-        self.init(name: name, backend: backend, remoteFileList: remoteFileList, assetsToUpload: assetsToUpload, largeFiles: largeFiles)
+        self.init(name: name, backend: backend, remoteFileList: remoteFileList)
     }
     
 }

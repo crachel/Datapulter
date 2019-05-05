@@ -80,13 +80,11 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         cell.providerLabel.text = provider.name
         cell.hudLabel.text = "App initialized."
         
-        cell.ringView.innerRingColor = provider.innerRing
+        cell.ringView.innerRingColor = .gray
         cell.ringView.outerRingColor = .black
         cell.ringView.outerRingWidth = 16
         cell.ringView.innerRingWidth = 12
-        
         cell.ringView.style = .ontop
-        //cell.ringView.valueFormatter = UICircularProgressRingFormatter(valueIndicator: "", rightToLeft: false, showFloatingPoint: false, decimalPlaces: 0)
         
         provider.cell = cell
 
@@ -112,7 +110,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             AutoUpload.shared.providers.remove(at: indexPath.row)
             
             //saveProviders()
-            AutoUpload.shared.save()
+            AutoUpload.shared.saveProviders()
             
             tableView.deleteRows(at: [indexPath], with: .fade)
             
@@ -207,7 +205,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         }
         return nil
     }
-    
+
     private func getDocumentsDirectory() -> URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0]
@@ -231,7 +229,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         
         // Save the providers.
         //saveProviders()
-        AutoUpload.shared.save()
+        AutoUpload.shared.saveProviders()
         
         print("unwindToProviderList: starting AutoUpload")
         AutoUpload.shared.start()

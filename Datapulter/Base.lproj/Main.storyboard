@@ -49,7 +49,7 @@
                                         <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacingType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="eYY-uv-TnW">
                                             <rect key="frame" x="16" y="11" width="343" height="338"/>
                                             <subviews>
-                                                <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="datapulter" translatesAutoresizingMaskIntoConstraints="NO" id="vnR-rO-BeW">
+                                                <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Image-1" translatesAutoresizingMaskIntoConstraints="NO" id="vnR-rO-BeW">
                                                     <rect key="frame" x="0.0" y="0.0" width="343" height="60"/>
                                                     <constraints>
                                                         <constraint firstAttribute="height" constant="60" id="7bf-p5-ba5"/>
@@ -223,6 +223,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="datapulter" width="193" height="63"/>
+        <image name="Image-1" width="176.33332824707031" height="58.666667938232422"/>
     </resources>
 </document>

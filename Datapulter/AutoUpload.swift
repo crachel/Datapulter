@@ -9,20 +9,20 @@
 import UIKit
 import os.log
 import Photos
-import UICircularProgressRing
-import Promises
 
 class AutoUpload {
     
     //MARK: Properties
-    
-    static let shared = AutoUpload()
-    
+
     var assets = PHFetchResult<PHAsset>()
     var providers = [Provider]()
     var tasks = [URLSessionTask: Provider]()
     
     var initialRequests: Int = 6
+    
+    //MARK: Singleton
+    
+    static let shared = AutoUpload()
 
     //MARK: Initialization
     
@@ -53,14 +53,14 @@ class AutoUpload {
                     }
                 })
                 
-                DispatchQueue.main.async {
-                    provider.cell?.hudLabel.text = "\(provider.totalAssetsToUpload) objects found."
-                }
+                provider.hud("\(provider.totalAssetsToUpload) objects found.")
                 
                 if (provider.totalAssetsToUpload > 0) {
                     print("found \(provider.totalAssetsToUpload)")
                     
                     print("AutoUpload.initiate -> initiating \(initialRequests) requests")
+                    
+                    
                     initiate(initialRequests, provider)
                 } else {
                     print("found none")
@@ -92,25 +92,13 @@ class AutoUpload {
                 provider.decodeURLResponse(response, data, task, asset)
                 
                 if (response.statusCode == 200) {
-                    save()
+                    saveProviders()
                 }
             } else {
                 // no asset associated with task.
             }
         } else {
-            // no provider associated with task. likely user quit app while task was running.
-            // need to save to disk some how. core data or realm or something
-        }
-    }
-    
-    public func save() {
-        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
-        
-        do {
-            let data = try NSKeyedArchiver.archivedData(withRootObject: providers, requiringSecureCoding: false)
-            try data.write(to: fullPath)
-        } catch {
-            os_log("Failed to save providers...", log: OSLog.default, type: .error)
+            // no provider associated with task.
         }
     }
     
@@ -142,6 +130,34 @@ class AutoUpload {
             }
         }
     }
+    
+    public func saveProviders() {
+        do {
+            let data = try NSKeyedArchiver.archivedData(withRootObject: providers, requiringSecureCoding: false)
+            try data.write(to: Provider.ArchiveURL)
+        } catch {
+            os_log("Failed to save providers...", log: OSLog.default, type: .error)
+        }
+    }
+    
+    public func loadProviders() -> [Provider]? {
+        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
+        if let nsData = NSData(contentsOf: fullPath) {
+            do {
+                let data = Data(referencing:nsData)
+                
+                if let loadedProviders = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? Array<Provider> {
+                    return loadedProviders
+                }
+            } catch {
+                print("Couldn't read file.")
+                return nil
+            }
+        }
+        return nil
+    }
+    
+    //MARK: Private Methods
     
     private func getDocumentsDirectory() -> URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)

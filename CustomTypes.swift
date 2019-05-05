@@ -32,6 +32,3 @@ struct JSONError: Codable {
     var code: String
     var message: String
 }
-
-
-

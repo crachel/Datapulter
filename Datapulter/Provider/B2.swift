@@ -9,7 +9,6 @@ import UIKit
 import os.log
 import Promises
 import Photos
-import UICircularProgressRing
 
 class B2: Provider {
 
@@ -326,7 +325,8 @@ class B2: Provider {
         self.bucketId = bucketId
         self.filePrefix = filePrefix
         
-        super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList, assetsToUpload: [], largeFiles: [])
+        //super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList, assetsToUpload: [], largeFiles: [])
+        super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList)
     }
     
     //MARK: Public methods
@@ -400,6 +400,7 @@ class B2: Provider {
                 if (response.statusCode == 200) {
                     
                     totalAssetsUploaded += 1
+                    
                     updateRing()
                     
                     var uploadFileResponse: UploadFileResponse
@@ -420,6 +421,8 @@ class B2: Provider {
                         pool.enqueue(getUploadURLResponse)
                         print("B2.decodeURLResponse -> appended GetUploadURLResponse to pool. Count: \(pool.count)")
                     }
+                    
+                    AutoUpload.shared.saveProviders()
                     
                     AutoUpload.shared.initiate(1, self)
                 } else {
@@ -653,7 +656,7 @@ class B2: Provider {
             self.remoteFileList[asset.localIdentifier] = data
             self.totalAssetsUploaded += 1
             self.updateRing()
-            AutoUpload.shared.save()
+            AutoUpload.shared.saveProviders()
             
             
             if (self.largeFilePool.isEmpty) {
@@ -812,9 +815,10 @@ class B2: Provider {
         let versions = aDecoder.decodeBool(forKey: PropertyKey.versions)
         let harddelete = aDecoder.decodeBool(forKey: PropertyKey.harddelete)
         
-        
+       
         // Must call designated initializer.
         self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, assetsToUpload: [], filePrefix: filePrefix)
     }
  
 }
+
