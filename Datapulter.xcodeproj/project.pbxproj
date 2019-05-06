@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2ADA62915F98068E30C859E1 /* Pods_Datapulter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */; };
+		9B03DB44228046DC00895337 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B03DB43228046DC00895337 /* Constants.swift */; };
 		9B0F8C8F2257D5CA006C034D /* FrontDoorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0F8C8E2257D5CA006C034D /* FrontDoorViewController.swift */; };
 		9B14FD3F220B6079003D52AF /* Date.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B14FD3E220B6079003D52AF /* Date.swift */; };
 		9B2075E721DB9890006ECD02 /* Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2075E621DB9890006ECD02 /* Utility.swift */; };
@@ -16,7 +17,6 @@
 		9B4CC801225D259E00A832EA /* Container.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4CC800225D259E00A832EA /* Container.swift */; };
 		9B4CC80322620B1800A832EA /* Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4CC80222620B1800A832EA /* Queue.swift */; };
 		9B5A181221E97EAE00B66783 /* Data+Crypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5A181121E97EAE00B66783 /* Data+Crypto.swift */; };
-		9BA8885E22130765000D5E5B /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8885D22130765000D5E5B /* Endpoint.swift */; };
 		9BA88862221A1DD6000D5E5B /* PHAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA88861221A1DD6000D5E5B /* PHAsset.swift */; };
 		9BA8886422233FEB000D5E5B /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA8886322233FEB000D5E5B /* KeychainHelper.swift */; };
 		9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */; };
@@ -30,7 +30,6 @@
 		9BCE4AEC21B7DB9800DECB10 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9BCE4AEB21B7DB9800DECB10 /* Assets.xcassets */; };
 		9BCE4AFA21B7DB9900DECB10 /* DatapulterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BCE4AF921B7DB9900DECB10 /* DatapulterTests.swift */; };
 		9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD86B1921C2D8B300958EAD /* AutoUpload.swift */; };
-		9BE363C82270939A002C9C91 /* CustomTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE363C72270939A002C9C91 /* CustomTypes.swift */; };
 		9BE8C43E2274B2DC00250C81 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE8C43D2274B2DC00250C81 /* APIClient.swift */; };
 /* End PBXBuildFile section */
 
@@ -47,22 +46,22 @@
 /* Begin PBXFileReference section */
 		255F2EFF802574F1F6D5DC03 /* Pods-Datapulter.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Datapulter.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Datapulter/Pods-Datapulter.debug.xcconfig"; sourceTree = "<group>"; };
 		384C332A8CCA221D1966A88F /* Pods-Datapulter.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Datapulter.release.xcconfig"; path = "Pods/Target Support Files/Pods-Datapulter/Pods-Datapulter.release.xcconfig"; sourceTree = "<group>"; };
+		9B03DB43228046DC00895337 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		9B0F8C8E2257D5CA006C034D /* FrontDoorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrontDoorViewController.swift; sourceTree = "<group>"; };
 		9B14FD3E220B6079003D52AF /* Date.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Date.swift; sourceTree = "<group>"; };
 		9B2075E621DB9890006ECD02 /* Utility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utility.swift; sourceTree = "<group>"; };
 		9B4CC7F9225B9BE100A832EA /* Datapulter.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Datapulter.entitlements; sourceTree = "<group>"; };
 		9B4CC7FA225B9BEA00A832EA /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
-		9B4CC7FE225D0E4400A832EA /* Managed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Managed.swift; path = Datapulter/Provider/Managed.swift; sourceTree = "<group>"; };
+		9B4CC7FE225D0E4400A832EA /* Managed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Managed.swift; sourceTree = "<group>"; };
 		9B4CC800225D259E00A832EA /* Container.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Container.swift; sourceTree = "<group>"; };
-		9B4CC80222620B1800A832EA /* Queue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Queue.swift; path = ../Queue.swift; sourceTree = "<group>"; };
+		9B4CC80222620B1800A832EA /* Queue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Queue.swift; sourceTree = "<group>"; };
 		9B5A181121E97EAE00B66783 /* Data+Crypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Crypto.swift"; sourceTree = "<group>"; };
-		9BA8885D22130765000D5E5B /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
 		9BA88861221A1DD6000D5E5B /* PHAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PHAsset.swift; sourceTree = "<group>"; };
 		9BA8886322233FEB000D5E5B /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTableViewCell.swift; sourceTree = "<group>"; };
 		9BC163E421B838D3003272FF /* ProviderTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderTableViewController.swift; sourceTree = "<group>"; };
 		9BC163E621B844CD003272FF /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
-		9BC163EC21B95263003272FF /* B2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = B2.swift; path = Datapulter/Provider/B2.swift; sourceTree = "<group>"; };
+		9BC163EC21B95263003272FF /* B2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = B2.swift; sourceTree = "<group>"; };
 		9BC6C22D21BBFC6900D96D7A /* EditProviderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProviderViewController.swift; sourceTree = "<group>"; };
 		9BCE4AE121B7DB9600DECB10 /* Datapulter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Datapulter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BCE4AE421B7DB9600DECB10 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -74,7 +73,6 @@
 		9BCE4AF921B7DB9900DECB10 /* DatapulterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatapulterTests.swift; sourceTree = "<group>"; };
 		9BCE4AFB21B7DB9900DECB10 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9BD86B1921C2D8B300958EAD /* AutoUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpload.swift; sourceTree = "<group>"; };
-		9BE363C72270939A002C9C91 /* CustomTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CustomTypes.swift; path = ../CustomTypes.swift; sourceTree = "<group>"; };
 		9BE8C43D2274B2DC00250C81 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Datapulter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -117,12 +115,92 @@
 			name = Pods;
 			sourceTree = "<group>";
 		};
+		9B03DB3D2280423700895337 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				9BD86B1921C2D8B300958EAD /* AutoUpload.swift */,
+				9BC163EC21B95263003272FF /* B2.swift */,
+				9B4CC7FE225D0E4400A832EA /* Managed.swift */,
+				9BC163E621B844CD003272FF /* Provider.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9B03DB3E2280424300895337 /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
+				9BCE4AE621B7DB9600DECB10 /* AddProviderViewController.swift */,
+				9BC6C22D21BBFC6900D96D7A /* EditProviderViewController.swift */,
+				9B0F8C8E2257D5CA006C034D /* FrontDoorViewController.swift */,
+				9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */,
+				9BC163E421B838D3003272FF /* ProviderTableViewController.swift */,
+			);
+			path = Controllers;
+			sourceTree = "<group>";
+		};
+		9B03DB3F2280424C00895337 /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				9B4CC800225D259E00A832EA /* Container.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		9B03DB402280425500895337 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				9BA8886322233FEB000D5E5B /* KeychainHelper.swift */,
+				9B4CC80222620B1800A832EA /* Queue.swift */,
+				9B2075E621DB9890006ECD02 /* Utility.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		9B03DB41228046A900895337 /* Constants */ = {
+			isa = PBXGroup;
+			children = (
+				9B03DB43228046DC00895337 /* Constants.swift */,
+			);
+			path = Constants;
+			sourceTree = "<group>";
+		};
+		9B03DB42228046B300895337 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				9B5A181121E97EAE00B66783 /* Data+Crypto.swift */,
+				9B14FD3E220B6079003D52AF /* Date.swift */,
+				9BA88861221A1DD6000D5E5B /* PHAsset.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		9B03DB452280476F00895337 /* Application */ = {
+			isa = PBXGroup;
+			children = (
+				9BCE4AE421B7DB9600DECB10 /* AppDelegate.swift */,
+			);
+			path = Application;
+			sourceTree = "<group>";
+		};
+		9B03DB462280479400895337 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				9BE8C43D2274B2DC00250C81 /* APIClient.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		9B03DB472280497700895337 /* Storyboards */ = {
+			isa = PBXGroup;
+			children = (
+				9BCE4AE821B7DB9600DECB10 /* Main.storyboard */,
+			);
+			path = Storyboards;
+			sourceTree = "<group>";
+		};
 		9BCE4AD821B7DB9600DECB10 = {
 			isa = PBXGroup;
 			children = (
-				9BC163EC21B95263003272FF /* B2.swift */,
-				9B4CC7FE225D0E4400A832EA /* Managed.swift */,
-				9B4CC800225D259E00A832EA /* Container.swift */,
 				9BCE4AE321B7DB9600DECB10 /* Datapulter */,
 				9BCE4AF821B7DB9900DECB10 /* DatapulterTests */,
 				9BCE4AE221B7DB9600DECB10 /* Products */,
@@ -143,27 +221,18 @@
 		9BCE4AE321B7DB9600DECB10 /* Datapulter */ = {
 			isa = PBXGroup;
 			children = (
-				9B4CC7F9225B9BE100A832EA /* Datapulter.entitlements */,
-				9BC6C22D21BBFC6900D96D7A /* EditProviderViewController.swift */,
-				9BD86B1921C2D8B300958EAD /* AutoUpload.swift */,
-				9BE8C43D2274B2DC00250C81 /* APIClient.swift */,
-				9BE363C72270939A002C9C91 /* CustomTypes.swift */,
-				9B4CC80222620B1800A832EA /* Queue.swift */,
-				9BA8885D22130765000D5E5B /* Endpoint.swift */,
-				9B2075E621DB9890006ECD02 /* Utility.swift */,
-				9BA88861221A1DD6000D5E5B /* PHAsset.swift */,
-				9B14FD3E220B6079003D52AF /* Date.swift */,
-				9B5A181121E97EAE00B66783 /* Data+Crypto.swift */,
-				9BCE4AE421B7DB9600DECB10 /* AppDelegate.swift */,
-				9BCE4AE621B7DB9600DECB10 /* AddProviderViewController.swift */,
-				9BCE4AE821B7DB9600DECB10 /* Main.storyboard */,
-				9B0F8C8E2257D5CA006C034D /* FrontDoorViewController.swift */,
-				9BC163E221B7E1EC003272FF /* ProviderTableViewCell.swift */,
-				9BC163E421B838D3003272FF /* ProviderTableViewController.swift */,
-				9BC163E621B844CD003272FF /* Provider.swift */,
-				9BA8886322233FEB000D5E5B /* KeychainHelper.swift */,
+				9B03DB452280476F00895337 /* Application */,
 				9BCE4AEB21B7DB9800DECB10 /* Assets.xcassets */,
+				9B03DB41228046A900895337 /* Constants */,
+				9B03DB3E2280424300895337 /* Controllers */,
+				9B4CC7F9225B9BE100A832EA /* Datapulter.entitlements */,
+				9B03DB42228046B300895337 /* Extensions */,
+				9B03DB402280425500895337 /* Helpers */,
 				9BCE4AF021B7DB9800DECB10 /* Info.plist */,
+				9B03DB3D2280423700895337 /* Models */,
+				9B03DB462280479400895337 /* Networking */,
+				9B03DB3F2280424C00895337 /* Stores */,
+				9B03DB472280497700895337 /* Storyboards */,
 			);
 			path = Datapulter;
 			sourceTree = "<group>";
@@ -347,7 +416,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9BE363C82270939A002C9C91 /* CustomTypes.swift in Sources */,
 				9BA88862221A1DD6000D5E5B /* PHAsset.swift in Sources */,
 				9B4CC80322620B1800A832EA /* Queue.swift in Sources */,
 				9B2075E721DB9890006ECD02 /* Utility.swift in Sources */,
@@ -356,8 +424,8 @@
 				9BC163ED21B95263003272FF /* B2.swift in Sources */,
 				9B4CC7FF225D0E4400A832EA /* Managed.swift in Sources */,
 				9BE8C43E2274B2DC00250C81 /* APIClient.swift in Sources */,
-				9BA8885E22130765000D5E5B /* Endpoint.swift in Sources */,
 				9BCE4AE721B7DB9600DECB10 /* AddProviderViewController.swift in Sources */,
+				9B03DB44228046DC00895337 /* Constants.swift in Sources */,
 				9BC163E521B838D3003272FF /* ProviderTableViewController.swift in Sources */,
 				9BC163E721B844CD003272FF /* Provider.swift in Sources */,
 				9B5A181221E97EAE00B66783 /* Data+Crypto.swift in Sources */,

@@ -18,7 +18,7 @@ class AutoUpload {
     var providers = [Provider]()
     var tasks = [URLSessionTask: Provider]()
     
-    var initialRequests: Int = 6
+    var initialRequests: Int = 6 // start N threads
     
     //MARK: Singleton
     

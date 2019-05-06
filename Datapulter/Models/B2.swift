@@ -89,6 +89,11 @@ class B2: Provider {
         case unmatchedError
     }
     
+    enum APIOperation: String {
+        case b2_upload_file
+        case b2_finish_large_file
+    }
+    
     struct Endpoints {
         static let authorizeAccount: Endpoint = {
             var components = URLComponents()
@@ -358,7 +363,11 @@ class B2: Provider {
                 largeFilePool.insert(asset)
             } else {
                 processingLargeFile = true
-                processLargeFile(asset)
+                do {
+                    try processLargeFile(asset)
+                } catch {
+                    print (error)
+                }
             }
             
             return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
@@ -399,9 +408,7 @@ class B2: Provider {
             if (originalUrl.path.contains(Endpoints.uploadFile.components.path)) { // alternative could be [URLRequest:Endpoint]
                 if (response.statusCode == 200) {
                     
-                    totalAssetsUploaded += 1
-                    
-                    updateRing()
+                    finishUploadOperation(.b2_upload_file, asset.localIdentifier, data)
                     
                     var uploadFileResponse: UploadFileResponse
                     
@@ -421,8 +428,6 @@ class B2: Provider {
                         pool.enqueue(getUploadURLResponse)
                         print("B2.decodeURLResponse -> appended GetUploadURLResponse to pool. Count: \(pool.count)")
                     }
-                    
-                    AutoUpload.shared.saveProviders()
                     
                     AutoUpload.shared.initiate(1, self)
                 } else {
@@ -453,36 +458,6 @@ class B2: Provider {
                 }
             }
         }
-        /*} else {
-            var jsonError: JSONError
-            
-            do {
-                jsonError = try JSONDecoder().decode(JSONError.self, from: data)
-            } catch {
-                return
-            }
-            
-            switch jsonError.code {
-            case B2Error.bad_request.rawValue:
-                print("B2.decodeURLResponse -> ERROR: bad_request")
-            case B2Error.unauthorized.rawValue:
-                print("B2.decodeURLResponse -> ERROR: unauthorized")
-            case B2Error.bad_auth_token.rawValue, B2Error.expired_auth_token.rawValue:
-                print("B2.decodeURLResponse -> ERROR: bad_auth_token expired_auth_token")
-            case B2Error.cap_exceeded.rawValue:
-                print("B2.decodeURLResponse -> ERROR: cap_exceeded")
-            case B2Error.method_not_allowed.rawValue:
-                print("B2.decodeURLResponse -> ERROR: method_not_allowed")
-            case B2Error.request_timeout.rawValue:
-                print("B2.decodeURLResponse -> ERROR: request_timeout")
-            case B2Error.service_unavailable.rawValue:
-                print("B2.decodeURLResponse -> ERROR: service_unavailable")
-            default:
-                print("B2.decodeURLResponse -> unhandled")
-            }
-        }*/
-        
-        
     }
     
     //MARK: Private methods
@@ -611,7 +586,7 @@ class B2: Provider {
         }
     }
     
-    private func processLargeFile(_ asset: PHAsset) {
+    private func processLargeFile(_ asset: PHAsset) throws {
         struct StartLargeFileRequest: Codable {
             var bucketId: String
             var fileName: String
@@ -624,8 +599,7 @@ class B2: Provider {
         }
         
         guard let fileName = asset.originalFilename else {
-            //return Promise(providerError.preparationFailed)
-            return
+            throw providerError.foundNil
         }
         
         let request = StartLargeFileRequest(bucketId: bucketId,
@@ -637,7 +611,7 @@ class B2: Provider {
         do {
             uploadData = try JSONEncoder().encode(request)
         } catch {
-            return
+            throw providerError.preparationFailed
         }
         
         self.fetch(from: Endpoints.startLargeFile, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
@@ -647,22 +621,32 @@ class B2: Provider {
         }.then { data in
             try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
         }.then { parsedResult in
-            self.createParts(asset, parsedResult.fileId)
+            self.createParts(asset, parsedResult.fileId) // loops. breaks file into chunks & uploads them
         }.then { fileId, partSha1Array in
             try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
         }.then { uploadData in
             self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
-        }.then { data, _ in
-            self.remoteFileList[asset.localIdentifier] = data
-            self.totalAssetsUploaded += 1
-            self.updateRing()
-            AutoUpload.shared.saveProviders()
-            
-            
-            if (self.largeFilePool.isEmpty) {
-                self.processingLargeFile = false
+        }.recover { error -> Promise<(Data?, URLResponse?)> in
+            self.recover(from: error, retry: Endpoints.finishLargeFile, with: uploadData)
+        }.then { data, response in
+            if let data = data,
+               let response = response as? HTTPURLResponse {
+                if (response.statusCode == 200) {
+                    
+                    self.finishUploadOperation(.b2_finish_large_file, asset.localIdentifier, data)
+                   
+                    if (self.largeFilePool.isEmpty) {
+                        self.processingLargeFile = false // ends here
+                    } else {
+                        if let newAsset = self.largeFilePool.popFirst() {
+                            try self.processLargeFile(newAsset)
+                        } else {
+                            throw providerError.foundNil
+                        }
+                    }
+                }
             } else {
-                self.processLargeFile(self.largeFilePool.popFirst()!)
+                throw providerError.invalidResponse
             }
         }
     }
@@ -685,13 +669,11 @@ class B2: Provider {
                     
                     inputStream.open()
                     
-                    //var buffer = [UInt8](repeating: 0, count: self.recommendedPartSize)
                     var buffer = [UInt8](repeating: 0, count: Defaults.chunkSize)
                     var bytes = 0
                     
                     func readBytes() {
                         
-                        //bytes = inputStream.read(&buffer, maxLength: self.recommendedPartSize)
                         bytes = inputStream.read(&buffer, maxLength: Defaults.chunkSize)
                         
                         if (bytes > 0 && part < Defaults.maxParts) {
@@ -748,9 +730,7 @@ class B2: Provider {
                             try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
                         }.then { parsedResponse in
                             uploadPart(parsedResponse, bytes, payloadFileURL, part, partSha1Array.last!)
-                        }/*.catch { error in
-                            print("\(error)")
-                        }*/
+                        }
                     }
                     
                     func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
@@ -778,6 +758,35 @@ class B2: Provider {
             }
         }
         
+    }
+    
+    private func finishUploadOperation(_ type: APIOperation,_ localIdentifier: String,_ data: Data) {
+        /*
+         remoteFileList should be indexed by the assetlocalidentifier.
+         cant use sha1 as index bc a user may have a movie that's 500MB.
+         the data should be an object thats easy to parse for calculating
+         total size of this user's remote dir.
+         
+         so each data response needs to be encoded then converted to this
+         new object type. also needs to be storable in cloudkit or similar.
+         
+         the final interfacing between cloudkit should be handled by Autoupload
+         by passing self + this new object type
+         */
+        
+        switch type {
+        case .b2_upload_file:
+            print("finishUploadOperation -> remoteFileList updated")
+            remoteFileList[localIdentifier] = data
+        case .b2_finish_large_file:
+            print("finishUploadOperation -> remoteFileList updated")
+            remoteFileList[localIdentifier] = data
+        }
+        
+        totalAssetsUploaded += 1
+        updateRing()
+        
+        AutoUpload.shared.saveProviders()
     }
     
     //MARK: NSCoding
