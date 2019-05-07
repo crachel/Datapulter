@@ -106,6 +106,8 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
              Provider.willRemove()
              
              */
+            APIClient.shared.cancel()
+            
             // Delete the row from the data source
             AutoUpload.shared.providers.remove(at: indexPath.row)
             

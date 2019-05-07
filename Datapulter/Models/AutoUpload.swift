@@ -30,7 +30,7 @@ class AutoUpload {
         PHPhotoLibrary.requestAuthorization { (status) in
             print("Status: \(status)")
         }
-        
+        print("Datapulter v\(Bundle.main.releaseVersionNumber ?? "")")
         print("batteryState \(UIDevice.current.batteryState.rawValue)")
     }
     

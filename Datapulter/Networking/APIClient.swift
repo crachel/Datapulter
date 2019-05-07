@@ -14,6 +14,7 @@ class APIClient: NSObject {
     
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.default
+        configuration.httpAdditionalHeaders = ["User-Agent": "Datapulter/\(Bundle.main.releaseVersionNumber ?? "")"]
         configuration.waitsForConnectivity = true
         configuration.allowsCellularAccess = false
         return URLSession(configuration: configuration,
@@ -35,7 +36,6 @@ class APIClient: NSObject {
     //MARK: Public methods
     
     public func upload(_ urlRequest: URLRequest,_ data: Data) -> URLSessionTask {
-        
         let task = session.uploadTask(with: urlRequest, from: data)
         activeTasks.insert(task)
         task.resume()
@@ -53,6 +53,14 @@ class APIClient: NSObject {
     
     public func uploadTask(with urlRequest: URLRequest,fromFile url: URL,completionHandler: @escaping NetworkCompletionHandler) -> URLSessionTask {
         let task = session.uploadTask(with: urlRequest, fromFile: url, completionHandler: completionHandler)
+        
+        activeTasks.insert(task)
+        
+        return task
+    }
+    
+    public func dataTask(with urlRequest: URLRequest,completionHandler: @escaping NetworkCompletionHandler) -> URLSessionTask {
+        let task = session.dataTask(with: urlRequest, completionHandler: completionHandler)
         
         activeTasks.insert(task)
         

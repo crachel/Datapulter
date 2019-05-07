@@ -125,6 +125,7 @@ class B2: Provider {
         static let sha1Key           = "large_file_sha1"
         static let sha1              = "X-Bz-Content-Sha1"
         static let mimeType          = "application/json"
+        static let userAgent         = "User-Agent"
     }
     
     struct AuthorizeAccountResponse: Codable {
@@ -515,7 +516,8 @@ class B2: Provider {
                     task.resume()
                 }
             } else if (urlRequest.httpMethod == HTTPMethod.get) {
-                URLSession.shared.dataTask(with: urlRequest, completionHandler: completionHandler).resume()
+                task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
+                task.resume()
             }
         }
     }
@@ -568,6 +570,8 @@ class B2: Provider {
             urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
             urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
             
+            //urlRequest.setValue("fail_some_uploads",forHTTPHeaderField: "X-Bz-Test-Mode")
+            
             if let fileName = asset.percentEncodedFilename {
                 urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
             } else {
@@ -605,7 +609,7 @@ class B2: Provider {
         }
         
         let request = StartLargeFileRequest(bucketId: bucketId,
-                                            fileName: self.filePrefix + fileName,
+                                            fileName: self.filePrefix.addingSuffixIfNeeded("/") + fileName,
                                             contentType: HTTPHeaders.contentTypeValue)
         
         var uploadData: Data
