@@ -320,7 +320,7 @@ class B2: Provider {
 
     //MARK: Initialization
     
-    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String, remoteFileList: [String: Data], assetsToUpload: Set<PHAsset>, filePrefix: String) {
+    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String, remoteFileList: [String: Data], filePrefix: String) {
         self.account = account
         self.key = key
         self.bucket = bucket
@@ -360,12 +360,14 @@ class B2: Provider {
         if (asset.size > Defaults.uploadCutoff ) {
             
             if(processingLargeFile) {
+                print ("B2.getUploadFileURLRequest -> already processing large file. appending to pool")
                 largeFilePool.insert(asset)
             } else {
                 processingLargeFile = true
                 do {
                     try processLargeFile(asset)
                 } catch {
+                    print ("B2.getUploadFileURLRequest -> received error from processingLargeFile.")
                     print (error)
                 }
             }
@@ -567,7 +569,7 @@ class B2: Provider {
             urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
             
             if let fileName = asset.percentEncodedFilename {
-                urlRequest.setValue(self.filePrefix + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
+                urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
             } else {
                 reject(providerError.foundNil)
             }
@@ -639,6 +641,7 @@ class B2: Provider {
                         self.processingLargeFile = false // ends here
                     } else {
                         if let newAsset = self.largeFilePool.popFirst() {
+                            print("B2.processLargeFile -> start another large file. count \(self.largeFilePool.count)")
                             try self.processLargeFile(newAsset)
                         } else {
                             throw providerError.foundNil
@@ -826,7 +829,7 @@ class B2: Provider {
         
        
         // Must call designated initializer.
-        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, assetsToUpload: [], filePrefix: filePrefix)
+        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, filePrefix: filePrefix)
     }
  
 }

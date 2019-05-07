@@ -35,10 +35,6 @@ class Utility {
             imageRequestOptions.isSynchronous = false
             imageRequestOptions.isNetworkAccessAllowed = false
             
-            /*
-            imageRequestOptions.progressHandler = {  (progress, error, stop, info) in
-                print("progress: \(progress)")
-            }*/
             PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, _, _, info) in
             //PHImageManager.default().requestImageData(for: asset, options: imageRequestOptions) { (data, dataUTI, orientation, info) in
                 if let data = data,
@@ -65,10 +61,47 @@ class Utility {
                         print("exception catch at block - while uploading video")
                     }
                     
+                } else if let data = data,
+                    let avComposition = data as? AVComposition {
+                    
+                    if avComposition.tracks.count > 1 {
+                        
+                        if let exporter = AVAssetExportSession(asset: avComposition, presetName: AVAssetExportPresetHighestQuality) {
+                            
+                            //let documentDirectory = AutoUpload.shared.getDocumentsDirectory()
+                            
+                            guard let filename = asset.percentEncodedFilename else {
+                                print("Utility -> asset has no filename")
+                                return
+                            }
+                            let path = FileSystem.getTemporaryURL(filename)
+                            //let path = documentDirectory.appendingPathComponent(filename)
+                            exporter.outputURL = path
+                            exporter.outputFileType = AVFileType.mp4
+                            exporter.shouldOptimizeForNetworkUse = true
+                            
+                            exporter.exportAsynchronously {
+                                do {
+                                    if let url = exporter.outputURL {
+                                        let videoData = try Data(contentsOf: url)
+                                        completion(videoData, url)
+                                    }
+                                } catch {
+                                    print (error)
+                                }
+                                
+                            }
+                            
+                        }
+                    } else {
+                        print("Utility -> AVComposition with <= 1 track")
+                    }
+                    
+                    print("Utility -> non AVURLAsset from AVAsset")
                 }
             }
             
-        } // TODO: else if (asset.mediaType == .livephoto) {}
+        }
         
     }
     
@@ -89,7 +122,32 @@ class Utility {
                 if let urlAsset = asset as? AVURLAsset {
                     let localVideoUrl = urlAsset.url
                     completionHandler(localVideoUrl)
-                } else {
+                } else if let avComposition = asset as? AVComposition {
+                    if avComposition.tracks.count > 1 {
+                        
+                        if let exporter = AVAssetExportSession(asset: avComposition, presetName: AVAssetExportPresetHighestQuality) {
+                            //let documentDirectory = AutoUpload.shared.getDocumentsDirectory()
+                            
+                            guard let filename = mPhasset.percentEncodedFilename else {
+                                print("Utility -> asset has no filename")
+                                return
+                            }
+                            let path = FileSystem.getTemporaryURL(filename)
+                            //let path = documentDirectory.appendingPathComponent(filename)
+                            exporter.outputURL = path
+                            exporter.outputFileType = AVFileType.mp4
+                            exporter.shouldOptimizeForNetworkUse = true
+                            
+                            exporter.exportAsynchronously {
+                                if let url = exporter.outputURL {
+                                    completionHandler(url)
+                                }
+                            }
+                            
+                        }
+                    } else {
+                        print("Utility -> AVComposition with <= 1 track")
+                    }
                     completionHandler(nil)
                 }
             })
@@ -120,5 +178,4 @@ class Utility {
         
         return 0
     }
-    
 }

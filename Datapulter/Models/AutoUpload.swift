@@ -53,7 +53,11 @@ class AutoUpload {
                     }
                 })
                 
-                provider.hud("\(provider.totalAssetsToUpload) objects found.")
+                if (provider.totalAssetsToUpload == 0) {
+                    provider.hud("Nothing to upload!")
+                } else {
+                    provider.hud("\(provider.totalAssetsToUpload) objects found.")
+                }
                 
                 if (provider.totalAssetsToUpload > 0) {
                     print("found \(provider.totalAssetsToUpload)")
@@ -141,7 +145,7 @@ class AutoUpload {
     }
     
     public func loadProviders() -> [Provider]? {
-        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
+        let fullPath = FileSystem.getDocumentsDirectory().appendingPathComponent("providers")
         if let nsData = NSData(contentsOf: fullPath) {
             do {
                 let data = Data(referencing:nsData)
@@ -157,12 +161,7 @@ class AutoUpload {
         return nil
     }
     
-    //MARK: Private Methods
     
-    private func getDocumentsDirectory() -> URL {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        return paths[0]
-    }
 
 }
 
