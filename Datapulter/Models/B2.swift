@@ -66,12 +66,14 @@ class B2: Provider {
         didSet {
             UserDefaults.standard.set(authorizeAccountResponse!.recommendedPartSize, forKey: PropertyKey.recommendedPartSize)
             if(KeychainHelper.update(account: account, value: authorizeAccountResponse!.authorizationToken, server: authorizeAccountResponse!.apiUrl)) {
-                print("B2.authorizationToken saved to keychain")
+                os_log("authorizationToken saved to Keychain", log: .b2, type: .info)
             } else {
-                print("Problem saving B2.authorizationToken to keychain")
+                os_log("problem saving authorizationToken to Keychain", log: .b2, type: .error)
             }
         }
     }
+    
+    
     
     //MARK: Types
     
@@ -87,12 +89,39 @@ class B2: Provider {
         case service_unavailable // 503
         
         case unmatchedError
+        
+        var localizedDescription: String {
+            switch self {
+            case .bad_request: return "bad request"
+            case .unauthorized: return "unauthorized"
+            case .bad_auth_token: return "bad auth token"
+            case .expired_auth_token: return "expired auth token"
+            case .cap_exceeded: return "cap exceeded"
+            case .method_not_allowed: return "method not allowed"
+            case .request_timeout: return "request timeout"
+            case .service_unavailable: return "service unavailable"
+            case .unmatchedError: return "unmatched error"
+            }
+        }
     }
     
     enum APIOperation: String {
         case b2_upload_file
         case b2_finish_large_file
     }
+    
+    /*
+    struct Views {
+        static let addView: UIStackView = {
+            var view = UIStackView(arrangedSubviews: AddProviderViewController.createButtons("test"))
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.axis = .vertical
+            view.spacing = 20
+            view.distribution = .fillEqually
+            view.backgroundColor = .red
+            return view
+        }()
+    }*/
     
     struct Endpoints {
         static let authorizeAccount: Endpoint = {
@@ -125,7 +154,6 @@ class B2: Provider {
         static let sha1Key           = "large_file_sha1"
         static let sha1              = "X-Bz-Content-Sha1"
         static let mimeType          = "application/json"
-        static let userAgent         = "User-Agent"
     }
     
     struct AuthorizeAccountResponse: Codable {
@@ -361,15 +389,13 @@ class B2: Provider {
         if (asset.size > Defaults.uploadCutoff ) {
             
             if(processingLargeFile) {
-                print ("B2.getUploadFileURLRequest -> already processing large file. appending to pool")
                 largeFilePool.insert(asset)
             } else {
                 processingLargeFile = true
                 do {
                     try processLargeFile(asset)
                 } catch {
-                    print ("B2.getUploadFileURLRequest -> received error from processingLargeFile.")
-                    print (error)
+                    os_log("processingLargeFile %@", log: .b2, type: .error, error.localizedDescription)
                 }
             }
             
@@ -378,7 +404,6 @@ class B2: Provider {
     
         if (pool.count > Defaults.poolMinimum) {
             if let data = pool.dequeue() {
-                print("B2.getUploadFileURLRequest -> removed data from pool")
                 return self.buildUploadFileRequest(from: asset, with: data)
             }
         }
@@ -391,6 +416,8 @@ class B2: Provider {
         } catch {
             return Promise(error)
         }
+        
+        os_log("fetching getUploadUrl", log: .b2, type: .info)
         
         return self.fetch(from: Endpoints.getUploadUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
             self.recover(from: error, retry: Endpoints.getUploadUrl, with: uploadData)
@@ -429,7 +456,8 @@ class B2: Provider {
                                                                         authorizationToken: token)
                         
                         pool.enqueue(getUploadURLResponse)
-                        print("B2.decodeURLResponse -> appended GetUploadURLResponse to pool. Count: \(pool.count)")
+                    } else {
+                        os_log("problem retrieving token from allHeaders", log: .b2, type: .error)
                     }
                     
                     AutoUpload.shared.initiate(1, self)
@@ -448,7 +476,7 @@ class B2: Provider {
                     
                     switch jsonError.code {
                     case B2Error.bad_auth_token.rawValue, B2Error.expired_auth_token.rawValue, B2Error.service_unavailable.rawValue:
-                        print("B2.decodeURLResponse -> ERROR: \(jsonError.code)")
+                        os_log("%@: reinsterting asset and initiating new request", log: .b2, type: .error, jsonError.code)
                         /*
                          Call b2_get_upload_url again to get a new auth token.
                          */
@@ -456,11 +484,15 @@ class B2: Provider {
                         
                         AutoUpload.shared.initiate(1, self)
                     default:
-                        print("B2.decodeURLResponse -> ERROR: \(jsonError.code)")
+                        os_log("%@", log: .b2, type: .error, jsonError.code)
                     }
                 }
-            }
+            } // else if (originalUrl.path.contains(Endpoints.uploadFile.components.path))
         }
+    }
+    
+    override func willDelete() {
+        _ = KeychainHelper.delete(account: account)
     }
     
     //MARK: Private methods
@@ -488,7 +520,7 @@ class B2: Provider {
                     
                     if (response.statusCode == 200) {
                         fulfill((data, response))
-                    } else if (400...401).contains(response.statusCode) {
+                    } else if (400...503).contains(response.statusCode) {
                         do {
                             let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
                             reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unmatchedError)
@@ -543,7 +575,7 @@ class B2: Provider {
     private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
         switch error {
         case B2Error.bad_auth_token, B2Error.expired_auth_token:
-            print("B2.recover -> \(error). attempting refresh then retrying API call.")
+            os_log("%@. attempting refresh then retrying API call", log: .b2, type: .error, error.localizedDescription)
             return self.authorizeAccount().then { data, _ in
                 Utility.objectIsType(object: data, someObjectOfType: Data.self)
             }.then { data in
@@ -645,7 +677,6 @@ class B2: Provider {
                         self.processingLargeFile = false // ends here
                     } else {
                         if let newAsset = self.largeFilePool.popFirst() {
-                            print("B2.processLargeFile -> start another large file. count \(self.largeFilePool.count)")
                             try self.processLargeFile(newAsset)
                         } else {
                             throw providerError.foundNil
@@ -664,8 +695,10 @@ class B2: Provider {
         }
         return Promise { fulfill, reject in
             Utility.getURL(ofPhotoWith: asset) { url in
-                let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
-                let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
+                //let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                //let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
+                
+                let payloadFileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                 
                 var partSha1Array = [String]()
                 var part = 0
@@ -704,12 +737,9 @@ class B2: Provider {
                             
                         } else {
                             do {
-                                print("processLargeFile: Trying to remove payloadFileURL...", terminator:"")
                                 try FileManager.default.removeItem(at: payloadFileURL)
-                                print("done")
                             } catch let error as NSError {
-                                print("failed")
-                                print("Error: \(error.domain)")
+                                os_log("error removing payloadFileURL. %@", log: .b2, type: .error, error.domain)
                             }
                             
                             inputStream.close()
@@ -731,7 +761,7 @@ class B2: Provider {
                         //add recover here
                         return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
                             self.recover(from: error, retry: Endpoints.getUploadPartUrl, with: uploadData)
-                        }.then { data, response in
+                        }.then { data, _ in
                             Utility.objectIsType(object: data, someObjectOfType: Data.self)
                         }.then { data in
                             try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
@@ -783,10 +813,8 @@ class B2: Provider {
         
         switch type {
         case .b2_upload_file:
-            print("finishUploadOperation -> remoteFileList updated")
             remoteFileList[localIdentifier] = data
         case .b2_finish_large_file:
-            print("finishUploadOperation -> remoteFileList updated")
             remoteFileList[localIdentifier] = data
         }
         
@@ -831,7 +859,6 @@ class B2: Provider {
         let versions = aDecoder.decodeBool(forKey: PropertyKey.versions)
         let harddelete = aDecoder.decodeBool(forKey: PropertyKey.harddelete)
         
-       
         // Must call designated initializer.
         self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, filePrefix: filePrefix)
     }

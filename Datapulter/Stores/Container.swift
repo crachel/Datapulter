@@ -8,42 +8,34 @@
 
 import UIKit
 import CloudKit
-
-enum ManagedKey: String {
-    case accountId
-    case applicationKey
-    case applicationKeyId
-    case bucketId
-    case capabilities
-    case keyName
-    case namePrefix
-}
+import os.log
 
 class Container {
-
+    
+    var publicDatabase: CKDatabase
+    var privateDatabase: CKDatabase
+    
     init() {
+        
         let container = CKContainer.default()
-        //var publicDatabase = container.publicCloudDatabase
         
-        let record = CKRecord(recordType: "Managed")
-        record[.applicationKey] = "applicationKey" as CKRecordValue
+        publicDatabase  = container.publicCloudDatabase
+        privateDatabase = container.privateCloudDatabase
         
-        //privateDatabase.fetch(withRecordID: <#T##CKRecord.ID#>, completionHandler: <#T##(CKRecord?, Error?) -> Void#>)
-        if let containerIdentifier = container.containerIdentifier {
-            print(containerIdentifier)
-        }
-    }
-}
-
-extension CKRecord {
-    
-    subscript(key: ManagedKey) -> Any? {
-        get {
-            return self[key.rawValue]
-        }
-        set {
-            self[key.rawValue] = newValue as? CKRecordValue
-        }
     }
     
+    public func getRecord(_ keyName: String,_ recordType: String, completion:@escaping (_ record: [CKRecord]?) -> Void) {
+        
+        let predicate = NSPredicate(format: "keyName == %@", keyName)
+        
+        let query = CKQuery(recordType: recordType, predicate: predicate)
+        
+        publicDatabase.perform(query, inZoneWith: nil) { record, error in
+            if let record = record {
+                completion(record)
+            } else if let error = error {
+                os_log("%@", log: .container, type: .error, error.localizedDescription)
+            }
+        }
+    }
 }

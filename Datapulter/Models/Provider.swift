@@ -31,7 +31,7 @@ class Provider: NSObject, NSCoding  {
     
     enum Site {
         case Backblaze
-        case Managed
+        case DatapulterManaged
     }
     
     //MARK: Archiving Paths
@@ -73,6 +73,8 @@ class Provider: NSObject, NSCoding  {
         }
     }
     
+    //MARK: Initialization
+    
     init(name: String, backend: Site, remoteFileList: [String: Data]) {
         // Initialize stored properties.
         self.name = name
@@ -91,6 +93,10 @@ class Provider: NSObject, NSCoding  {
     }
     
     public func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
+        fatalError("Must Override")
+    }
+    
+    public func willDelete() {
         fatalError("Must Override")
     }
     

@@ -7,9 +7,11 @@
 //
 
 import UIKit
+import os.log
 import Security
 
 class KeychainHelper {
+    
     public static func set(account: String, value: String,  server: String) -> Bool {
         let query: [String: Any] = [kSecClass as String: kSecClassInternetPassword,
                                     kSecAttrAccount as String: account,
@@ -17,7 +19,7 @@ class KeychainHelper {
                                     kSecAttrServer as String: server]
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else {
-            print("keychain: set error")
+            os_log("set error", log: .keychainhelper, type: .error)
             return false
         }
         return true
@@ -30,7 +32,6 @@ class KeychainHelper {
                                          kSecAttrServer as String: server]
         let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         guard status == errSecSuccess else {
-            print("keychain: update error. trying set")
             return set(account: account, value: value, server: server)
         }
         
@@ -47,16 +48,16 @@ class KeychainHelper {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         
         guard status != errSecItemNotFound else {
-            print("keychain: nothing found")
+            os_log("nothing found", log: .keychainhelper, type: .error)
             return nil
         }
         guard status == errSecSuccess else {
-            print("keychain: get error")
+            os_log("get error", log: .keychainhelper, type: .error)
             return nil
         }
         
         guard let result = item as? [String : Any] else {
-            print("keychain: unexpected nil returned")
+            os_log("unexpected nil returned", log: .keychainhelper, type: .error)
             return nil
         }
         return result
@@ -68,7 +69,7 @@ class KeychainHelper {
                                     kSecAttrAccount as String: account]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess else {
-            print("keychain: delete error: \(SecItemDelete(query as CFDictionary))")
+            os_log("delete error %@", log: .keychainhelper, type: .error, SecItemDelete(query as CFDictionary))
             return false
         }
         return true

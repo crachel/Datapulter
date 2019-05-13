@@ -13,12 +13,13 @@ import Photos
 class AutoUpload {
     
     //MARK: Properties
+    
+    var providers = [Provider]()
 
     var assets = PHFetchResult<PHAsset>()
-    var providers = [Provider]()
     var tasks = [URLSessionTask: Provider]()
     
-    var initialRequests: Int = 6 // start N threads
+    var initialRequests: Int = 6 // start n threads
     
     //MARK: Singleton
     
@@ -28,22 +29,22 @@ class AutoUpload {
     
     private init() {
         PHPhotoLibrary.requestAuthorization { (status) in
-            print("Status: \(status)")
+            os_log("PHAuthorizationStatus = %d", log: .autoupload, type: .info, status.rawValue)
         }
-        print("Datapulter v\(Bundle.main.releaseVersionNumber ?? "")")
-        print("batteryState \(UIDevice.current.batteryState.rawValue)")
     }
     
     //MARK: Public Methods
     
     public func start() {
-        //if(PHPhotoLibrary.authorizationStatus() == .authorized && UIDevice.current.batteryState == .charging) {
-        if(PHPhotoLibrary.authorizationStatus() == .authorized && !APIClient.shared.isActive()) {
+        if (PHPhotoLibrary.authorizationStatus() != .authorized) {
+            os_log("no photo permission", log: .autoupload, type: .error)
+            return
+        }
+        os_log("started", log: .autoupload, type: .info)
+        if(!APIClient.shared.isActive()) {
             assets = Utility.getCameraRollAssets()
             
             for provider in providers {
-                print("AutoUpload.start -> remoteFileList count: \(provider.remoteFileList.count)")
-                print("Autoupload.start -> checking for assets...", terminator:"")
                 
                 assets.enumerateObjects({ (asset, _, _) in
                     if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
@@ -53,33 +54,31 @@ class AutoUpload {
                     }
                 })
                 
-                if (provider.totalAssetsToUpload == 0) {
-                    provider.hud("Nothing to upload!")
-                } else {
-                    provider.hud("\(provider.totalAssetsToUpload) objects found.")
-                }
-                
                 if (provider.totalAssetsToUpload > 0) {
-                    print("found \(provider.totalAssetsToUpload)")
                     
-                    print("AutoUpload.initiate -> initiating \(initialRequests) requests")
+                    provider.updateRing()
                     
+                    os_log("found %d assets", log: .autoupload, type: .info, provider.totalAssetsToUpload)
+                    
+                    provider.hud("\(provider.totalAssetsToUpload) objects found.")
                     
                     initiate(initialRequests, provider)
                 } else {
-                    print("found none")
+                    os_log("no assets to upload", log: .autoupload, type: .info)
+                    
+                    provider.hud("Nothing to upload!")
                 }
             }
         } else {
-            // No photo permission
-            print("AutoUpload.start -> no photo permission")
+            os_log("APIClient is active", log: .autoupload, type: .error)
         }
     }
     
     public func clientError(_ task: URLSessionTask) {
         if let provider = tasks.removeValue(forKey: task) {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
-                print("AutoUpload.clientError -> initiating new request")
+                os_log("clientError", log: .autoupload, type: .info)
+                
                 provider.assetsToUpload.insert(asset)
                 
                 //start another task, if asset exists
@@ -99,10 +98,10 @@ class AutoUpload {
                     saveProviders()
                 }
             } else {
-                // no asset associated with task.
+                os_log("no asset associated with task", log: .autoupload, type: .error)
             }
         } else {
-            // no provider associated with task.
+            os_log("no provider associated with task", log: .autoupload, type: .error)
         }
     }
     
@@ -120,17 +119,14 @@ class AutoUpload {
                         self.initiate(N - 1, provider)
                     }
                 }.catch { error in
-                    print("AutoUpload.initiate -> ERROR: \(error.localizedDescription)")
                     switch error {
                     case Provider.providerError.largeFile:
-                        print("AutoUpload.initiate -> initiating new request")
                         self.initiate(N, provider)
                     default:
+                        os_log("%@", log: .autoupload, type: .error, error.localizedDescription)
                         break
                     }
                 }
-            } else {
-                print("AutoUpload.initiate -> assetsToUpload is empty. stopping")
             }
         }
     }
@@ -140,12 +136,12 @@ class AutoUpload {
             let data = try NSKeyedArchiver.archivedData(withRootObject: providers, requiringSecureCoding: false)
             try data.write(to: Provider.ArchiveURL)
         } catch {
-            os_log("Failed to save providers...", log: OSLog.default, type: .error)
+            os_log("failed to save providers", log: .autoupload, type: .error)
         }
     }
     
     public func loadProviders() -> [Provider]? {
-        let fullPath = FileSystem.getDocumentsDirectory().appendingPathComponent("providers")
+        let fullPath = Provider.ArchiveURL
         if let nsData = NSData(contentsOf: fullPath) {
             do {
                 let data = Data(referencing:nsData)
@@ -154,15 +150,10 @@ class AutoUpload {
                     return loadedProviders
                 }
             } catch {
-                print("Couldn't read file.")
+                os_log("failed to load providers", log: .autoupload, type: .error)
                 return nil
             }
         }
         return nil
     }
-    
-    
-
 }
-
-

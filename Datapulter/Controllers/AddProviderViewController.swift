@@ -16,21 +16,20 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
     //MARK: Properties
     var provider: Provider?
 
-    @IBOutlet weak var saveProvider: UIBarButtonItem!
     @IBOutlet weak var saveButton: UIBarButtonItem!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         // Do any additional setup after loading the view, typically from a nib.
-
         form +++ Section()
             <<< ActionSheetRow<String>("actionsProvider") {
                 $0.title = "Pick Provider"
                 $0.selectorTitle = "Pick Provider"
-                $0.options = ["Backblaze B2","Datapulter"]
+                $0.options = ["Backblaze B2","Datapulter Managed"]
                 $0.value = "Backblaze B2"    // initially selected
-            }
-            <<< AccountRow("tagName"){ row in
+                }
+            <<< AccountRow("tagName") { row in
                 row.title = "Remote Name"
                 row.placeholder = "\"My Backblaze B2 Remote\""
                 row.add(rule: RuleRequired())
@@ -43,8 +42,8 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 }
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
-            }
-            <<< AccountRow("tagKeyID"){ row in
+                }
+            <<< AccountRow("tagKeyID") { row in
                 row.title = "Key ID"
                 row.placeholder = "Your account key ID"
                 row.add(rule: RuleRequired())
@@ -56,8 +55,8 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                     return false
                 }
                 }.cellUpdate { cell, row in
-                    cell.textField.delegate = self
-            }
+                        cell.textField.delegate = self
+                }
             <<< PasswordRow("tagKey"){ row in
                 row.title = "Key"
                 row.placeholder = "Your key"
@@ -71,7 +70,7 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 }
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
-            }
+                }
             <<< AccountRow("tagBucket"){ row in
                 row.title = "Bucket"
                 row.placeholder = "Your unique bucket name"
@@ -85,6 +84,20 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 }
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
+                }
+            <<< AccountRow("tagPrefix"){ row in
+                row.title = "Prefix"
+                row.placeholder = "my/directory"
+                row.add(rule: RuleRequired())
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Backblaze B2"
+                    }
+                    return false
+                }
+                }.cellUpdate { cell, row in
+                        cell.textField.delegate = self
                 }
             +++ Section("OPTIONS")
             <<< SwitchRow("tagVersions"){ row in
@@ -108,14 +121,11 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                     }
                     return false
                 }
-        }
-        
-        
-        
-        
+                }
     }
     
     //MARK: Navigation
+    
     override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
         return true
     }
@@ -123,17 +133,9 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
     // This method lets you configure a view controller before it's presented.
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         super.prepare(for: segue, sender: sender)
-        
-        
-        // Configure the destination view controller only when the save button is pressed.
-        guard let button = sender as? UIBarButtonItem, button === saveButton else {
-            os_log("The save button was not pressed, cancelling", log: OSLog.default, type: .debug)
-            return
-        }
-        
-        print("Done preparing for segue.")
-
     }
+    
+    //MARK: Actions
 
     @IBAction func saveButton(_ sender: Any) {
         if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
@@ -152,8 +154,6 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 
                 provider = B2(name: valuesDictionary["tagName"] as! String, account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e", remoteFileList: [:], filePrefix: "iphonexr")
                 
-                //provider = B2(name: valuesDictionary["tagName"] as! String, account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e", filePrefix: "iphone6s/")
-                
                 provider?.authorizeAccount().then { _ in
                     self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
                 }.catch { _ in
@@ -169,6 +169,4 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
     @IBAction func cancel(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)
     }
-    
 }
-

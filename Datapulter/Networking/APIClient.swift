@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import os.log
 
 class APIClient: NSObject {
     
@@ -22,7 +23,7 @@ class APIClient: NSObject {
     }()
     
     private lazy var activeTasks = Set<URLSessionTask>()
-    
+
     //MARK: Singleton
     
     static let shared = APIClient()
@@ -72,6 +73,8 @@ class APIClient: NSObject {
     }
     
     public func cancel() {
+        os_log("cancelling all tasks", log: .apiclient, type: .info)
+        
         for task in activeTasks {
             task.cancel()
         }
@@ -93,8 +96,6 @@ extension APIClient: URLSessionDataDelegate {
     }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        print("APIClient: task \(dataTask.taskIdentifier) -> didReceiveData")
-        
         // downcast for access to statusCode
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
        
@@ -102,15 +103,14 @@ extension APIClient: URLSessionDataDelegate {
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        print("APIClient: task \(task.taskIdentifier) -> didCompleteWithError")
         
         if (activeTasks.remove(task) == nil) {
-            print("APIClient: task \(task.taskIdentifier) -> error removing from activeTasks.")
+            os_log("could not remove task %d from activeTasks", log: .apiclient, type: .error, task.taskIdentifier)
         }
         
         if let error = error {
             // client-side errors only ("unable to resolve the hostname or connect to the host")
-            print("APIClient: task \(task.taskIdentifier) -> \(error.localizedDescription)")
+            os_log("task %d %@", log: .apiclient, type: .error, task.taskIdentifier, error.localizedDescription)
             
             AutoUpload.shared.clientError(task)
         }
@@ -120,7 +120,9 @@ extension APIClient: URLSessionDataDelegate {
             return
         }
         
-        print("APIClient: task \(task.taskIdentifier) -> STATUS \(httpResponse.statusCode)")
+        if (httpResponse.statusCode != 200) {
+            os_log("task %d status %d", log: .apiclient, type: .info, task.taskIdentifier, httpResponse.statusCode)
+        }
     }
     
 }

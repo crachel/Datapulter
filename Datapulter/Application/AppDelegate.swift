@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import os.log
 import WLEmptyState
 
 @UIApplicationMain
@@ -14,43 +15,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
     
-    
-    func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
-        print("AppDelegate -> handleEventsForBackgroundURLSession")
-    }
-    
-    func application(_ application: UIApplication, performFetchWithCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        
-        print("AppDelegate -> performFetchWithCompletionHandler")
-        /*
-        // Check for new data.
-        if let fetchResultChangeDetails = changeInstance.changeDetails(for: AutoUpload.shared.assets) {
-            //addDataToFeed(newData: newData)
-            completionHandler(.newData)
-        }
-        completionHandler(.noData)*/
-    }
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        
-        // Fetch data once every 8 hours.
-        UIApplication.shared.setMinimumBackgroundFetchInterval(28800)
-        
-        /*
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        let authTokenIsSet =  UserDefaults.standard.string(forKey: "authorizationToken")
-        
-        // check if auth token is set. may be a better way to do this?
-        if ((authTokenIsSet) != nil) {
-            self.window?.rootViewController = storyboard.instantiateInitialViewController()
-        } else {
-            self.window?.rootViewController = storyboard.instantiateViewController(withIdentifier: "B2LoginCard")
-            //change to the generic login picker VC once it is done
-        }*/
+        os_log("UIDevice.current.batteryState.rawValue = %d", log: OSLog.default, type: .info, UIDevice.current.batteryState.rawValue)
         
         // Other initialization…
         WLEmptyState.configure()
+        
         return true
     }
 
@@ -62,6 +33,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationDidEnterBackground(_ application: UIApplication) {
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        FileManager.default.clearTemporaryDirectory()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {

@@ -165,18 +165,14 @@
                                 <action selector="cancel:" destination="BYZ-38-t0r" id="d5j-Xp-Bfy"/>
                             </connections>
                         </barButtonItem>
-                        <rightBarButtonItems>
-                            <barButtonItem title="Save" id="cBB-gm-OvH"/>
-                            <barButtonItem title="Item" id="cbo-6j-qSV">
-                                <connections>
-                                    <action selector="saveButton:" destination="BYZ-38-t0r" id="7rb-bO-1fz"/>
-                                </connections>
-                            </barButtonItem>
-                        </rightBarButtonItems>
+                        <barButtonItem key="rightBarButtonItem" title="Save" id="cbo-6j-qSV">
+                            <connections>
+                                <action selector="saveButton:" destination="BYZ-38-t0r" id="7rb-bO-1fz"/>
+                            </connections>
+                        </barButtonItem>
                     </navigationItem>
                     <connections>
                         <outlet property="saveButton" destination="cbo-6j-qSV" id="vi7-vz-C6R"/>
-                        <outlet property="saveProvider" destination="cBB-gm-OvH" id="9uC-wd-hDz"/>
                         <segue destination="cch-K4-lLn" kind="unwind" identifier="unwindToProviderList" unwindAction="unwindToProviderListWithSender:" id="cPz-VT-Ulh"/>
                     </connections>
                 </viewController>

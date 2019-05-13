@@ -8,6 +8,7 @@
 
 import UIKit
 import Photos
+import os.log
 import Promises
 
 class Utility {
@@ -58,7 +59,7 @@ class Utility {
                         
                         completion(videoData, url)
                     } catch  {
-                        print("exception catch at block - while uploading video")
+                        os_log("exception catch at block - while uploading video", log: .utility, type: .error)
                     }
                     
                 } else if let data = data,
@@ -71,10 +72,11 @@ class Utility {
                             //let documentDirectory = AutoUpload.shared.getDocumentsDirectory()
                             
                             guard let filename = asset.percentEncodedFilename else {
-                                print("Utility -> asset has no filename")
+                                os_log("asset has no filename", log: .utility, type: .error)
                                 return
                             }
-                            let path = FileSystem.getTemporaryURL(filename)
+                            //let path = FileSystem.getTemporaryURL(filename)
+                            let path = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
                             //let path = documentDirectory.appendingPathComponent(filename)
                             exporter.outputURL = path
                             exporter.outputFileType = AVFileType.mp4
@@ -87,17 +89,15 @@ class Utility {
                                         completion(videoData, url)
                                     }
                                 } catch {
-                                    print (error)
+                                    os_log("%@", log: .utility, type: .error, error.localizedDescription)
                                 }
                                 
                             }
                             
                         }
                     } else {
-                        print("Utility -> AVComposition with <= 1 track")
+                        os_log("AVComposition with <= 1 track", log: .utility, type: .error)
                     }
-                    
-                    print("Utility -> non AVURLAsset from AVAsset")
                 }
             }
             
@@ -129,10 +129,11 @@ class Utility {
                             //let documentDirectory = AutoUpload.shared.getDocumentsDirectory()
                             
                             guard let filename = mPhasset.percentEncodedFilename else {
-                                print("Utility -> asset has no filename")
+                                os_log("asset has no filename", log: .utility, type: .error)
                                 return
                             }
-                            let path = FileSystem.getTemporaryURL(filename)
+                            //let path = FileSystem.getTemporaryURL(filename)
+                            let path = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
                             //let path = documentDirectory.appendingPathComponent(filename)
                             exporter.outputURL = path
                             exporter.outputFileType = AVFileType.mp4
@@ -146,7 +147,7 @@ class Utility {
                             
                         }
                     } else {
-                        print("Utility -> AVComposition with <= 1 track")
+                        os_log("AVComposition with <= 1 track", log: .utility, type: .error)
                     }
                     completionHandler(nil)
                 }
@@ -163,19 +164,5 @@ class Utility {
                 reject(Provider.providerError.optionalBinding)
             }
         }
-    }
-
-    
-    public static func getSizeFromAsset(_ asset: PHAsset) -> Int64 {
-        let resources = PHAssetResource.assetResources(for: asset)
-        
-        if let resource = resources.first {
-            if resource.responds(to: #selector(NSDictionary.fileSize)) {
-                let unsignedInt64 = resource.value(forKey: "fileSize") as! CLong
-                return Int64(bitPattern: UInt64(unsignedInt64))
-            }
-        }
-        
-        return 0
     }
 }

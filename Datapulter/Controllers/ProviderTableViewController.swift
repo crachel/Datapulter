@@ -17,41 +17,21 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        tableView.emptyStateDataSource = self
+        tableView.emptyStateDataSource = self // WLEmptyState
         
         // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
-        tableView.tableFooterView = UIView()
-        
-        // Load any saved providers
-       // if let savedProviders = loadProviders() {
-         //   AutoUpload.shared.providers += savedProviders
+        //tableView.tableFooterView = UIView()
             
-            if(AutoUpload.shared.providers.isEmpty) {
-                //performSegue(withIdentifier: "showLogin", sender: nil)
-                //let test = UIImage(named: "backblazeb2")
-                //tableView.backgroundView = UIImageView(image: test)
-                
-            } else {
-                //tableView.backgroundColor = UIColor.clear
-                AutoUpload.shared.start()
-            }
-        
-            // Register to receive photo library change messages
-            PHPhotoLibrary.shared().register(self)
-       // }
-        
-    }
+        AutoUpload.shared.start()
     
-    override func viewDidAppear(_ animated: Bool) {
-       
+        // Register to receive photo library change messages
+        PHPhotoLibrary.shared().register(self)
     }
     
     deinit {
-        
         PHPhotoLibrary.shared().unregisterChangeObserver(self)
-        
     }
 
     //MARK: - Table view data source
@@ -100,18 +80,22 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            /*
-             
-             delete userdefaults and keychain stuff. any other cleanup/deinit
-             Provider.willRemove()
-             
-             */
+            // Remove any UserDefaults
+            if let appDomain = Bundle.main.bundleIdentifier {
+                UserDefaults.standard.removePersistentDomain(forName: appDomain)
+            }
+            
+            let provider = AutoUpload.shared.providers[indexPath.row]
+            
+            // Do any provider-specific preparation before deleting
+            provider.willDelete()
+    
+            // Cancel all APIClient tasks
             APIClient.shared.cancel()
             
             // Delete the row from the data source
             AutoUpload.shared.providers.remove(at: indexPath.row)
             
-            //saveProviders()
             AutoUpload.shared.saveProviders()
             
             tableView.deleteRows(at: [indexPath], with: .fade)
@@ -148,6 +132,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             }
             
             let selectedProvider = AutoUpload.shared.providers[indexPath.row]
+            
             providerDetailViewController.provider = selectedProvider
 
             os_log("Editing a provider.", log: OSLog.default, type: .debug)
@@ -161,6 +146,8 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         }
     }
     
+    //MARK: WLEmptyState Methods
+    
     func imageForEmptyDataSet() -> UIImage? {
         //return UIImage(named: "AppIcon")
         return UIImage(named: "Icon Grey")
@@ -172,45 +159,8 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     }
     
     func descriptionForEmptyDataSet() -> NSAttributedString {
-        let title = NSAttributedString(string: "Add a provider above.", attributes: [NSAttributedString.Key.font: UIFont.preferredFont(forTextStyle: .caption1)])
+        let title = NSAttributedString(string: "Add a provider above to start.", attributes: [NSAttributedString.Key.font: UIFont.preferredFont(forTextStyle: .caption1)])
         return title
-    }
-    
-    //MARK: Private Methods
-    
-    /*
-    private func saveProviders() {
-        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
-        
-        do {
-            let data = try NSKeyedArchiver.archivedData(withRootObject: AutoUpload.shared.providers, requiringSecureCoding: false)
-            try data.write(to: fullPath)
-            os_log("Providers successfully saved.", log: OSLog.default, type: .debug)
-        } catch {
-            os_log("Failed to save providers...", log: OSLog.default, type: .error)
-        }
-    }*/
-    
-    private func loadProviders() -> [Provider]?  {
-        let fullPath = getDocumentsDirectory().appendingPathComponent("providers")
-        if let nsData = NSData(contentsOf: fullPath) {
-            do {
-                let data = Data(referencing:nsData)
-                
-                if let loadedProviders = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? Array<Provider> {
-                    return loadedProviders
-                }
-            } catch {
-                print("Couldn't read file.")
-                return nil
-            }
-        }
-        return nil
-    }
-
-    private func getDocumentsDirectory() -> URL {
-        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        return paths[0]
     }
     
     //MARK: Actions
@@ -221,19 +171,18 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
                 // Update an existing provider.
                 AutoUpload.shared.providers[selectedIndexPath.row] = provider
+                
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
         } else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
             // Add a new provider.
             AutoUpload.shared.providers += [provider]
+            
             tableView.reloadData()
         }
         
-        // Save the providers.
-        //saveProviders()
         AutoUpload.shared.saveProviders()
         
-        print("unwindToProviderList: starting AutoUpload")
         AutoUpload.shared.start()
     }
 }
@@ -243,38 +192,23 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
 extension ProviderTableViewController: PHPhotoLibraryChangeObserver {
 
     func photoLibraryDidChange(_ changeInstance: PHChange) {
-        /*
-        if (APIClient.shared.isActive()) {
-            return
-        }*/
         
         DispatchQueue.main.sync {
             let fetchResultChangeDetails = changeInstance.changeDetails(for: AutoUpload.shared.assets)
             
             guard (fetchResultChangeDetails) != nil else {
                 
-                print("No change in fetchResultChangeDetails")
+                os_log("no change in fetchResultChangeDetails", log: OSLog.default, type: .info)
                 
                 return;
                 
             }
             
-            print("Contains changes")
-            
+            os_log("photoLibraryDidChange", log: OSLog.default, type: .info)
+    
             AutoUpload.shared.assets = (fetchResultChangeDetails?.fetchResultAfterChanges)!
             
             AutoUpload.shared.start()
-            
-            //let insertedObjects = fetchResultChangeDetails?.insertedObjects
-            
-            print("autoupload assets\(String(describing: AutoUpload.shared.assets.count))")
-            
-            let removedObjects = fetchResultChangeDetails?.removedObjects
-            
-            print("removedObjects\(String(describing: removedObjects?.count))")
-            
         }
-        
     }
-    
 }
