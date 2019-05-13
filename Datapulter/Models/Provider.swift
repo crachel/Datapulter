@@ -122,6 +122,10 @@ class Provider: NSObject, NSCoding  {
         }
     }
     
+    public func listFileNames() {
+        fatalError("Must Override")
+    }
+    
     //MARK: NSCoding
     
     func encode(with aCoder: NSCoder) {

@@ -12,8 +12,9 @@ import os.log
 extension FileManager {
     func clearTemporaryDirectory() {
         do {
-        let temporaryDirectoryURL = FileManager.default.temporaryDirectory
-        let temporaryDirectory = try contentsOfDirectory(atPath: temporaryDirectoryURL.path)
+            let temporaryDirectoryURL = FileManager.default.temporaryDirectory
+            let temporaryDirectory = try contentsOfDirectory(atPath: temporaryDirectoryURL.path)
+            
             try temporaryDirectory.forEach { file in
                 let fileURL = temporaryDirectoryURL.appendingPathComponent(file)
                 try removeItem(atPath: fileURL.path)

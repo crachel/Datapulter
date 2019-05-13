@@ -41,36 +41,42 @@ class AutoUpload {
             return
         }
         os_log("started", log: .autoupload, type: .info)
-        if(!APIClient.shared.isActive()) {
-            assets = Utility.getCameraRollAssets()
+        
+        assets = Utility.getCameraRollAssets()
+        
+        for provider in providers {
             
-            for provider in providers {
+            provider.listFileNames()
+            
+            if(APIClient.shared.isActive()) {
+                os_log("APIClient is active", log: .autoupload, type: .error)
                 
-                assets.enumerateObjects({ (asset, _, _) in
-                    if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
-                        // object has not been uploaded & is not already in upload queue
-                        provider.assetsToUpload.insert(asset)
-                        provider.totalAssetsToUpload += 1
-                    }
-                })
-                
-                if (provider.totalAssetsToUpload > 0) {
-                    
-                    provider.updateRing()
-                    
-                    os_log("found %d assets", log: .autoupload, type: .info, provider.totalAssetsToUpload)
-                    
-                    provider.hud("\(provider.totalAssetsToUpload) objects found.")
-                    
-                    initiate(initialRequests, provider)
-                } else {
-                    os_log("no assets to upload", log: .autoupload, type: .info)
-                    
-                    provider.hud("Nothing to upload!")
-                }
+                provider.hud("Nothing to upload!")
+                return
             }
-        } else {
-            os_log("APIClient is active", log: .autoupload, type: .error)
+            
+            assets.enumerateObjects({ (asset, _, _) in
+                if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
+                    // object has not been uploaded & is not already in upload queue
+                    provider.assetsToUpload.insert(asset)
+                    provider.totalAssetsToUpload += 1
+                }
+            })
+            
+            if (provider.totalAssetsToUpload > 0) {
+                
+                provider.updateRing()
+                
+                os_log("found %d assets", log: .autoupload, type: .info, provider.totalAssetsToUpload)
+                
+                provider.hud("\(provider.totalAssetsToUpload) objects found.")
+                
+                initiate(initialRequests, provider)
+            } else {
+                os_log("no assets to upload", log: .autoupload, type: .info)
+                
+                provider.hud("Nothing to upload!")
+            }
         }
     }
     

@@ -110,20 +110,16 @@ class B2: Provider {
         case b2_finish_large_file
     }
     
-    /*
-    struct Views {
-        static let addView: UIStackView = {
-            var view = UIStackView(arrangedSubviews: AddProviderViewController.createButtons("test"))
-            view.translatesAutoresizingMaskIntoConstraints = false
-            view.axis = .vertical
-            view.spacing = 20
-            view.distribution = .fillEqually
-            view.backgroundColor = .red
-            return view
-        }()
-    }*/
-    
     struct Endpoints {
+        // Transactions Class A (unlimited number free)
+        static let finishLargeFile  = Endpoint(path: "/b2api/v2/b2_finish_large_file")
+        static let getUploadUrl     = Endpoint(path: "/b2api/v2/b2_get_upload_url")
+        static let getUploadPartUrl = Endpoint(path: "/b2api/v2/b2_get_upload_part_url")
+        static let startLargeFile   = Endpoint(path: "/b2api/v2/b2_start_large_file")
+        static let uploadFile       = Endpoint(path: "/b2api/v2/b2_upload_file")
+        static let uploadPart       = Endpoint(path: "/b2api/v2/b2_upload_part")
+        
+        // Transactions Class C ($0.004 per 1,000)
         static let authorizeAccount: Endpoint = {
             var components = URLComponents()
             components.scheme = "https"
@@ -131,14 +127,7 @@ class B2: Provider {
             components.path   = "/b2api/v2/b2_authorize_account"
             return Endpoint(components: components, method: HTTPMethod.get)
         }()
-        
-        // host for these endpoints not known at compile time
-        static let finishLargeFile  = Endpoint(path: "/b2api/v2/b2_finish_large_file")
-        static let getUploadUrl     = Endpoint(path: "/b2api/v2/b2_get_upload_url")
-        static let getUploadPartUrl = Endpoint(path: "/b2api/v2/b2_get_upload_part_url")
-        static let startLargeFile   = Endpoint(path: "/b2api/v2/b2_start_large_file")
-        static let uploadFile       = Endpoint(path: "/b2api/v2/b2_upload_file")
-        static let uploadPart       = Endpoint(path: "/b2api/v2/b2_upload_part")
+        static let listFileNames    = Endpoint(path: "/b2api/v2/b2_list_file_names")
     }
 
     struct HTTPHeaders {
@@ -495,6 +484,62 @@ class B2: Provider {
         _ = KeychainHelper.delete(account: account)
     }
     
+    override func listFileNames() {
+        
+        struct ListFileNamesRequest: Codable {
+            var bucketId: String
+            var startFileName: String?
+            var maxFileCount: String?
+            var prefix: String?
+            var delimiter: String?
+        }
+        
+        struct ListFileNamesResponse: Codable {
+            var files: [File]
+            var nextFileName: String?
+        }
+        
+        struct File: Codable {
+            var accountId: String
+            var action: String
+            var bucketId: String
+            var contentLength: Int64
+            var contentSha1: String
+            var contentType: String
+            var fileId: String
+            var fileInfo: [String:String]
+            var fileName: String
+            var uploadTimestamp: Int64
+        }
+        
+        let request = ListFileNamesRequest(bucketId: bucketId,
+                                           startFileName: nil,
+                                           maxFileCount: nil,
+                                           prefix: "iphone/",
+                                           delimiter: "/")
+        
+        var uploadData: Data
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            return
+        }
+        
+        self.fetch(from: Endpoints.listFileNames, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
+            self.recover(from: error, retry: Endpoints.getUploadUrl, with: uploadData)
+        }.then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            try JSONDecoder().decode(ListFileNamesResponse.self, from: data)
+        }.then { result in
+            print(result)
+        }.catch { error in
+            print(error)
+        }
+        
+    
+    }
+    
     //MARK: Private methods
     
     private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
@@ -575,7 +620,7 @@ class B2: Provider {
     private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
         switch error {
         case B2Error.bad_auth_token, B2Error.expired_auth_token:
-            os_log("%@. attempting refresh then retrying API call", log: .b2, type: .error, error.localizedDescription)
+            os_log("bad or expired auth token. attempting refresh then retrying API call", log: .b2, type: .error)
             return self.authorizeAccount().then { data, _ in
                 Utility.objectIsType(object: data, someObjectOfType: Data.self)
             }.then { data in
