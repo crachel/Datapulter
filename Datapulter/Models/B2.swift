@@ -73,8 +73,6 @@ class B2: Provider {
         }
     }
     
-    
-    
     //MARK: Types
     
     enum B2Error: String, Error {
@@ -105,11 +103,6 @@ class B2: Provider {
         }
     }
     
-    enum APIOperation: String {
-        case b2_upload_file
-        case b2_finish_large_file
-    }
-    
     struct Endpoints {
         // Transactions Class A (unlimited number free)
         static let finishLargeFile  = Endpoint(path: "/b2api/v2/b2_finish_large_file")
@@ -128,6 +121,7 @@ class B2: Provider {
             return Endpoint(components: components, method: HTTPMethod.get)
         }()
         static let listFileNames    = Endpoint(path: "/b2api/v2/b2_list_file_names")
+        static let listFileVersions = Endpoint(path: "/b2api/v2/b2_list_file_versions")
     }
 
     struct HTTPHeaders {
@@ -161,162 +155,22 @@ class B2: Provider {
         let allowed: Allowed
     }
     
-    struct FinishLargeFileResponse: Codable {
-        var accountId: String
-        var action: String
-        var bucketId: String
-        var contentLength: Int64
-        var contentSha1: String
-        var contentType: String
-        var fileId: String
-        var fileName: String
-        var uploadTimestamp: Int64
-        var fileInfo: [String: String]?
-        
-        private enum CodingKeys: String, CodingKey {
-            case accountId
-            case action
-            case bucketId
-            case contentLength
-            case contentSha1
-            case contentType
-            case fileId
-            case fileName
-            case uploadTimestamp
-            case fileInfo
-        }
-        
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            accountId = try container.decode(String.self, forKey: .accountId)
-            action = try container.decode(String.self, forKey: .action)
-            bucketId = try container.decode(String.self, forKey: .bucketId)
-            contentLength = try container.decode(Int64.self, forKey: .contentLength)
-            contentSha1 = try container.decode(String.self, forKey: .contentSha1)
-            contentType = try container.decode(String.self, forKey: .contentType)
-            fileId = try container.decode(String.self, forKey: .fileId)
-            fileName = try container.decode(String.self, forKey: .fileName)
-            uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
-            
-            fileInfo = [String: String]()
-            let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
-            for key in subContainer.allKeys {
-                fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
-            }
-            
-        }
-    }
-    
-    struct GetUploadPartURLResponse: Codable {
-        var fileId: String
-        var uploadUrl: URL
-        var authorizationToken: String
-    }
-    
     struct GetUploadURLResponse: Codable {
         var bucketId: String
         var uploadUrl: URL
         var authorizationToken: String
     }
     
-    struct StartLargeFileResponse: Codable {
+    struct File: Codable {
         var accountId: String
         var action: String
         var bucketId: String
         var contentLength: Int64
-        var contentSha1: String
+        var contentSha1: String?
         var contentType: String
         var fileId: String
+        var fileInfo: [String:String]?
         var fileName: String
-        var uploadTimestamp: Int64
-        var fileInfo: [String: String]?
-        
-        private enum CodingKeys: String, CodingKey {
-            case accountId
-            case action
-            case bucketId
-            case contentLength
-            case contentSha1
-            case contentType
-            case fileId
-            case fileName
-            case uploadTimestamp
-            case fileInfo
-        }
-        
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            accountId = try container.decode(String.self, forKey: .accountId)
-            action = try container.decode(String.self, forKey: .action)
-            bucketId = try container.decode(String.self, forKey: .bucketId)
-            contentLength = try container.decode(Int64.self, forKey: .contentLength)
-            contentSha1 = try container.decode(String.self, forKey: .contentSha1)
-            contentType = try container.decode(String.self, forKey: .contentType)
-            fileId = try container.decode(String.self, forKey: .fileId)
-            fileName = try container.decode(String.self, forKey: .fileName)
-            uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
-            
-            fileInfo = [String: String]()
-            let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
-            for key in subContainer.allKeys {
-                fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
-            }
-            
-        }
-        
-    }
-    
-    struct UploadFileResponse: Codable {
-        var accountId: String
-        var action: String
-        var bucketId: String
-        var contentLength: Int64
-        var contentSha1: String
-        var contentType: String
-        var fileId: String
-        var fileName: String
-        var uploadTimestamp: Int64
-        var fileInfo: [String: String]?
-        
-        private enum CodingKeys: String, CodingKey {
-            case accountId
-            case action
-            case bucketId
-            case contentLength
-            case contentSha1
-            case contentType
-            case fileId
-            case fileName
-            case uploadTimestamp
-            case fileInfo
-        }
-        
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            accountId = try container.decode(String.self, forKey: .accountId)
-            action = try container.decode(String.self, forKey: .action)
-            bucketId = try container.decode(String.self, forKey: .bucketId)
-            contentLength = try container.decode(Int64.self, forKey: .contentLength)
-            contentSha1 = try container.decode(String.self, forKey: .contentSha1)
-            contentType = try container.decode(String.self, forKey: .contentType)
-            fileId = try container.decode(String.self, forKey: .fileId)
-            fileName = try container.decode(String.self, forKey: .fileName)
-            uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
-            
-            fileInfo = [String: String]()
-            let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
-            for key in subContainer.allKeys {
-                fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
-            }
-            
-        }
-    }
-    
-    struct UploadPartResponse: Codable {
-        var fileId: String
-        var partNumber: Int64
-        var contentLength: Int64
-        var contentSha1: String
         var uploadTimestamp: Int64
     }
     
@@ -367,6 +221,8 @@ class B2: Provider {
         urlRequest.httpMethod = HTTPMethod.get
         urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: HTTPHeaders.authorization)
         
+        os_log("Transactions Class C - %@", log: .b2, type: .info, Endpoints.authorizeAccount.components.path)
+        
         return fetch(from: urlRequest)
     }
     
@@ -390,10 +246,42 @@ class B2: Provider {
             
             return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
         }
+        
+        func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, Data?)> {
+            return Promise { fulfill, reject in
+                var urlRequest = URLRequest(url: result.uploadUrl)
+                
+                urlRequest.httpMethod = HTTPMethod.post
+                
+                urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+                urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
+                urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+                
+                //urlRequest.setValue("fail_some_uploads",forHTTPHeaderField: "X-Bz-Test-Mode")
+                
+                if let fileName = asset.percentEncodedFilename {
+                    urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
+                } else {
+                    reject(providerError.foundNil)
+                }
+                
+                if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
+                    urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
+                } else {
+                    reject(providerError.foundNil)
+                }
+                
+                Utility.getData(from: asset) { data, _ in
+                    urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
+                    
+                    fulfill((urlRequest, data))
+                }
+            }
+        }
     
         if (pool.count > Defaults.poolMinimum) {
             if let data = pool.dequeue() {
-                return self.buildUploadFileRequest(from: asset, with: data)
+                return buildUploadFileRequest(from: asset, with: data)
             }
         }
         
@@ -415,7 +303,7 @@ class B2: Provider {
         }.then { data in
             try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
         }.then { result in
-            self.buildUploadFileRequest(from: asset, with: result)
+            buildUploadFileRequest(from: asset, with: result)
         }
     }
 
@@ -427,20 +315,22 @@ class B2: Provider {
             if (originalUrl.path.contains(Endpoints.uploadFile.components.path)) { // alternative could be [URLRequest:Endpoint]
                 if (response.statusCode == 200) {
                     
-                    finishUploadOperation(.b2_upload_file, asset.localIdentifier, data)
+                    finishUploadOperation(asset.localIdentifier, data)
                     
-                    var uploadFileResponse: UploadFileResponse
+                    var file: File
+                    //var uploadFileResponse: UploadFileResponse
                     
                     do {
-                        uploadFileResponse = try JSONDecoder().decode(UploadFileResponse.self, from: data)
+                        //uploadFileResponse = try JSONDecoder().decode(UploadFileResponse.self, from: data)
+                        file = try JSONDecoder().decode(File.self, from: data)
                     } catch {
                         return
                     }
-                    
-                    remoteFileList[asset.localIdentifier] = data
+                    //remoteFileList[asset.localIdentifier] = data
                     
                     if let token = allHeaders["Authorization"] {
-                        let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId,
+                        //let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId,
+                        let getUploadURLResponse = GetUploadURLResponse(bucketId: file.bucketId,
                                                                         uploadUrl: originalUrl,
                                                                         authorizationToken: token)
                         
@@ -484,65 +374,97 @@ class B2: Provider {
         _ = KeychainHelper.delete(account: account)
     }
     
-    override func listFileNames() {
+    override func check() {
         
-        struct ListFileNamesRequest: Codable {
+        struct ListFileVersionsRequest: Codable {
             var bucketId: String
             var startFileName: String?
-            var maxFileCount: String?
+            var startFileId: String?
+            var maxFileCount: Int64?
             var prefix: String?
             var delimiter: String?
         }
         
-        struct ListFileNamesResponse: Codable {
+        struct ListFileVersionsResponse: Codable {
             var files: [File]
             var nextFileName: String?
+            var nextFileId: String?
         }
         
-        struct File: Codable {
-            var accountId: String
-            var action: String
-            var bucketId: String
-            var contentLength: Int64
-            var contentSha1: String
-            var contentType: String
-            var fileId: String
-            var fileInfo: [String:String]
-            var fileName: String
-            var uploadTimestamp: Int64
+        var rfl:Int64 = 0
+        
+        for file in remoteFileList {
+            do {
+                //let response = try JSONDecoder().decode(UploadFileResponse.self, from: file.value)
+                let response = try JSONDecoder().decode(File.self, from: file.value)
+                rfl += response.contentLength
+            } catch {
+                print(error)
+            }
+        }
+        print ("remotefilelist.count \(remoteFileList.count)")
+        print ("ffl \(rfl)")
+        var totalRemoteSize:Int64 = 0
+        var totalObjects = 0
+        
+        func iterate(_ startFileName: String? = nil,_ startFileId: String? = nil) {
+            
+            let request = ListFileVersionsRequest(bucketId: bucketId,
+                                                  startFileName: startFileName,
+                                                  startFileId: startFileId,
+                                                  maxFileCount: 100,
+                                                  prefix: "simulator/",
+                                                  delimiter: "/")
+            
+            var uploadData: Data
+            do {
+                uploadData = try JSONEncoder().encode(request)
+            } catch {
+                return
+            }
+            
+            os_log("Transactions Class C - %@", log: .b2, type: .info, Endpoints.listFileVersions.components.path)
+            
+            self.fetch(from: Endpoints.listFileVersions, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
+                self.recover(from: error, retry: Endpoints.listFileVersions, with: uploadData)
+            }.then { data, _ in
+                Utility.objectIsType(object: data, someObjectOfType: Data.self)
+            }.then { data in
+                try JSONDecoder().decode(ListFileVersionsResponse.self, from: data)
+            }.then { result in
+                
+                for file in result.files {
+                    if(file.action == "upload") {
+                        totalObjects += 1
+                    }
+                    totalRemoteSize += file.contentLength
+                }
+                if(result.nextFileId == nil) {
+                    print("totalObjects \(totalObjects)")
+                    print("totalRemoteSize \(totalRemoteSize)")
+                } else {
+                    iterate(result.nextFileName, result.nextFileId)
+                }
+                
+            }.catch { error in
+                print(error)
+            }
         }
         
-        let request = ListFileNamesRequest(bucketId: bucketId,
-                                           startFileName: nil,
-                                           maxFileCount: nil,
-                                           prefix: "iphone/",
-                                           delimiter: "/")
-        
-        var uploadData: Data
-        do {
-            uploadData = try JSONEncoder().encode(request)
-        } catch {
-            return
-        }
-        
-        self.fetch(from: Endpoints.listFileNames, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
-            self.recover(from: error, retry: Endpoints.getUploadUrl, with: uploadData)
-        }.then { data, _ in
-            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-        }.then { data in
-            try JSONDecoder().decode(ListFileNamesResponse.self, from: data)
-        }.then { result in
-            print(result)
-        }.catch { error in
-            print(error)
-        }
-        
+        iterate()
     
     }
     
     //MARK: Private methods
     
     private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
+        /**
+         Starts a URLSessionUploadTask or URLSessionDataTask depending on the
+         HTTP method of the URLRequest.
+         
+         In addition to all client-side errors, it also treats any URLResponse
+         status code other than 200 as an error so that we may recover from it.
+         */
         return Promise { fulfill, reject in
             
             var task = URLSessionTask()
@@ -637,43 +559,59 @@ class B2: Provider {
         }
     }
     
-    private func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, Data?)> {
-        return Promise { fulfill, reject in
-            var urlRequest = URLRequest(url: result.uploadUrl)
-            
-            urlRequest.httpMethod = HTTPMethod.post
-            
-            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
-            urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
-            urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
-            
-            //urlRequest.setValue("fail_some_uploads",forHTTPHeaderField: "X-Bz-Test-Mode")
-            
-            if let fileName = asset.percentEncodedFilename {
-                urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
-            } else {
-                reject(providerError.foundNil)
-            }
-            
-            if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
-                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
-            } else {
-                reject(providerError.foundNil)
-            }
-            
-            Utility.getData(from: asset) { data, _ in
-                urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
-            
-                fulfill((urlRequest, data))
-            }
-        }
-    }
-    
     private func processLargeFile(_ asset: PHAsset) throws {
+        
         struct StartLargeFileRequest: Codable {
             var bucketId: String
             var fileName: String
             var contentType: String
+        }
+        
+        struct StartLargeFileResponse: Codable {
+            var accountId: String
+            var action: String
+            var bucketId: String
+            var contentLength: Int64
+            var contentSha1: String
+            var contentType: String
+            var fileId: String
+            var fileName: String
+            var uploadTimestamp: Int64
+            var fileInfo: [String: String]?
+            
+            private enum CodingKeys: String, CodingKey {
+                case accountId
+                case action
+                case bucketId
+                case contentLength
+                case contentSha1
+                case contentType
+                case fileId
+                case fileName
+                case uploadTimestamp
+                case fileInfo
+            }
+            
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                accountId = try container.decode(String.self, forKey: .accountId)
+                action = try container.decode(String.self, forKey: .action)
+                bucketId = try container.decode(String.self, forKey: .bucketId)
+                contentLength = try container.decode(Int64.self, forKey: .contentLength)
+                contentSha1 = try container.decode(String.self, forKey: .contentSha1)
+                contentType = try container.decode(String.self, forKey: .contentType)
+                fileId = try container.decode(String.self, forKey: .fileId)
+                fileName = try container.decode(String.self, forKey: .fileName)
+                uploadTimestamp = try container.decode(Int64.self, forKey: .uploadTimestamp)
+                
+                fileInfo = [String: String]()
+                let subContainer = try container.nestedContainer(keyedBy: GenericCodingKeys.self, forKey: .fileInfo)
+                for key in subContainer.allKeys {
+                    fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
+                }
+                
+            }
+            
         }
         
         struct FinishLargeUploadRequest: Codable {
@@ -681,63 +619,17 @@ class B2: Provider {
             var partSha1Array: [String]
         }
         
-        guard let fileName = asset.originalFilename else {
-            throw providerError.foundNil
-        }
+        func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])>  {
         
-        let request = StartLargeFileRequest(bucketId: bucketId,
-                                            fileName: self.filePrefix.addingSuffixIfNeeded("/") + fileName,
-                                            contentType: HTTPHeaders.contentTypeValue)
-        
-        var uploadData: Data
-        
-        do {
-            uploadData = try JSONEncoder().encode(request)
-        } catch {
-            throw providerError.preparationFailed
-        }
-        
-        self.fetch(from: Endpoints.startLargeFile, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
-            self.recover(from: error, retry: Endpoints.startLargeFile, with: uploadData)
-        }.then { data, _ in
-            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-        }.then { data in
-            try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
-        }.then { parsedResult in
-            self.createParts(asset, parsedResult.fileId) // loops. breaks file into chunks & uploads them
-        }.then { fileId, partSha1Array in
-            try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
-        }.then { uploadData in
-            self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
-        }.recover { error -> Promise<(Data?, URLResponse?)> in
-            self.recover(from: error, retry: Endpoints.finishLargeFile, with: uploadData)
-        }.then { data, response in
-            if let data = data,
-               let response = response as? HTTPURLResponse {
-                if (response.statusCode == 200) {
-                    
-                    self.finishUploadOperation(.b2_finish_large_file, asset.localIdentifier, data)
-                   
-                    if (self.largeFilePool.isEmpty) {
-                        self.processingLargeFile = false // ends here
-                    } else {
-                        if let newAsset = self.largeFilePool.popFirst() {
-                            try self.processLargeFile(newAsset)
-                        } else {
-                            throw providerError.foundNil
-                        }
-                    }
-                }
-            } else {
-                throw providerError.invalidResponse
-            }
-        }
-    }
-    
-    private func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])>  {
         struct GetUploadPartURLRequest: Codable {
             var fileId: String
         }
+        struct GetUploadPartURLResponse: Codable {
+            var fileId: String
+            var uploadUrl: URL
+            var authorizationToken: String
+        }
+        
         return Promise { fulfill, reject in
             Utility.getURL(ofPhotoWith: asset) { url in
                 //let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -806,12 +698,12 @@ class B2: Provider {
                         //add recover here
                         return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
                             self.recover(from: error, retry: Endpoints.getUploadPartUrl, with: uploadData)
-                        }.then { data, _ in
-                            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-                        }.then { data in
-                            try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                        }.then { parsedResponse in
-                            uploadPart(parsedResponse, bytes, payloadFileURL, part, partSha1Array.last!)
+                            }.then { data, _ in
+                                Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                            }.then { data in
+                                try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+                            }.then { parsedResponse in
+                                uploadPart(parsedResponse, bytes, payloadFileURL, part, partSha1Array.last!)
                         }
                     }
                     
@@ -841,8 +733,61 @@ class B2: Provider {
         }
         
     }
+        
+        guard let fileName = asset.originalFilename else {
+            throw providerError.foundNil
+        }
+        
+        let request = StartLargeFileRequest(bucketId: bucketId,
+                                            fileName: self.filePrefix.addingSuffixIfNeeded("/") + fileName,
+                                            contentType: HTTPHeaders.contentTypeValue)
+        
+        var uploadData: Data
+        
+        do {
+            uploadData = try JSONEncoder().encode(request)
+        } catch {
+            throw providerError.preparationFailed
+        }
+        
+        self.fetch(from: Endpoints.startLargeFile, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
+            self.recover(from: error, retry: Endpoints.startLargeFile, with: uploadData)
+        }.then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            try JSONDecoder().decode(StartLargeFileResponse.self, from: data)
+        }.then { parsedResult in
+            createParts(asset, parsedResult.fileId) // loops. breaks file into chunks & uploads them
+        }.then { fileId, partSha1Array in
+            try JSONEncoder().encode(FinishLargeUploadRequest(fileId: fileId, partSha1Array: partSha1Array))
+        }.then { uploadData in
+            self.fetch(from: Endpoints.finishLargeFile, with: uploadData)
+        }.recover { error -> Promise<(Data?, URLResponse?)> in
+            self.recover(from: error, retry: Endpoints.finishLargeFile, with: uploadData)
+        }.then { data, response in
+            if let data = data,
+               let response = response as? HTTPURLResponse {
+                if (response.statusCode == 200) {
+                    
+                    self.finishUploadOperation(asset.localIdentifier, data)
+                   
+                    if (self.largeFilePool.isEmpty) {
+                        self.processingLargeFile = false // ends here
+                    } else {
+                        if let newAsset = self.largeFilePool.popFirst() {
+                            try self.processLargeFile(newAsset)
+                        } else {
+                            throw providerError.foundNil
+                        }
+                    }
+                }
+            } else {
+                throw providerError.invalidResponse
+            }
+        }
+    }
     
-    private func finishUploadOperation(_ type: APIOperation,_ localIdentifier: String,_ data: Data) {
+    private func finishUploadOperation(_ localIdentifier: String,_ data: Data) {
         /*
          remoteFileList should be indexed by the assetlocalidentifier.
          cant use sha1 as index bc a user may have a movie that's 500MB.
@@ -851,19 +796,20 @@ class B2: Provider {
          
          so each data response needs to be encoded then converted to this
          new object type. also needs to be storable in cloudkit or similar.
+         ***WRONG: append raw JSONdata and worry about decoding when data is
+         actually needed. Data easier to work with than some custom Struct
+         
+         sha1 exists for all but large files. should be useful should localidentifier
+         not actually be persistent as apple claims. could also check times/names
          
          the final interfacing between cloudkit should be handled by Autoupload
          by passing self + this new object type
          */
         
-        switch type {
-        case .b2_upload_file:
-            remoteFileList[localIdentifier] = data
-        case .b2_finish_large_file:
-            remoteFileList[localIdentifier] = data
-        }
+        remoteFileList[localIdentifier] = data
         
         totalAssetsUploaded += 1
+        
         updateRing()
         
         AutoUpload.shared.saveProviders()
@@ -909,4 +855,3 @@ class B2: Provider {
     }
  
 }
-

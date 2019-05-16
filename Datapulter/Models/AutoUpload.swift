@@ -46,7 +46,7 @@ class AutoUpload {
         
         for provider in providers {
             
-            provider.listFileNames()
+            //provider.check()
             
             if(APIClient.shared.isActive()) {
                 os_log("APIClient is active", log: .autoupload, type: .error)
@@ -71,7 +71,7 @@ class AutoUpload {
                 
                 provider.hud("\(provider.totalAssetsToUpload) objects found.")
                 
-                initiate(initialRequests, provider)
+                //initiate(initialRequests, provider)
             } else {
                 os_log("no assets to upload", log: .autoupload, type: .info)
                 

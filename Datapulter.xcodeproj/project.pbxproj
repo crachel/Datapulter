@@ -15,6 +15,7 @@
 		9B14FD3F220B6079003D52AF /* Date.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B14FD3E220B6079003D52AF /* Date.swift */; };
 		9B2075E721DB9890006ECD02 /* Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2075E621DB9890006ECD02 /* Utility.swift */; };
 		9B356B352288DE5200A6E30C /* CKRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B356B342288DE5200A6E30C /* CKRecord.swift */; };
+		9B356B39228C98A100A6E30C /* S3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B356B38228C98A100A6E30C /* S3.swift */; };
 		9B4CC7FB225B9BEA00A832EA /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B4CC7FA225B9BEA00A832EA /* CloudKit.framework */; };
 		9B4CC7FF225D0E4400A832EA /* Managed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4CC7FE225D0E4400A832EA /* Managed.swift */; };
 		9B4CC801225D259E00A832EA /* Container.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4CC800225D259E00A832EA /* Container.swift */; };
@@ -58,6 +59,7 @@
 		9B14FD3E220B6079003D52AF /* Date.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Date.swift; sourceTree = "<group>"; };
 		9B2075E621DB9890006ECD02 /* Utility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utility.swift; sourceTree = "<group>"; };
 		9B356B342288DE5200A6E30C /* CKRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CKRecord.swift; sourceTree = "<group>"; };
+		9B356B38228C98A100A6E30C /* S3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = S3.swift; sourceTree = "<group>"; };
 		9B4CC7F9225B9BE100A832EA /* Datapulter.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Datapulter.entitlements; sourceTree = "<group>"; };
 		9B4CC7FA225B9BEA00A832EA /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		9B4CC7FE225D0E4400A832EA /* Managed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Managed.swift; sourceTree = "<group>"; };
@@ -82,7 +84,7 @@
 		9BCE4AF521B7DB9900DECB10 /* DatapulterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DatapulterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BCE4AF921B7DB9900DECB10 /* DatapulterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatapulterTests.swift; sourceTree = "<group>"; };
 		9BCE4AFB21B7DB9900DECB10 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		9BD86B1921C2D8B300958EAD /* AutoUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoUpload.swift; sourceTree = "<group>"; };
+		9BD86B1921C2D8B300958EAD /* AutoUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AutoUpload.swift; path = ../Models/AutoUpload.swift; sourceTree = "<group>"; };
 		9BE8C43D2274B2DC00250C81 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Datapulter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -128,10 +130,10 @@
 		9B03DB3D2280423700895337 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				9BD86B1921C2D8B300958EAD /* AutoUpload.swift */,
 				9BC163EC21B95263003272FF /* B2.swift */,
 				9B4CC7FE225D0E4400A832EA /* Managed.swift */,
 				9BC163E621B844CD003272FF /* Provider.swift */,
+				9B356B38228C98A100A6E30C /* S3.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -200,6 +202,7 @@
 		9B03DB462280479400895337 /* Networking */ = {
 			isa = PBXGroup;
 			children = (
+				9BD86B1921C2D8B300958EAD /* AutoUpload.swift */,
 				9BE8C43D2274B2DC00250C81 /* APIClient.swift */,
 			);
 			path = Networking;
@@ -434,6 +437,7 @@
 				9BA88862221A1DD6000D5E5B /* PHAsset.swift in Sources */,
 				9B4CC80322620B1800A832EA /* Queue.swift in Sources */,
 				9B2075E721DB9890006ECD02 /* Utility.swift in Sources */,
+				9B356B39228C98A100A6E30C /* S3.swift in Sources */,
 				9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */,
 				9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */,
 				9BC163ED21B95263003272FF /* B2.swift in Sources */,

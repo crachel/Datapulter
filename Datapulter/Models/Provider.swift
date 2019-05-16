@@ -31,6 +31,7 @@ class Provider: NSObject, NSCoding  {
     
     enum Site {
         case Backblaze
+        case S3
         case DatapulterManaged
     }
     
@@ -122,7 +123,7 @@ class Provider: NSObject, NSCoding  {
         }
     }
     
-    public func listFileNames() {
+    public func check() {
         fatalError("Must Override")
     }
     
