@@ -48,6 +48,11 @@ class AutoUpload {
             
             //provider.check()
             
+            let s3 = S3(name: "<#T##String#>", accessKeyID: "<#T##String#>", secretAccessKey: "<#T##String#>", remoteFileList: [:])
+            s3.authorizeAccount()
+            
+           // print("test".hmac_sha256(key: "test"))
+            
             if(APIClient.shared.isActive()) {
                 os_log("APIClient is active", log: .autoupload, type: .error)
                 

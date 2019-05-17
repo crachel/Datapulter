@@ -26,6 +26,13 @@ class S3: Provider {
     
     //MARK: Types
     
+    struct AuthorizationHeader {
+        static let signatureVersion = "AWS4"
+        static let signingAlgorithm = "HMAC-SHA256"
+        static let service          = "s3/aws4_request"
+        static let date             = Date.getFormattedDate(Defaults.dateFormat)
+    }
+    
     struct HTTPHeaders {
         static let authorization = "Authorization"
         static let date          = "Date"
@@ -49,8 +56,68 @@ class S3: Provider {
     
     //MARK: Public methods
     
-    public func sign() {
-        print(Date.getFormattedDate(dateFormat: Defaults.dateFormat))
+    override func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
+        /*
+         canonicalRequest = `
+         ${HTTPMethod}\n
+         ${canonicalURI}\n
+         ${canonicalQueryString}\n
+         ${canonicalHeaders}\n
+         ${signedHeaders}\n
+         ${hashedPayload}
+         `
+         
+         stringToSign = "AWS4-HMAC-SHA256" + "\n" +
+         date(format=ISO08601) + "\n" +
+         date(format=YYYYMMDD) + "/" + ${REGION} + "/" + "s3/aws4_request" + "\n" +
+         Hex(SHA256Hash(canonicalRequest))
+         
+         dateKey = HMAC-SHA256("AWS4" + ${SECRET_KEY}, date(format=YYYYMMDD))
+         dateRegionKey = HMAC-SHA256(dateKey, ${REGION})
+         dateRegionServiceKey = HMAC-SHA256(dateRegionKey, "s3")
+         signingKey = HMAC-SHA256(dateRegionServiceKey, "aws4_request")
+         
+         signature = Hex(HMAC-SHA256(signingKey, stringToSign))
+         
+         HMAC(key, data)
+         kDate = HMAC("AWS4" + kSecret, Date)
+         kRegion = HMAC(kDate, Region)
+         kService = HMAC(kRegion, Service)
+         kSigning = HMAC(kService, "aws4_request")
+         */
+        let region = "us-east-1"
+        
+        //let endpoint = "https://" + region + ".digitaloceanspaces.com"
+        //let signingKey = "something"
+        
+        // String.key(Data) -> Data
+        
+        let kSecret = "AWS4wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY"
+        //let str = String(describing: kSecret.cString(using: String.Encoding.utf8))
+        let str = kSecret.data(using: .utf8)
+        
+        let kDate = "20120215".hmac_sha256(key: str!)
+        print("kDate \(kDate.map { String(format: "%02x", $0) }.joined())")
+        
+        let kRegion = region.hmac_sha256(key: kDate)
+        print("kRegion \(kRegion.map { String(format: "%02x", $0) }.joined())")
+        
+        let kService = "iam".hmac_sha256(key: kRegion)
+        print("kService \(kService.map { String(format: "%02x", $0) }.joined())")
+        let kSigning = "aws4_request".hmac_sha256(key: kService)
+        
+        
+        print(kSigning.map { String(format: "%02x", $0) }.joined())
+        
+        
+        /*
+        let stringToSign = AuthorizationHeader.signatureVersion + "-" + AuthorizationHeader.signingAlgorithm + "\n"
+            + Date().iso8601 + "\n"
+            + Date.getFormattedDate(Defaults.dateFormat) + "/" + "region" + "/" + AuthorizationHeader.service + "\n"
+    
+        let signature = stringToSign.hmac_sha256(key: signingKey).sha256()*/
+        
+        return Promise(providerError.foundNil)
     }
     
     //MARK: Private methods

@@ -17,11 +17,16 @@ extension Date {
         self = Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
     }
     
-    static func getFormattedDate(dateFormat: String) -> String{
+    static func getFormattedDate(_ dateFormat: String) -> String{
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US")
         dateFormatter.dateFormat = dateFormat // This formate is input formated .
         
         return(dateFormatter.string(from: Date()))
+    }
+    
+    var iso8601: String {
+        let formatter = ISO8601DateFormatter()
+        return formatter.string(from: self)
     }
 }
