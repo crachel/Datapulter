@@ -44,6 +44,7 @@ struct GenericCodingKeys: CodingKey {
 enum HTTPMethod {
     static let post = "POST"
     static let get = "GET"
+    static let put = "PUT"
 }
 
 struct JSONError: Codable {

@@ -48,7 +48,7 @@ class AutoUpload {
             
             //provider.check()
             
-            let s3 = S3(name: "<#T##String#>", accessKeyID: "<#T##String#>", secretAccessKey: "<#T##String#>", remoteFileList: [:])
+            let s3 = S3(name: "<#T##String#>", accessKeyID: "<#T##String#>", secretAccessKey: "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY", region: "us-east-1", remoteFileList: [:])
             s3.authorizeAccount()
             
            // print("test".hmac_sha256(key: "test"))

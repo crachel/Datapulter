@@ -30,4 +30,8 @@ extension Data {
         
         return digest.map { String(format: "%02x", $0) }.joined()
     }
+    
+    public var hex: String {
+        return self.map { String(format: "%02x", $0) }.joined()
+    }
 }
