@@ -21,6 +21,16 @@ extension Data {
         return digest.map { String(format: "%02x", $0) }.joined()
     }
     
+    public var md5: String {
+        var digest = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
+        
+        _ = withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
+            return CC_MD5(bytes.baseAddress, CC_LONG(count), &digest)
+        }
+        
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+    
     public var sha256: String {
         var digest = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
         

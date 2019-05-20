@@ -99,6 +99,7 @@ extension APIClient: URLSessionDataDelegate {
         // downcast for access to statusCode
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
        
+        //s3 doesn't send data for successful response
         AutoUpload.shared.handler(data, httpResponse, dataTask)
     }
     

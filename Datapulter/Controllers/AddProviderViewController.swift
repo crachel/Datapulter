@@ -13,6 +13,20 @@ import Promises
 
 class AddProviderViewController: FormViewController, UITextFieldDelegate {
     
+    /*
+     
+     /*row.hidden = Condition.function(["actionsProvider"])
+     { form in
+     if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+     return row.value != "Backblaze B2"
+     }
+     return false
+     }*/
+     
+     
+     
+     */
+    
     //MARK: Properties
     var provider: Provider?
 
@@ -24,81 +38,47 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
         // Do any additional setup after loading the view, typically from a nib.
         form +++ Section()
             <<< ActionSheetRow<String>("actionsProvider") {
-                $0.title = "Pick Provider"
-                $0.selectorTitle = "Pick Provider"
-                $0.options = ["Backblaze B2","Datapulter Managed"]
-                $0.value = "Backblaze B2"    // initially selected
+                    $0.title = "Provider"
+                    $0.selectorTitle = "Pick Provider"
+                    $0.options = ["Backblaze B2","Amazon S3","Datapulter Managed"]
+                    $0.value = "Backblaze B2"    // initially selected
                 }
             <<< AccountRow("tagName") { row in
-                row.title = "Remote Name"
-                row.placeholder = "\"My Backblaze B2 Remote\""
-                row.add(rule: RuleRequired())
-                row.hidden = Condition.function(["actionsProvider"])
-                { form in
-                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-                        return row.value != "Backblaze B2"
-                    }
-                    return false
-                }
+                    row.title = "Remote Name"
+                    row.placeholder = "\"My Remote Storage\""
+                    row.add(rule: RuleRequired())
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
                 }
             <<< AccountRow("tagKeyID") { row in
-                row.title = "Key ID"
-                row.placeholder = "Your account key ID"
-                row.add(rule: RuleRequired())
-                row.hidden = Condition.function(["actionsProvider"])
-                { form in
-                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-                        return row.value != "Backblaze B2"
-                    }
-                    return false
+                    row.title = "Key ID"
+                    row.placeholder = "Your account key ID"
+                    row.add(rule: RuleRequired())
+                }.cellUpdate { cell, _ in
+                    cell.textField.delegate = self
                 }
-                }.cellUpdate { cell, row in
-                        cell.textField.delegate = self
-                }
-            <<< PasswordRow("tagKey"){ row in
-                row.title = "Key"
-                row.placeholder = "Your key"
-                row.add(rule: RuleRequired())
-                row.hidden = Condition.function(["actionsProvider"])
-                { form in
-                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-                        return row.value != "Backblaze B2"
-                    }
-                    return false
-                }
+            <<< PasswordRow("tagKey") { row in
+                    row.title = "Key"
+                    row.placeholder = "Your key"
+                    row.add(rule: RuleRequired())
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
                 }
-            <<< AccountRow("tagBucket"){ row in
-                row.title = "Bucket"
-                row.placeholder = "Your unique bucket name"
-                row.add(rule: RuleRequired())
-                row.hidden = Condition.function(["actionsProvider"])
-                { form in
-                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-                        return row.value != "Backblaze B2"
-                    }
-                    return false
-                }
+            <<< AccountRow("tagBucket") { row in
+                    row.title = "Bucket"
+                    row.placeholder = "Your unique bucket name"
+                    row.add(rule: RuleRequired())
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
                 }
-            <<< AccountRow("tagPrefix"){ row in
-                row.title = "Prefix"
-                row.placeholder = "my/directory"
-                row.add(rule: RuleRequired())
-                row.hidden = Condition.function(["actionsProvider"])
-                { form in
-                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-                        return row.value != "Backblaze B2"
-                    }
-                    return false
-                }
+            <<< AccountRow("tagPrefix") { row in
+                    row.title = "Prefix"
+                    row.placeholder = "my/directory"
+                    row.add(rule: RuleRequired())
                 }.cellUpdate { cell, row in
-                        cell.textField.delegate = self
+                    cell.textField.delegate = self
                 }
+            /*
             +++ Section("OPTIONS")
             <<< SwitchRow("tagVersions"){ row in
                 row.title = "Versions"
@@ -121,7 +101,7 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                     }
                     return false
                 }
-                }
+                }*/
     }
     
     //MARK: Navigation
@@ -148,9 +128,6 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
             let valuesDictionary = form.values()
             
             if(row.value == "Backblaze B2") {
-                //let valuesDictionary = form.values()
-                //print(valuesDictionary["tagKeyID"] as! String)
-                //"K0002N7fDPHf/MaFFITLUinf8//4qqc"
                 
                 provider = B2(name: valuesDictionary["tagName"] as! String, account: "000bd9db9a329de0000000002", key: "K0002N7fDPHf/MaFFITLUinf8//4qqc", bucket: "datapulter", versions: true, harddelete: false, accountId: "bd9db9a329de", bucketId: "db9d09bd1b19ba3362790d1e", remoteFileList: [:], filePrefix: "simulator")
                 
@@ -160,11 +137,14 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                     self.present(alert, animated: true, completion: nil)
                 }
                 
+            } else if (row.value == "Amazon S3") {
+                provider = S3(name: "s3", accessKeyID: "AKIAZ46WPMYAAYVDOW5H", secretAccessKey: "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", bucket: "datapulter", regionName: "us-west-2", hostName: "s3.amazonaws.com",  remoteFileList: [:])
+                
+                self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
             }
         }
         
     }
-    
     
     @IBAction func cancel(_ sender: UIBarButtonItem) {
         dismiss(animated: true, completion: nil)

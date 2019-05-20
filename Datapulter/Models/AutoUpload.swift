@@ -48,8 +48,7 @@ class AutoUpload {
             
             //provider.check()
             
-            let s3 = S3(name: "<#T##String#>", accessKeyID: "<#T##String#>", secretAccessKey: "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY", region: "us-east-1", remoteFileList: [:])
-            s3.authorizeAccount()
+            
             
            // print("test".hmac_sha256(key: "test"))
             
@@ -68,6 +67,47 @@ class AutoUpload {
                 }
             })
             
+            /*
+            let s3 = S3(name: "s3", accessKeyID: "AKIAZ46WPMYAAYVDOW5H", secretAccessKey: "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", bucket: "datapulter", regionName: "us-west-2", hostName: "s3.amazonaws.com",  remoteFileList: [:])
+            
+            //let s3 = S3(name: "s3", accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:])
+            
+            s3.getUploadFileURLRequest(from: provider.assetsToUpload.popFirst()!).then { request, data in
+                if let request = request,
+                    let data = data {
+                    
+                    print(request.allHTTPHeaderFields)
+                    
+                    //URLSession.shared.uploadTask(with: request, from: data).resume()
+                    
+                    let task = URLSession.shared.uploadTask(with: request, from: data) { data, response, error in
+                        if let error = error {
+                            print ("error: \(error)")
+                            return
+                        }
+                        guard let response = response as? HTTPURLResponse,
+                            (200...503).contains(response.statusCode) else {
+                                print ("server error")
+                                return
+                        }
+                        print (response.allHeaderFields)
+                        print (response.statusCode)
+                        
+                        if let mimeType = response.mimeType,
+                            mimeType == "application/xml",
+                            let data = data,
+                            let dataString = String(data: data, encoding: .utf8) {
+                            print ("got data: \(dataString)")
+                        }
+                    }
+                    task.resume()
+                }
+            }.catch { error in
+                os_log("%@", log: .autoupload, type: .error, error.localizedDescription)
+            }*/
+        
+            //return
+            
             if (provider.totalAssetsToUpload > 0) {
                 
                 provider.updateRing()
@@ -76,7 +116,7 @@ class AutoUpload {
                 
                 provider.hud("\(provider.totalAssetsToUpload) objects found.")
                 
-                //initiate(initialRequests, provider)
+                initiate(initialRequests, provider)
             } else {
                 os_log("no assets to upload", log: .autoupload, type: .info)
                 

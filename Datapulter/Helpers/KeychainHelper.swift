@@ -69,7 +69,7 @@ class KeychainHelper {
                                     kSecAttrAccount as String: account]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess else {
-            os_log("delete error %@", log: .keychainhelper, type: .error, SecItemDelete(query as CFDictionary))
+            //os_log("delete error %@", log: .keychainhelper, type: .error, SecItemDelete(query as CFDictionary))
             return false
         }
         return true

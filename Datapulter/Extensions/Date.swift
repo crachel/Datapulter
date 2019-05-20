@@ -17,16 +17,19 @@ extension Date {
         self = Date(timeIntervalSince1970: TimeInterval(milliseconds / 1000))
     }
     
-    static func getFormattedDate(_ dateFormat: String) -> String{
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "en_US")
-        dateFormatter.dateFormat = dateFormat // This formate is input formated .
+    static func getFormattedDate() -> String{
+        let formatter = ISO8601DateFormatter()
         
-        return(dateFormatter.string(from: Date()))
+        formatter.formatOptions = [.withYear, .withMonth, .withDay]
+        
+        return formatter.string(from: Date())
     }
     
     var iso8601: String {
         let formatter = ISO8601DateFormatter()
+        
+        formatter.formatOptions = [.withYear, .withMonth, .withDay, .withTime, .withTimeZone]
+
         return formatter.string(from: self)
     }
 }
