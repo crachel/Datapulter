@@ -68,8 +68,9 @@ class KeychainHelper {
         let query:[String : Any] = [kSecClass as String: kSecClassInternetPassword,
                                     kSecAttrAccount as String: account]
         let status = SecItemDelete(query as CFDictionary)
+        
         guard status == errSecSuccess else {
-            //os_log("delete error %@", log: .keychainhelper, type: .error, SecItemDelete(query as CFDictionary))
+            os_log("keychain delete error", log: .keychainhelper, type: .error)
             return false
         }
         return true

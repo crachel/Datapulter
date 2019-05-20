@@ -82,6 +82,22 @@ class APIClient: NSObject {
         activeTasks.removeAll()
     }
     
+    public func suspend() {
+        os_log("suspending all tasks", log: .apiclient, type: .info)
+        
+        for task in activeTasks {
+            task.suspend()
+        }
+    }
+    
+    public func resume() {
+        os_log("resuming all tasks", log: .apiclient, type: .info)
+        
+        for task in activeTasks {
+            task.resume()
+        }
+    }
+    
     public func remove(_ task: URLSessionTask) {
         activeTasks.remove(task)
     }

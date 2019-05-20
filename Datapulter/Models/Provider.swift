@@ -85,7 +85,7 @@ class Provider: NSObject, NSCoding  {
     
     //MARK: Public methods
     
-    public func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
+    public func authorize() -> Promise<Bool> {
         fatalError("Must Override")
     }
     

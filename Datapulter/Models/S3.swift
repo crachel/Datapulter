@@ -16,6 +16,8 @@ class S3: Provider {
     //MARK: Properties
     
     struct Defaults {
+        static let uploadCutoff = 50 * 1_000 * 1_000
+        static let chunkSize    = 50 * 1_000 * 1_000
     }
     
     var accessKeyID: String
@@ -68,8 +70,8 @@ class S3: Provider {
     
     //MARK: Public methods
     
-    override func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
-        return Promise(providerError.foundNil)
+    override func authorize() -> Promise<Bool> {
+        return Promise(false)
     }
     
     override func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {

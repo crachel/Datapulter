@@ -208,22 +208,16 @@ class B2: Provider {
     
     //MARK: Public methods
     
-    override func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
-        guard let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString() else {
-            return Promise(providerError.preparationFailed)
+    override func authorize() -> Promise<Bool> {
+        return self.authorizeAccount().then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+        }.then { parsedResult in
+            self.authorizeAccountResponse = parsedResult
+        }.then {
+            return true
         }
-        
-        guard let url = Endpoints.authorizeAccount.components.url else {
-            return Promise(providerError.preparationFailed)
-        }
-        
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = HTTPMethod.get
-        urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: HTTPHeaders.authorization)
-        
-        os_log("Transactions Class C - %@", log: .b2, type: .info, Endpoints.authorizeAccount.components.path)
-        
-        return fetch(from: urlRequest)
     }
     
     override func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
@@ -456,6 +450,24 @@ class B2: Provider {
     }
     
     //MARK: Private methods
+    
+    private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
+        guard let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString() else {
+            return Promise(providerError.preparationFailed)
+        }
+        
+        guard let url = Endpoints.authorizeAccount.components.url else {
+            return Promise(providerError.preparationFailed)
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = HTTPMethod.get
+        urlRequest.setValue("Basic \(authNData)", forHTTPHeaderField: HTTPHeaders.authorization)
+        
+        os_log("Transactions Class C - %@", log: .b2, type: .info, Endpoints.authorizeAccount.components.path)
+        
+        return fetch(from: urlRequest)
+    }
     
     private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
         /**

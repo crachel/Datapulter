@@ -130,10 +130,16 @@ class AutoUpload {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
                 os_log("clientError", log: .autoupload, type: .info)
                 
-                provider.assetsToUpload.insert(asset)
+                guard let error = task.error as? URLError else {
+                    return
+                }
                 
-                //start another task, if asset exists
-                initiate(1, provider)
+                if (error.code != .cancelled) {
+                    provider.assetsToUpload.insert(asset)
+                    
+                    //start another task, if asset exists
+                    initiate(1, provider)
+                }
             }
         }
     }
