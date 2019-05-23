@@ -46,6 +46,21 @@ class S3: Provider {
         static let contentSHA256 = "x-amz-content-sha256"
         static let prefix        = "x-amz-meta-"
         static let modified      = prefix + "src_last_modified_millis"
+        static let fileName      = prefix + "file-name"
+    }
+    
+    struct File: Codable {
+        // x-amz-content-sha256
+        // x-amz-meta-src_last_modified_millis
+        // Content-Length
+        // X-Amz-Date
+        var accessKeyID: String
+        var bucket: String
+        var contentLength: Int64
+        var contentSha1: String?
+        var contentType: String
+        var fileName: String
+        var uploadTimestamp: Int64
     }
     
     struct PropertyKey {
@@ -169,8 +184,34 @@ class S3: Provider {
         }
     }
     
-    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask,_ asset: PHAsset) {
-        print("decodeURLResponse")
+    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data?,_ task: URLSessionTask,_ asset: PHAsset) {
+        if let originalRequest = task.originalRequest,
+            var allHeaders = originalRequest.allHTTPHeaderFields {
+            if (originalRequest.httpMethod == HTTPMethod.put) {
+                if (response.statusCode == 200) {
+                    
+                    allHeaders["fileName"] = asset.originalFilename
+                    
+                    print("allHeaders \(allHeaders)")
+                    do {
+                        let data = try JSONSerialization.data(withJSONObject: allHeaders, options: [])
+                        remoteFileList[asset.localIdentifier] = data
+                    } catch {
+                        os_log("Unable to serialize an S3 response. %@", log: .s3, type: .error, error.localizedDescription)
+                    }
+                    
+                    totalAssetsUploaded += 1
+                    
+                    updateRing()
+                    
+                    AutoUpload.shared.saveProviders()
+                    
+                    AutoUpload.shared.initiate(1, self)
+                } else {
+                    // parse xml and figure out what happened. decide course of action
+                }
+            }
+        }
     }
     
     override func willDelete() {

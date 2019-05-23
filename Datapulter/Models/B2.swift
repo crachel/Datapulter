@@ -301,10 +301,12 @@ class B2: Provider {
         }
     }
 
-    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask,_ asset: PHAsset) {
+    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data?,_ task: URLSessionTask,_ asset: PHAsset) {
+       
         if let originalRequest = task.originalRequest,
             let allHeaders = originalRequest.allHTTPHeaderFields,
-            let originalUrl = originalRequest.url {
+            let originalUrl = originalRequest.url,
+            let data = data {
             
             if (originalUrl.path.contains(Endpoints.uploadFile.components.path)) { // alternative could be [URLRequest:Endpoint]
                 if (response.statusCode == 200) {
@@ -312,18 +314,14 @@ class B2: Provider {
                     finishUploadOperation(asset.localIdentifier, data)
                     
                     var file: File
-                    //var uploadFileResponse: UploadFileResponse
                     
                     do {
-                        //uploadFileResponse = try JSONDecoder().decode(UploadFileResponse.self, from: data)
                         file = try JSONDecoder().decode(File.self, from: data)
                     } catch {
                         return
                     }
-                    //remoteFileList[asset.localIdentifier] = data
                     
                     if let token = allHeaders["Authorization"] {
-                        //let getUploadURLResponse = GetUploadURLResponse(bucketId: uploadFileResponse.bucketId,
                         let getUploadURLResponse = GetUploadURLResponse(bucketId: file.bucketId,
                                                                         uploadUrl: originalUrl,
                                                                         authorizationToken: token)
@@ -361,6 +359,10 @@ class B2: Provider {
                     }
                 }
             } // else if (originalUrl.path.contains(Endpoints.uploadFile.components.path))
+        } else {
+            if (data == nil) {
+                os_log("no Data sent to decodeURLResponse. ignoring.", log: .b2, type: .info)
+            }
         }
     }
     
@@ -707,7 +709,6 @@ class B2: Provider {
                             return Promise(error)
                         }
                         
-                        //add recover here
                         return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
                             self.recover(from: error, retry: Endpoints.getUploadPartUrl, with: uploadData)
                             }.then { data, _ in

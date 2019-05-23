@@ -15,7 +15,7 @@ class APIClient: NSObject {
     
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.default
-        configuration.httpAdditionalHeaders = ["User-Agent": "Datapulter/\(Bundle.main.releaseVersionNumber ?? "")"]
+        //configuration.httpAdditionalHeaders = ["User-Agent": "Datapulter/\(Bundle.main.releaseVersionNumber ?? "")"]
         configuration.waitsForConnectivity = true
         configuration.allowsCellularAccess = false
         return URLSession(configuration: configuration,
@@ -115,7 +115,7 @@ extension APIClient: URLSessionDataDelegate {
         // downcast for access to statusCode
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
        
-        //s3 doesn't send data for successful response
+        //print("\(dataTask.taskIdentifier) didReceivedata. calling handler")
         AutoUpload.shared.handler(data, httpResponse, dataTask)
     }
     
@@ -140,6 +140,8 @@ extension APIClient: URLSessionDataDelegate {
         if (httpResponse.statusCode != 200) {
             os_log("task %d status %d", log: .apiclient, type: .info, task.taskIdentifier, httpResponse.statusCode)
         }
+        //print("\(task.taskIdentifier) didcompletwitherror. calling handler")
+        AutoUpload.shared.handler(nil, httpResponse, task)
     }
     
 }

@@ -89,7 +89,7 @@ class Provider: NSObject, NSCoding  {
         fatalError("Must Override")
     }
     
-    public func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data,_ task: URLSessionTask,_ asset: PHAsset) {
+    public func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data?,_ task: URLSessionTask,_ asset: PHAsset) {
         fatalError("Must Override")
     }
     
@@ -110,6 +110,8 @@ class Provider: NSObject, NSCoding  {
                     self.cell?.ringView.innerRingColor = .green
                     
                     self.hud("Done uploading!")
+                    
+                    self.totalAssetsToUpload = 0
                 } else {
                     self.hud("\(self.totalAssetsUploaded) of \(self.totalAssetsToUpload)")
                 }

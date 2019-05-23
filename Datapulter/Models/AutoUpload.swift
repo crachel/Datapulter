@@ -46,12 +46,6 @@ class AutoUpload {
         
         for provider in providers {
             
-            //provider.check()
-            
-            
-            
-           // print("test".hmac_sha256(key: "test"))
-            
             if(APIClient.shared.isActive()) {
                 os_log("APIClient is active", log: .autoupload, type: .error)
                 
@@ -144,21 +138,25 @@ class AutoUpload {
         }
     }
     
-    public func handler(_ data: Data,_ response: HTTPURLResponse,_ task: URLSessionTask) {
+    public func handler(_ data: Data?,_ response: HTTPURLResponse,_ task: URLSessionTask) {
         if let provider = tasks.removeValue(forKey: task) {
             if let asset = provider.uploadingAssets.removeValue(forKey: task) {
                 
                 // perform any provider specific response handling
                 provider.decodeURLResponse(response, data, task, asset)
                 
-                if (response.statusCode == 200) {
-                    saveProviders()
-                }
             } else {
                 os_log("no asset associated with task", log: .autoupload, type: .error)
             }
         } else {
-            os_log("no provider associated with task", log: .autoupload, type: .error)
+            /*
+             APIClient.didReceiveData should fire before APIClient.didCompleteWithError.
+             Therefore any task that receives data upon completion, will have this handler
+             called twice. It will 'fail' here on didCompleteWithError, not calling
+             decodeURLResponse a second time since the task is no longer associated with
+             a provider. This is expected behavior, effectively ignoring the unused
+             task delegate.
+             */
         }
     }
     
