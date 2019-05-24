@@ -41,7 +41,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return AutoUpload.shared.providers.count
+        return ProviderManager.shared.providers.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -53,7 +53,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         }
         
         // Fetches the appropriate provider for the data source layout.
-        let provider = AutoUpload.shared.providers[indexPath.row]
+        let provider = ProviderManager.shared.providers[indexPath.row]
 
         // Configure the cell...
     
@@ -85,7 +85,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
                 UserDefaults.standard.removePersistentDomain(forName: appDomain)
             }
             
-            let provider = AutoUpload.shared.providers[indexPath.row]
+            let provider = ProviderManager.shared.providers[indexPath.row]
             
             // Do any provider-specific preparation before deleting
             provider.willDelete()
@@ -94,9 +94,9 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             APIClient.shared.cancel()
             
             // Delete the row from the data source
-            AutoUpload.shared.providers.remove(at: indexPath.row)
+            ProviderManager.shared.providers.remove(at: indexPath.row)
             
-            AutoUpload.shared.saveProviders()
+            ProviderManager.shared.saveProviders()
             
             tableView.deleteRows(at: [indexPath], with: .fade)
             
@@ -131,7 +131,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
                 fatalError("The selected cell is not being displayed by the table")
             }
             
-            let selectedProvider = AutoUpload.shared.providers[indexPath.row]
+            let selectedProvider = ProviderManager.shared.providers[indexPath.row]
             
             providerDetailViewController.provider = selectedProvider
 
@@ -149,7 +149,6 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     //MARK: WLEmptyState Methods
     
     func imageForEmptyDataSet() -> UIImage? {
-        //return UIImage(named: "AppIcon")
         return UIImage(named: "Icon Grey")
     }
     
@@ -170,18 +169,19 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
                 // Update an existing provider.
-                AutoUpload.shared.providers[selectedIndexPath.row] = provider
+                ProviderManager.shared.providers[selectedIndexPath.row] = provider
+                
                 
                 tableView.reloadRows(at: [selectedIndexPath], with: .none)
             }
         } else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
             // Add a new provider.
-            AutoUpload.shared.providers += [provider]
+            ProviderManager.shared.providers += [provider]
             
             tableView.reloadData()
         }
         
-        AutoUpload.shared.saveProviders()
+        ProviderManager.shared.saveProviders()
         
         AutoUpload.shared.start()
     }

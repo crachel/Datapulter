@@ -825,7 +825,7 @@ class B2: Provider {
         
         updateRing()
         
-        AutoUpload.shared.saveProviders()
+        ProviderManager.shared.saveProviders()
     }
     
     //MARK: NSCoding

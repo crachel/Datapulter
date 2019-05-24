@@ -50,6 +50,20 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
                 }
+            <<< AccountRow("tagHostName") { row in
+                row.title = "Host Name"
+                row.placeholder = "s3.amazonaws.com"
+                row.add(rule: RuleRequired())
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Amazon S3"
+                    }
+                    return false
+                }
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+                }
             <<< AccountRow("tagKeyID") { row in
                     row.title = "Key ID"
                     row.placeholder = "Your account key ID"

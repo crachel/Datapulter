@@ -65,7 +65,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             APIClient.shared.cancel()
         }
         
-        AutoUpload.shared.saveProviders()
+        ProviderManager.shared.saveProviders()
         
         FileManager.default.clearTemporaryDirectory()
     }

@@ -108,6 +108,22 @@ class S3: Provider {
             
             return kSigning
         }
+        
+        if (asset.size > Defaults.uploadCutoff ) {
+            
+            if(processingLargeFile) {
+                largeFilePool.insert(asset)
+            } else {
+                processingLargeFile = true
+                do {
+                    //try processLargeFile(asset)
+                } catch {
+                    os_log("processingLargeFile %@", log: .b2, type: .error, error.localizedDescription)
+                }
+            }
+            
+            return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
+        }
 
         return Promise { fulfill, reject in
             guard let kSecret = (AuthorizationHeader.signatureVersion + self.secretAccessKey).data(using: .utf8) else {
@@ -131,8 +147,6 @@ class S3: Provider {
             urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
             urlRequest.setValue("100-continue", forHTTPHeaderField: "Expect")
     
-            
-            
             Utility.getData(from: asset) { data, _ in
                 let sha256hash = data.sha256
                 
@@ -204,7 +218,7 @@ class S3: Provider {
                     
                     updateRing()
                     
-                    AutoUpload.shared.saveProviders()
+                    ProviderManager.shared.saveProviders()
                     
                     AutoUpload.shared.initiate(1, self)
                 } else {

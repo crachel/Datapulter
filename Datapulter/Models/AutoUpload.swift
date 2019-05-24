@@ -13,8 +13,6 @@ import Photos
 class AutoUpload {
     
     //MARK: Properties
-    
-    var providers = [Provider]()
 
     var assets = PHFetchResult<PHAsset>()
     var tasks = [URLSessionTask: Provider]()
@@ -44,12 +42,11 @@ class AutoUpload {
         
         assets = Utility.getCameraRollAssets()
         
-        for provider in providers {
+        for provider in ProviderManager.shared.providers {
             
             if(APIClient.shared.isActive()) {
                 os_log("APIClient is active", log: .autoupload, type: .error)
                 
-                provider.hud("Nothing to upload!")
                 return
             }
             
@@ -60,47 +57,6 @@ class AutoUpload {
                     provider.totalAssetsToUpload += 1
                 }
             })
-            
-            /*
-            let s3 = S3(name: "s3", accessKeyID: "AKIAZ46WPMYAAYVDOW5H", secretAccessKey: "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", bucket: "datapulter", regionName: "us-west-2", hostName: "s3.amazonaws.com",  remoteFileList: [:])
-            
-            //let s3 = S3(name: "s3", accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:])
-            
-            s3.getUploadFileURLRequest(from: provider.assetsToUpload.popFirst()!).then { request, data in
-                if let request = request,
-                    let data = data {
-                    
-                    print(request.allHTTPHeaderFields)
-                    
-                    //URLSession.shared.uploadTask(with: request, from: data).resume()
-                    
-                    let task = URLSession.shared.uploadTask(with: request, from: data) { data, response, error in
-                        if let error = error {
-                            print ("error: \(error)")
-                            return
-                        }
-                        guard let response = response as? HTTPURLResponse,
-                            (200...503).contains(response.statusCode) else {
-                                print ("server error")
-                                return
-                        }
-                        print (response.allHeaderFields)
-                        print (response.statusCode)
-                        
-                        if let mimeType = response.mimeType,
-                            mimeType == "application/xml",
-                            let data = data,
-                            let dataString = String(data: data, encoding: .utf8) {
-                            print ("got data: \(dataString)")
-                        }
-                    }
-                    task.resume()
-                }
-            }.catch { error in
-                os_log("%@", log: .autoupload, type: .error, error.localizedDescription)
-            }*/
-        
-            //return
             
             if (provider.totalAssetsToUpload > 0) {
                 
@@ -176,6 +132,8 @@ class AutoUpload {
                 }.catch { error in
                     switch error {
                     case Provider.providerError.largeFile:
+                        // ignore large files (as defined by each provider) and allow the
+                        // individual provider to manage chunking, uploading, etc
                         self.initiate(N, provider)
                     default:
                         os_log("%@", log: .autoupload, type: .error, error.localizedDescription)
@@ -184,31 +142,5 @@ class AutoUpload {
                 }
             }
         }
-    }
-    
-    public func saveProviders() {
-        do {
-            let data = try NSKeyedArchiver.archivedData(withRootObject: providers, requiringSecureCoding: false)
-            try data.write(to: Provider.ArchiveURL)
-        } catch {
-            os_log("failed to save providers", log: .autoupload, type: .error)
-        }
-    }
-    
-    public func loadProviders() -> [Provider]? {
-        let fullPath = Provider.ArchiveURL
-        if let nsData = NSData(contentsOf: fullPath) {
-            do {
-                let data = Data(referencing:nsData)
-                
-                if let loadedProviders = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(data) as? Array<Provider> {
-                    return loadedProviders
-                }
-            } catch {
-                os_log("failed to load providers", log: .autoupload, type: .error)
-                return nil
-            }
-        }
-        return nil
     }
 }
