@@ -60,6 +60,8 @@ class Provider: NSObject, NSCoding  {
         case unhandledStatusCode
         case foundNil
         case largeFile
+        case unmatched
+        case validResponse(Data)
         var localizedDescription: String {
             switch self {
             case .optionalBinding: return "Optional binding"
@@ -70,6 +72,8 @@ class Provider: NSObject, NSCoding  {
             case .unhandledStatusCode: return "Status code not handled"
             case .foundNil: return "Found nil"
             case .largeFile: return "Large file encountered"
+            case .unmatched: return "Unmatched error"
+            case .validResponse: return "Response is valid"
             }
         }
     }
@@ -127,6 +131,73 @@ class Provider: NSObject, NSCoding  {
     
     public func check() {
         fatalError("Must Override")
+    }
+    
+    public func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
+        /**
+         Starts a URLSessionUploadTask or URLSessionDataTask depending on the
+         HTTP method of the URLRequest.
+         
+         In addition to all client-side errors, it also treats any URLResponse
+         status code other than 200 as a "validResponse" error so that we may
+         parse the data (xml/json/etc) at the subclass and recover from it.
+         */
+        return Promise { fulfill, reject in
+            
+            var task = URLSessionTask()
+            
+            let completionHandler: NetworkCompletionHandler = { data, response, error in
+                DispatchQueue.main.async {
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                }
+                
+                APIClient.shared.remove(task)
+                
+                if (error != nil) {
+                    reject(providerError.connectionError)
+                }
+                
+                if let response = response as? HTTPURLResponse,
+                    //let mimeType = response.mimeType,
+                    //mimeType == HTTPHeaders.mimeType,
+                    let data = data {
+                    
+                    if (response.statusCode == 200) {
+                        fulfill((data, response))
+                    } else if (400...503).contains(response.statusCode) {
+                        reject(providerError.validResponse(data))
+                        /*
+                         do {
+                         let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
+                         reject (B2Error(rawValue: jsonerror.code) ?? providerError.unmatched)
+                         } catch {
+                         reject (providerError.invalidJson) // handled status code but unknown problem decoding JSON
+                         }*/
+                    } else {
+                        reject (providerError.unhandledStatusCode)
+                    }
+                } else {
+                    reject (providerError.invalidResponse)
+                }
+            }
+            
+            DispatchQueue.main.async {
+                UIApplication.shared.isNetworkActivityIndicatorVisible = true
+            }
+            
+            if (urlRequest.httpMethod == HTTPMethod.post) {
+                if let data = uploadData {
+                    task = APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler)
+                    task.resume()
+                } else if let url = uploadURL {
+                    task = APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler)
+                    task.resume()
+                }
+            } else if (urlRequest.httpMethod == HTTPMethod.get) {
+                task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
+                task.resume()
+            }
+        }
     }
     
     //MARK: NSCoding

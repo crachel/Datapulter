@@ -45,14 +45,14 @@ class B2: Provider {
         }
     }
     
-    var apiUrl: String {
+    var apiUrl: String? {
         get {
             if let result = KeychainHelper.get(account: account),
                 let url = result[kSecAttrServer as String] as? String {
                 return url
+            } else {
+                return nil
             }
-            
-            return "https://api.backblazeb2.com" // fixeme: keeps urlsessiontask from failing
         }
     }
     
@@ -64,11 +64,14 @@ class B2: Provider {
     
     var authorizeAccountResponse: AuthorizeAccountResponse? {
         didSet {
-            UserDefaults.standard.set(authorizeAccountResponse!.recommendedPartSize, forKey: PropertyKey.recommendedPartSize)
-            if(KeychainHelper.update(account: account, value: authorizeAccountResponse!.authorizationToken, server: authorizeAccountResponse!.apiUrl)) {
-                os_log("authorizationToken saved to Keychain", log: .b2, type: .info)
-            } else {
-                os_log("problem saving authorizationToken to Keychain", log: .b2, type: .error)
+            if let authorizeAccountResponse = authorizeAccountResponse {
+                UserDefaults.standard.set(authorizeAccountResponse.recommendedPartSize, forKey: PropertyKey.recommendedPartSize)
+                
+                if (KeychainHelper.update(account: account, value: authorizeAccountResponse.authorizationToken, server: authorizeAccountResponse.apiUrl)) {
+                    os_log("authorizationToken and apiUrl saved to Keychain", log: .b2, type: .info)
+                } else {
+                    os_log("problem saving authorizationToken to Keychain", log: .b2, type: .error)
+                }
             }
         }
     }
@@ -87,6 +90,7 @@ class B2: Provider {
         case service_unavailable // 503
         
         case unmatchedError
+        case apiUrlNotSet
         
         var localizedDescription: String {
             switch self {
@@ -99,6 +103,7 @@ class B2: Provider {
             case .request_timeout: return "request timeout"
             case .service_unavailable: return "service unavailable"
             case .unmatchedError: return "unmatched error"
+            case .apiUrlNotSet: return "apiurl not set"
             }
         }
     }
@@ -204,6 +209,9 @@ class B2: Provider {
         
         //super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList, assetsToUpload: [], largeFiles: [])
         super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList)
+        
+        //_ = KeychainHelper.update(account: account, value: "badtoken", server: apiUrl!)
+
     }
     
     //MARK: Public methods
@@ -468,74 +476,15 @@ class B2: Provider {
         
         os_log("Transactions Class C - %@", log: .b2, type: .info, Endpoints.authorizeAccount.components.path)
         
-        return fetch(from: urlRequest)
-    }
-    
-    private func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
-        /**
-         Starts a URLSessionUploadTask or URLSessionDataTask depending on the
-         HTTP method of the URLRequest.
-         
-         In addition to all client-side errors, it also treats any URLResponse
-         status code other than 200 as an error so that we may recover from it.
-         */
-        return Promise { fulfill, reject in
-            
-            var task = URLSessionTask()
-            
-            let completionHandler: NetworkCompletionHandler = { data, response, error in
-                DispatchQueue.main.async {
-                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                }
-                
-                APIClient.shared.remove(task)
-                
-                if (error != nil) {
-                    reject(providerError.connectionError)
-                }
-                
-                if let response = response as? HTTPURLResponse,
-                    let mimeType = response.mimeType,
-                    mimeType == HTTPHeaders.mimeType,
-                    let data = data {
-                    
-                    if (response.statusCode == 200) {
-                        fulfill((data, response))
-                    } else if (400...503).contains(response.statusCode) {
-                        do {
-                            let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
-                            reject (B2Error(rawValue: jsonerror.code) ?? B2Error.unmatchedError)
-                        } catch {
-                            reject (providerError.invalidJson) // handled status code but unknown problem decoding JSON
-                        }
-                    } else {
-                        reject (providerError.unhandledStatusCode)
-                    }
-                } else {
-                    reject (providerError.invalidResponse)
-                }
-            }
-            
-            DispatchQueue.main.async {
-                UIApplication.shared.isNetworkActivityIndicatorVisible = true
-            }
-            
-            if (urlRequest.httpMethod == HTTPMethod.post) {
-                if let data = uploadData {
-                    task = APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler)
-                    task.resume()
-                } else if let url = uploadURL {
-                    task = APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler)
-                    task.resume()
-                }
-            } else if (urlRequest.httpMethod == HTTPMethod.get) {
-                task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
-                task.resume()
-            }
-        }
+        return super.fetch(from: urlRequest)
     }
     
     private func fetch(from endpoint: Endpoint, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
+        
+        guard let apiUrl = apiUrl else {
+            return Promise(B2Error.apiUrlNotSet)
+        }
+        
         guard let url = URL(string: "\(apiUrl)\(endpoint.components.path)") else {
             return Promise(providerError.preparationFailed)
         }
@@ -550,12 +499,12 @@ class B2: Provider {
             urlRequest.setValue(authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
         }
         
-        return fetch(from: urlRequest,with: uploadData)
+        return super.fetch(from: urlRequest,with: uploadData)
     }
     
     private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
-        switch error {
-        case B2Error.bad_auth_token, B2Error.expired_auth_token:
+        
+        func retry() -> Promise<(Data?, URLResponse?)> {
             os_log("bad or expired auth token. attempting refresh then retrying API call", log: .b2, type: .error)
             return self.authorizeAccount().then { data, _ in
                 Utility.objectIsType(object: data, someObjectOfType: Data.self)
@@ -566,6 +515,31 @@ class B2: Provider {
             }.then {
                 self.fetch(from: endpoint, with: uploadData) // retry call
             }
+        }
+        
+        switch error {
+        case providerError.validResponse(let data):
+            /**
+             A valid response other than 200 was received. Decode the json data
+             and then determine if it is recoverable.
+             */
+            
+            var jsonerror: JSONError
+            
+            do {
+                jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
+            } catch {
+                return Promise(providerError.invalidJson) // unknown problem decoding JSON
+            }
+            
+            switch(jsonerror.code) {
+            case B2Error.bad_auth_token.rawValue, B2Error.expired_auth_token.rawValue:
+                return retry() // error appears to be recoverable
+            default:
+                return Promise(error) // error is not recoverable
+            }
+        case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.apiUrlNotSet:
+            return retry()
         case providerError.connectionError:
             return self.fetch(from: endpoint, with: uploadData) // retry call
         default:
@@ -634,118 +608,117 @@ class B2: Provider {
         }
         
         func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String])>  {
-        
-        struct GetUploadPartURLRequest: Codable {
-            var fileId: String
-        }
-        struct GetUploadPartURLResponse: Codable {
-            var fileId: String
-            var uploadUrl: URL
-            var authorizationToken: String
-        }
-        
-        return Promise { fulfill, reject in
-            Utility.getURL(ofPhotoWith: asset) { url in
-                //let payloadDirURL = URL(fileURLWithPath: NSTemporaryDirectory())
-                //let payloadFileURL = payloadDirURL.appendingPathComponent(UUID().uuidString)
-                
-                let payloadFileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                
-                var partSha1Array = [String]()
-                var part = 0
-                
-                if let url = url,
-                    let inputStream = InputStream.init(url: url),
-                    FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil) {
+            
+            struct GetUploadPartURLRequest: Codable {
+                var fileId: String
+            }
+            
+            struct GetUploadPartURLResponse: Codable {
+                var fileId: String
+                var uploadUrl: URL
+                var authorizationToken: String
+            }
+            
+            return Promise { fulfill, reject in
+                Utility.getURL(ofPhotoWith: asset) { url in
                     
-                    inputStream.open()
+                    let payloadFileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                     
-                    var buffer = [UInt8](repeating: 0, count: Defaults.chunkSize)
-                    var bytes = 0
+                    var partSha1Array = [String]()
+                    var part = 0
                     
-                    func readBytes() {
+                    if let url = url,
+                        let inputStream = InputStream.init(url: url),
+                        FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil) {
                         
-                        bytes = inputStream.read(&buffer, maxLength: Defaults.chunkSize)
+                        inputStream.open()
                         
-                        if (bytes > 0 && part < Defaults.maxParts) {
-                            part += 1
+                        var buffer = [UInt8](repeating: 0, count: Defaults.chunkSize)
+                        var bytes = 0
+                        
+                        func readBytes() {
                             
-                            let data = Data(bytes: buffer, count: bytes)
-                            partSha1Array.append(data.sha1)
+                            bytes = inputStream.read(&buffer, maxLength: Defaults.chunkSize)
+                            
+                            if (bytes > 0 && part < Defaults.maxParts) {
+                                part += 1
+                                
+                                let data = Data(bytes: buffer, count: bytes)
+                                partSha1Array.append(data.sha1)
+                                
+                                do {
+                                    let file = try FileHandle(forWritingTo: payloadFileURL)
+                                    file.write(data)
+                                    file.truncateFile(atOffset: UInt64(bytes))
+                                    file.closeFile()
+                                } catch {
+                                    reject (error)
+                                }
+                                
+                                buildUploadPartRequest().then { _, _ in
+                                    readBytes()
+                                }
+                                
+                            } else {
+                                do {
+                                    try FileManager.default.removeItem(at: payloadFileURL)
+                                } catch let error as NSError {
+                                    os_log("error removing payloadFileURL. %@", log: .b2, type: .error, error.domain)
+                                }
+                                
+                                inputStream.close()
+                                
+                                fulfill((fileId, partSha1Array))
+                            }
+                        }
+                        readBytes()
+                        
+                        func buildUploadPartRequest() -> Promise<(Data?, URLResponse?)> {
+                            var uploadData: Data
                             
                             do {
-                                let file = try FileHandle(forWritingTo: payloadFileURL)
-                                file.write(data)
-                                file.truncateFile(atOffset: UInt64(bytes))
-                                file.closeFile()
+                                uploadData = try JSONEncoder().encode(GetUploadPartURLRequest(fileId: fileId))
                             } catch {
-                                reject (error)
-                            }
-                            
-                            buildUploadPartRequest().then { _, _ in
-                                readBytes()
-                            }
-                            
-                        } else {
-                            do {
-                                try FileManager.default.removeItem(at: payloadFileURL)
-                            } catch let error as NSError {
-                                os_log("error removing payloadFileURL. %@", log: .b2, type: .error, error.domain)
-                            }
-                            
-                            inputStream.close()
-                            
-                            fulfill((fileId, partSha1Array))
-                        }
-                    }
-                    readBytes()
-                    
-                    func buildUploadPartRequest() -> Promise<(Data?, URLResponse?)> {
-                        var uploadData: Data
-                        
-                        do {
-                            uploadData = try JSONEncoder().encode(GetUploadPartURLRequest(fileId: fileId))
-                        } catch {
-                            return Promise(error)
-                        }
-                        
-                        return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
-                            self.recover(from: error, retry: Endpoints.getUploadPartUrl, with: uploadData)
-                            }.then { data, _ in
-                                Utility.objectIsType(object: data, someObjectOfType: Data.self)
-                            }.then { data in
-                                try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
-                            }.then { parsedResponse in
-                                uploadPart(parsedResponse, bytes, payloadFileURL, part, partSha1Array.last!)
-                        }
-                    }
-                    
-                    func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
-                        var urlRequest = URLRequest(url: result.uploadUrl)
-                        
-                        urlRequest.httpMethod = HTTPMethod.post
-                        
-                        urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
-                        urlRequest.setValue(String(partNumber), forHTTPHeaderField: HTTPHeaders.partNumber)
-                        urlRequest.setValue(String(dataCount), forHTTPHeaderField: HTTPHeaders.contentLength)
-                        urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
-                        
-                        return self.fetch(from: urlRequest, from: url).recover { error -> Promise<(Data?, URLResponse?)> in
-                            switch error {
-                            case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.service_unavailable:
-                                return buildUploadPartRequest()
-                            case providerError.connectionError:
-                                return self.fetch(from: urlRequest, from: url)
-                            default:
                                 return Promise(error)
+                            }
+                            
+                            return self.fetch(from: Endpoints.getUploadPartUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
+                                self.recover(from: error, retry: Endpoints.getUploadPartUrl, with: uploadData)
+                                }.then { data, _ in
+                                    Utility.objectIsType(object: data, someObjectOfType: Data.self)
+                                }.then { data in
+                                    try JSONDecoder().decode(GetUploadPartURLResponse.self, from: data)
+                                }.then { parsedResponse in
+                                    uploadPart(parsedResponse, bytes, payloadFileURL, part, partSha1Array.last!)
+                            }
+                        }
+                        
+                        func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
+                            var urlRequest = URLRequest(url: result.uploadUrl)
+                            
+                            urlRequest.httpMethod = HTTPMethod.post
+                            
+                            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+                            urlRequest.setValue(String(partNumber), forHTTPHeaderField: HTTPHeaders.partNumber)
+                            urlRequest.setValue(String(dataCount), forHTTPHeaderField: HTTPHeaders.contentLength)
+                            urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
+                            
+                            return super.fetch(from: urlRequest, from: url).recover { error -> Promise<(Data?, URLResponse?)> in
+                                switch error {
+                                case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.service_unavailable:
+                                    return buildUploadPartRequest()
+                                case providerError.connectionError:
+                                    return self.fetch(from: urlRequest, from: url)
+                                default:
+                                    return Promise(error)
+                                }
                             }
                         }
                     }
                 }
             }
-        }
         
-    }
+        }
         
         guard let fileName = asset.originalFilename else {
             throw providerError.foundNil

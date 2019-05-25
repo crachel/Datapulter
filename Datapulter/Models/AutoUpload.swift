@@ -34,6 +34,9 @@ class AutoUpload {
     //MARK: Public Methods
     
     public func start() {
+        //000bd9db9a329de0000000002
+        //_ = KeychainHelper.delete(account: "000bd9db9a329de0000000002")
+        
         if (PHPhotoLibrary.authorizationStatus() != .authorized) {
             os_log("no photo permission", log: .autoupload, type: .error)
             return

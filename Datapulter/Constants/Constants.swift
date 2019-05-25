@@ -47,7 +47,7 @@ enum HTTPMethod {
     static let put = "PUT"
 }
 
-struct JSONError: Codable {
+struct JSONError: Codable, Error {
     var status: Int
     var code: String
     var message: String

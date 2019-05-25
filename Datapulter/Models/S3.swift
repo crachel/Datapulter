@@ -116,7 +116,7 @@ class S3: Provider {
             } else {
                 processingLargeFile = true
                 do {
-                    //try processLargeFile(asset)
+                    try processLargeFile(asset)
                 } catch {
                     os_log("processingLargeFile %@", log: .b2, type: .error, error.localizedDescription)
                 }
@@ -236,6 +236,12 @@ class S3: Provider {
     
     private func fetch() {
         
+    }
+    
+    private func processLargeFile(_ asset: PHAsset) throws {
+        func createParts() {
+            
+        }
     }
     
     //MARK: NSCoding
