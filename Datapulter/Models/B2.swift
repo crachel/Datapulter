@@ -839,5 +839,41 @@ class B2: Provider {
         // Must call designated initializer.
         self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, filePrefix: filePrefix)
     }
- 
+    
+    enum CodingKeys: String, CodingKey {
+        case account
+        case accountId
+        case bucket
+        case bucketId
+        case filePrefix
+        case key
+        case name
+        case remoteFileList
+    }
+    
+    /*
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(account, forKey: .account)
+        try container.encode(accountId, forKey: .accountId)
+        try container.encode(bucket, forKey: .bucket)
+        try container.encode(bucketId, forKey: .bucketId)
+        try container.encode(filePrefix, forKey: .filePrefix)
+        try container.encode(key, forKey: .key)
+        try container.encode(name, forKey: .name)
+        try container.encode(remoteFileList, forKey: .remoteFileList)
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        account = try values.decode(String.self, forKey: .account)
+        accountId = try values.decode(String.self, forKey: .accountId)
+        bucket = try values.decode(String.self, forKey: .bucket)
+        bucketId = try values.decode(String.self, forKey: .bucketId)
+        filePrefix = try values.decode(String.self, forKey: .filePrefix)
+        key = try values.decode(String.self, forKey: .key)
+        name = try values.decode(String.self, forKey: .name)
+        remoteFileList = try values.decode([String:Data].self, forKey: .remoteFileList)
+    }*/
+    
 }

@@ -9,7 +9,7 @@
 import UIKit
 import Promises
 
-final class Managed: S3 {
+final class Managed {
     
     /*
      $key = bin2hex(random_bytes(32));  // Note, if you lose this key, you lose access to all objects encrypted by it
@@ -42,3 +42,4 @@ final class Managed: S3 {
     }
     
 }
+

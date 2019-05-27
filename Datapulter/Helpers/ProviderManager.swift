@@ -15,6 +15,11 @@ final class ProviderManager {
     
     var providers = [Provider]()
     
+    //MARK: Archiving Paths
+    
+    static let DocumentsDirectory = FileManager().urls(for: .documentDirectory, in: .userDomainMask).first!
+    static let ArchiveURL = DocumentsDirectory.appendingPathComponent("providers")
+    
     //MARK: Singleton
     
     static let shared = ProviderManager()
@@ -24,14 +29,14 @@ final class ProviderManager {
     public func saveProviders() {
         do {
             let data = try NSKeyedArchiver.archivedData(withRootObject: providers, requiringSecureCoding: false)
-            try data.write(to: Provider.ArchiveURL)
+            try data.write(to: ProviderManager.ArchiveURL)
         } catch {
             os_log("failed to save providers", log: .providerManager, type: .error)
         }
     }
     
     public func loadProviders() -> [Provider]? {
-        let fullPath = Provider.ArchiveURL
+        let fullPath = ProviderManager.ArchiveURL
         if let nsData = NSData(contentsOf: fullPath) {
             do {
                 let data = Data(referencing:nsData)

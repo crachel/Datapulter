@@ -39,6 +39,8 @@
 		9BD7D35C2298116B009BECEA /* ProviderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD7D35B2298116B009BECEA /* ProviderManager.swift */; };
 		9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD86B1921C2D8B300958EAD /* AutoUpload.swift */; };
 		9BE8C43E2274B2DC00250C81 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE8C43D2274B2DC00250C81 /* APIClient.swift */; };
+		9BF509E6229ABFFA00B0C0BF /* XMLHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF509E5229ABFFA00B0C0BF /* XMLHelper.swift */; };
+		9BF509EC229C80AB00B0C0BF /* Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF509EB229C80AB00B0C0BF /* Meta.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +92,8 @@
 		9BD7D35B2298116B009BECEA /* ProviderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderManager.swift; sourceTree = "<group>"; };
 		9BD86B1921C2D8B300958EAD /* AutoUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AutoUpload.swift; path = ../Models/AutoUpload.swift; sourceTree = "<group>"; };
 		9BE8C43D2274B2DC00250C81 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		9BF509E5229ABFFA00B0C0BF /* XMLHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLHelper.swift; sourceTree = "<group>"; };
+		9BF509EB229C80AB00B0C0BF /* Meta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Meta.swift; sourceTree = "<group>"; };
 		C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Datapulter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -168,6 +172,7 @@
 				9BA8886322233FEB000D5E5B /* KeychainHelper.swift */,
 				9B2075E621DB9890006ECD02 /* Utility.swift */,
 				9BD7D35B2298116B009BECEA /* ProviderManager.swift */,
+				9BF509E5229ABFFA00B0C0BF /* XMLHelper.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -274,6 +279,7 @@
 			children = (
 				9B4CC80222620B1800A832EA /* Queue.swift */,
 				9BCD85BD22981480009F8388 /* Identity.swift */,
+				9BF509EB229C80AB00B0C0BF /* Meta.swift */,
 			);
 			path = Libraries;
 			sourceTree = "<group>";
@@ -455,6 +461,7 @@
 				9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */,
 				9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */,
 				9BC163ED21B95263003272FF /* B2.swift in Sources */,
+				9BF509E6229ABFFA00B0C0BF /* XMLHelper.swift in Sources */,
 				9B4CC7FF225D0E4400A832EA /* Managed.swift in Sources */,
 				9BD7D35C2298116B009BECEA /* ProviderManager.swift in Sources */,
 				9BB0F11A2285B12A002F93C3 /* FileManager.swift in Sources */,
@@ -468,6 +475,7 @@
 				9B356B352288DE5200A6E30C /* CKRecord.swift in Sources */,
 				9B5A181221E97EAE00B66783 /* Data+Crypto.swift in Sources */,
 				9BC6C22E21BBFC6900D96D7A /* EditProviderViewController.swift in Sources */,
+				9BF509EC229C80AB00B0C0BF /* Meta.swift in Sources */,
 				9B14FD3F220B6079003D52AF /* Date.swift in Sources */,
 				9BCE4AE521B7DB9600DECB10 /* AppDelegate.swift in Sources */,
 				9B4CC801225D259E00A832EA /* Container.swift in Sources */,

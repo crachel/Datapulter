@@ -5,7 +5,7 @@
 //  Created by Craig Rachel on 5/15/19.
 //  Copyright © 2019 Craig Rachel. All rights reserved.
 //
-
+/*
 import UIKit
 import Photos
 import Promises
@@ -16,6 +16,7 @@ class S3: Provider {
     //MARK: Properties
     
     struct Defaults {
+        static let maxParts     = 10_000
         static let uploadCutoff = 50 * 1_000 * 1_000
         static let chunkSize    = 50 * 1_000 * 1_000
     }
@@ -111,7 +112,7 @@ class S3: Provider {
         
         if (asset.size > Defaults.uploadCutoff ) {
             
-            if(processingLargeFile) {
+            if (processingLargeFile) {
                 largeFilePool.insert(asset)
             } else {
                 processingLargeFile = true
@@ -178,14 +179,14 @@ class S3: Provider {
                     "content-length;expect;host;x-amz-content-sha256;x-amz-date;\(HTTPHeaders.modified)\n" +
                     sha256hash
                 
-                print("canrequest \(canonicalRequest)")
+                //print("canrequest \(canonicalRequest)")
                 
                 let stringToSign = "AWS4-HMAC-SHA256" + "\n" +
                     date + "\n" +
                     "\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)" + "\n" +
                     canonicalRequest.data(using: .utf8)!.sha256
                 
-                print("stringtosign \(stringToSign)")
+                //print("stringtosign \(stringToSign)")
                 
                 let signature = stringToSign.hmac_sha256(key: kSigning)
                 
@@ -234,14 +235,157 @@ class S3: Provider {
     
     //MARK: Private methods
     
-    private func fetch() {
-        
-    }
-    
     private func processLargeFile(_ asset: PHAsset) throws {
-        func createParts() {
-            
+        
+        let putObject: Endpoint = {
+            var components = URLComponents()
+            components.scheme = "https"
+            components.host   = bucket + "." + hostName
+            return Endpoint(components: components)
+        }()
+        
+        let date      = Date().iso8601
+        let dateStamp = Date.getFormattedDate()
+        
+        let xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+              <Bucket>example-bucket</Bucket>
+              <Key>example-object</Key>
+              <UploadId>VXBsb2FkIElEIGZvciA2aWWpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA</UploadId>
+            </InitiateMultipartUploadResult>
+            """.data(using: .utf8)!
+        
+        guard let fileName = asset.percentEncodedFilename else {
+            throw (providerError.foundNil)
         }
+        
+        func getSigningKey(_ kSecret: Data) -> Data {
+            let kDate    = dateStamp.hmac_sha256(key: kSecret)
+            let kRegion  = regionName.hmac_sha256(key: kDate)
+            let kService = AuthorizationHeader.serviceName.hmac_sha256(key: kRegion)
+            let kSigning = AuthorizationHeader.signatureRequest.hmac_sha256(key: kService)
+            
+            return kSigning
+        }
+        
+        let unixCreationDate = asset.creationDate?.millisecondsSince1970
+        
+        guard let kSecret = (AuthorizationHeader.signatureVersion + self.secretAccessKey).data(using: .utf8) else {
+            throw (providerError.foundNil)
+        }
+        
+        guard let url = URL(string: putObject.components.string! + "/" + asset.percentEncodedFilename! + "?uploads") else {
+            throw (providerError.preparationFailed)
+        }
+        
+        let kSigning = getSigningKey(kSecret)
+        
+        let canonicalRequest =
+            "POST\n" +
+            "/" + fileName + "\n" +
+            "uploads\n" +
+            "expect:100-continue\n" +
+            "host:\(putObject.components.host!)\n" +
+            "x-amz-date:\(date)\n" +
+            HTTPHeaders.modified + ":\(String(unixCreationDate!))\n\n" +
+            "expect;host;x-amz-date;\(HTTPHeaders.modified)\n"
+        
+        
+        let stringToSign = "AWS4-HMAC-SHA256" + "\n" +
+            date + "\n" +
+            "\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)" + "\n" +
+            canonicalRequest.data(using: .utf8)!.sha256
+        
+        //print("stringtosign \(stringToSign)")
+        
+        let signature = stringToSign.hmac_sha256(key: kSigning)
+        
+        let header = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=host;expect;x-amz-date;\(HTTPHeaders.modified),Signature=\(signature.hex)"
+        
+        print(header)
+        
+        var urlRequest = URLRequest(url: url)
+        
+        urlRequest.httpMethod = HTTPMethod.put
+        urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+        urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
+        urlRequest.setValue("100-continue", forHTTPHeaderField: "Expect")
+        
+        let xmlHelper = XMLHelper(data: xml,
+                                  recordKey: "InitiateMultipartUploadResult",
+                                  dictionaryKeys: ["Bucket", "Key", "UploadId"])
+        
+        let multipartResponse = xmlHelper.go()
+        
+        
+        /*
+        func createParts(_ asset: PHAsset,_ fileId: String) {
+            return Promise { fulfill, reject in
+                Utility.getURL(ofPhotoWith: asset) { url in
+                    
+                    let payloadFileURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                    
+                    var partETagArray = [String:String]()
+                    var part = 0
+                    
+                    if let url = url,
+                        let inputStream = InputStream.init(url: url),
+                        FileManager.default.createFile(atPath: payloadFileURL.path, contents: nil, attributes: nil) {
+                        
+                        inputStream.open()
+                        
+                        var buffer = [UInt8](repeating: 0, count: Defaults.chunkSize)
+                        var bytes = 0
+                        
+                        func readBytes() {
+                            
+                            bytes = inputStream.read(&buffer, maxLength: Defaults.chunkSize)
+                            
+                            if (bytes > 0 && part < Defaults.maxParts) {
+                                part += 1
+                                
+                                let data = Data(bytes: buffer, count: bytes)
+                                partSha1Array.append(data.sha1)
+                                
+                                do {
+                                    let file = try FileHandle(forWritingTo: payloadFileURL)
+                                    file.write(data)
+                                    file.truncateFile(atOffset: UInt64(bytes))
+                                    file.closeFile()
+                                } catch {
+                                    reject (error)
+                                }
+                                
+                                buildUploadPartRequest().then { _, _ in
+                                    readBytes()
+                                }
+                                
+                            } else {
+                                do {
+                                    try FileManager.default.removeItem(at: payloadFileURL)
+                                } catch let error as NSError {
+                                    os_log("error removing payloadFileURL. %@", log: .s3, type: .error, error.domain)
+                                }
+                                
+                                inputStream.close()
+                                
+                                fulfill((fileId, partSha1Array))
+                            }
+                        }
+                        readBytes()
+                        
+                        func buildUploadPartRequest() -> Promise<(Data?, URLResponse?)> {
+                            
+                        }
+                        
+                        func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
+                            
+                        }
+                    }
+                }
+            }
+        }*/
     }
     
     //MARK: NSCoding
@@ -276,3 +420,4 @@ class S3: Provider {
         self.init(name: name, accessKeyID: accessKeyID, secretAccessKey: secretAccessKey, bucket: bucket, regionName: regionName, hostName: hostName, remoteFileList: remoteFileList)
     }
 }
+*/
