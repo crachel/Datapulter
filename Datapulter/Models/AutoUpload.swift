@@ -43,7 +43,9 @@ class AutoUpload {
         
         assets = Utility.getCameraRollAssets()
         
-        for provider in ProviderManager.shared.providers {
+        //for provider in ProviderManager.shared.providers {
+        //if var provider = ProviderManager.shared.providers.first {
+        for provider in ProviderManager.shared.providers.providers.array {
             
             if(APIClient.shared.isActive()) {
                 os_log("APIClient is active", log: .autoupload, type: .error)

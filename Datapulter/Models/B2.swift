@@ -11,8 +11,12 @@ import Promises
 import Photos
 
 class B2: Provider {
+    //var id: Identifier<B2>
+    
 
     //MARK: Properties
+    
+    var metatype: ProviderMetatype { return .b2 }
     
     struct Defaults {
         static let maxParts     = 10_000
@@ -22,14 +26,28 @@ class B2: Provider {
         static let poolMinimum  = 3
     }
     
+    var name: String
+    var remoteFileList: [String: Data]
+    
+    var cell: ProviderTableViewCell?
+    var processingLargeFile: Bool = false
+    var largeFilePool = Set<PHAsset>()
+    var assetsToUpload = Set<PHAsset>()
+    var uploadingAssets = [URLSessionTask: PHAsset]()
+    var totalAssetsToUpload: Int = 0
+    var totalAssetsUploaded: Int = 0
+    
+    
     var account: String
     var key: String
     var bucket: String
     var accountId: String
     var bucketId: String
-    var versions: Bool
-    var harddelete: Bool
+    //var versions: Bool
+    //var harddelete: Bool
     var filePrefix: String
+    
+    var testing: String?
     
     var pool = SynchronizedQueue<GetUploadURLResponse>()
     
@@ -56,7 +74,7 @@ class B2: Provider {
         }
     }
     
-    var recommendedPartSize: Int {
+    var recommendedPartSize: Int? {
         get {
             return UserDefaults.standard.integer(forKey: PropertyKey.recommendedPartSize)
         }
@@ -197,18 +215,22 @@ class B2: Provider {
 
     //MARK: Initialization
     
-    init(name: String, account: String, key: String, bucket: String, versions: Bool, harddelete: Bool, accountId: String, bucketId: String, remoteFileList: [String: Data], filePrefix: String) {
+    init(name: String, account: String, key: String, bucket: String, accountId: String, bucketId: String, remoteFileList: [String: Data], filePrefix: String) {
         self.account = account
         self.key = key
         self.bucket = bucket
-        self.versions = versions
-        self.harddelete = harddelete
+        //versions: Bool, harddelete: Bool,
+        //self.versions = versions
+        //self.harddelete = harddelete
         self.accountId = accountId
         self.bucketId = bucketId
         self.filePrefix = filePrefix
         
+        self.name = name
+        self.remoteFileList = remoteFileList
+        
         //super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList, assetsToUpload: [], largeFiles: [])
-        super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList)
+        //super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList)
         
         //_ = KeychainHelper.update(account: account, value: "badtoken", server: apiUrl!)
 
@@ -216,100 +238,100 @@ class B2: Provider {
     
     //MARK: Public methods
     
-    override func authorize() -> Promise<Bool> {
-        return self.authorizeAccount().then { data, _ in
-            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-        }.then { data in
-            try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
-        }.then { parsedResult in
-            self.authorizeAccountResponse = parsedResult
-        }.then {
-            return true
-        }
+    func authorize() -> Promise<Bool> {
+    return self.authorizeAccount().then { data, _ in
+        Utility.objectIsType(object: data, someObjectOfType: Data.self)
+    }.then { data in
+        try JSONDecoder().decode(AuthorizeAccountResponse.self, from: data)
+    }.then { parsedResult in
+        self.authorizeAccountResponse = parsedResult
+    }.then {
+        return true
+    }
+}
+    
+    func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
+    struct GetUploadURLRequest: Codable {
+        var bucketId: String
     }
     
-    override func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
-        struct GetUploadURLRequest: Codable {
-            var bucketId: String
-        }
+    if (asset.size > Defaults.uploadCutoff ) {
         
-        if (asset.size > Defaults.uploadCutoff ) {
-            
-            if(processingLargeFile) {
-                largeFilePool.insert(asset)
-            } else {
-                processingLargeFile = true
-                do {
-                    try processLargeFile(asset)
-                } catch {
-                    os_log("processingLargeFile %@", log: .b2, type: .error, error.localizedDescription)
-                }
-            }
-            
-            return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
-        }
-        
-        func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, Data?)> {
-            return Promise { fulfill, reject in
-                var urlRequest = URLRequest(url: result.uploadUrl)
-                
-                urlRequest.httpMethod = HTTPMethod.post
-                
-                urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
-                urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
-                urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
-                
-                //urlRequest.setValue("fail_some_uploads",forHTTPHeaderField: "X-Bz-Test-Mode")
-                
-                if let fileName = asset.percentEncodedFilename {
-                    urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
-                } else {
-                    reject(providerError.foundNil)
-                }
-                
-                if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
-                    urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
-                } else {
-                    reject(providerError.foundNil)
-                }
-                
-                Utility.getData(from: asset) { data, _ in
-                    urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
-                    
-                    fulfill((urlRequest, data))
-                }
+        if(processingLargeFile) {
+            largeFilePool.insert(asset)
+        } else {
+            processingLargeFile = true
+            do {
+                try processLargeFile(asset)
+            } catch {
+                os_log("processingLargeFile %@", log: .b2, type: .error, error.localizedDescription)
             }
         }
+        
+        return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
+    }
     
-        if (pool.count > Defaults.poolMinimum) {
-            if let data = pool.dequeue() {
-                return buildUploadFileRequest(from: asset, with: data)
+    func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, Data?)> {
+        return Promise { fulfill, reject in
+            var urlRequest = URLRequest(url: result.uploadUrl)
+            
+            urlRequest.httpMethod = HTTPMethod.post
+            
+            urlRequest.setValue(result.authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
+            urlRequest.setValue(HTTPHeaders.contentTypeValue, forHTTPHeaderField: HTTPHeaders.contentType)
+            urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+            
+            //urlRequest.setValue("fail_some_uploads",forHTTPHeaderField: "X-Bz-Test-Mode")
+            
+            if let fileName = asset.percentEncodedFilename {
+                urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
+            } else {
+                reject(providerError.foundNil)
             }
-        }
-        
-        let request = GetUploadURLRequest(bucketId: bucketId)
-        
-        var uploadData: Data
-        do {
-            uploadData = try JSONEncoder().encode(request)
-        } catch {
-            return Promise(error)
-        }
-        
-        os_log("fetching getUploadUrl", log: .b2, type: .info)
-        
-        return self.fetch(from: Endpoints.getUploadUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
-            self.recover(from: error, retry: Endpoints.getUploadUrl, with: uploadData)
-        }.then { data, _ in
-            Utility.objectIsType(object: data, someObjectOfType: Data.self)
-        }.then { data in
-            try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
-        }.then { result in
-            buildUploadFileRequest(from: asset, with: result)
+            
+            if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
+                urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
+            } else {
+                reject(providerError.foundNil)
+            }
+            
+            Utility.getData(from: asset) { data, _ in
+                urlRequest.setValue(data.sha1, forHTTPHeaderField: HTTPHeaders.sha1)
+                
+                fulfill((urlRequest, data))
+            }
         }
     }
 
-    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data?,_ task: URLSessionTask,_ asset: PHAsset) {
+    if (pool.count > Defaults.poolMinimum) {
+        if let data = pool.dequeue() {
+            return buildUploadFileRequest(from: asset, with: data)
+        }
+    }
+    
+    let request = GetUploadURLRequest(bucketId: bucketId)
+    
+    var uploadData: Data
+    do {
+        uploadData = try JSONEncoder().encode(request)
+    } catch {
+        return Promise(error)
+    }
+    
+    os_log("fetching getUploadUrl", log: .b2, type: .info)
+    
+    return self.fetch(from: Endpoints.getUploadUrl, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
+        self.recover(from: error, retry: Endpoints.getUploadUrl, with: uploadData)
+    }.then { data, _ in
+        Utility.objectIsType(object: data, someObjectOfType: Data.self)
+    }.then { data in
+        try JSONDecoder().decode(GetUploadURLResponse.self, from: data)
+    }.then { result in
+        buildUploadFileRequest(from: asset, with: result)
+    }
+}
+
+    func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data?,_ task: URLSessionTask,_ asset: PHAsset) {
        
         if let originalRequest = task.originalRequest,
             let allHeaders = originalRequest.allHTTPHeaderFields,
@@ -374,11 +396,11 @@ class B2: Provider {
         }
     }
     
-    override func willDelete() {
+    func willDelete() {
         _ = KeychainHelper.delete(account: account)
     }
     
-    override func check() {
+    func check() {
         
         struct ListFileVersionsRequest: Codable {
             var bucketId: String
@@ -476,7 +498,7 @@ class B2: Provider {
         
         os_log("Transactions Class C - %@", log: .b2, type: .info, Endpoints.authorizeAccount.components.path)
         
-        return super.fetch(from: urlRequest)
+        return fetch(from: urlRequest)
     }
     
     private func fetch(from endpoint: Endpoint, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
@@ -499,7 +521,7 @@ class B2: Provider {
             urlRequest.setValue(authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
         }
         
-        return super.fetch(from: urlRequest,with: uploadData)
+        return fetch(from: urlRequest,with: uploadData)
     }
     
     private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
@@ -703,7 +725,7 @@ class B2: Provider {
                             urlRequest.setValue(String(dataCount), forHTTPHeaderField: HTTPHeaders.contentLength)
                             urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
                             
-                            return super.fetch(from: urlRequest, from: url).recover { error -> Promise<(Data?, URLResponse?)> in
+                            return self.fetch(from: urlRequest, from: url).recover { error -> Promise<(Data?, URLResponse?)> in
                                 switch error {
                                 case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.service_unavailable:
                                     return buildUploadPartRequest()
@@ -803,6 +825,7 @@ class B2: Provider {
     
     //MARK: NSCoding
     
+    /*
     override func encode(with aCoder: NSCoder) {
         aCoder.encode(name, forKey: PropertyKey.name)
         aCoder.encode(account, forKey: PropertyKey.account)
@@ -839,6 +862,9 @@ class B2: Provider {
         // Must call designated initializer.
         self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, filePrefix: filePrefix)
     }
+    */
+    
+    //MARK: Codable
     
     enum CodingKeys: String, CodingKey {
         case account
@@ -851,9 +877,10 @@ class B2: Provider {
         case remoteFileList
     }
     
-    /*
+    
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        
         try container.encode(account, forKey: .account)
         try container.encode(accountId, forKey: .accountId)
         try container.encode(bucket, forKey: .bucket)
@@ -866,6 +893,7 @@ class B2: Provider {
     
     required init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+        
         account = try values.decode(String.self, forKey: .account)
         accountId = try values.decode(String.self, forKey: .accountId)
         bucket = try values.decode(String.self, forKey: .bucket)
@@ -874,6 +902,6 @@ class B2: Provider {
         key = try values.decode(String.self, forKey: .key)
         name = try values.decode(String.self, forKey: .name)
         remoteFileList = try values.decode([String:Data].self, forKey: .remoteFileList)
-    }*/
+    }
     
 }

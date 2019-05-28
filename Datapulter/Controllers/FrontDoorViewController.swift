@@ -15,12 +15,13 @@ class FrontDoorViewController: UIViewController {
 
         // Load any saved providers
         if let savedProviders = ProviderManager.shared.loadProviders() {
-            ProviderManager.shared.providers += savedProviders
+            //ProviderManager.shared.providers += savedProviders
+            ProviderManager.shared.providers = savedProviders
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        if (ProviderManager.shared.providers.isEmpty) {
+        if (ProviderManager.shared.providers.providers.array.isEmpty) {
             performSegue(withIdentifier: "showTable", sender: nil)
         } else {
             performSegue(withIdentifier: "showTable", sender: nil)

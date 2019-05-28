@@ -62,6 +62,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
             }
+                /*
             +++ Section("OPTIONS")
             <<< SwitchRow("tagVersions"){ row in
                 row.title = "Versions"
@@ -78,7 +79,7 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 if(self.formValidated()){
                     self.save.isEnabled = true
                 }
-            }
+            }*/
         } // else if let s3-compliant = provider as? s3
     }
         
@@ -115,8 +116,8 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 backblaze.account = valuesDictionary["tagKeyID"] as! String
                 backblaze.key = valuesDictionary["tagKey"] as! String
                 backblaze.bucket = valuesDictionary["tagBucket"] as! String
-                backblaze.versions = valuesDictionary["tagVersions"] as! Bool
-                backblaze.harddelete = valuesDictionary["tagHardDelete"] as! Bool
+                //backblaze.versions = valuesDictionary["tagVersions"] as! Bool
+                //backblaze.harddelete = valuesDictionary["tagHardDelete"] as! Bool
                 backblaze.filePrefix = valuesDictionary["tagPrefix"] as! String
             } // else if let s3
             os_log("Unwinding to provider list.", log: OSLog.default, type: .debug)
