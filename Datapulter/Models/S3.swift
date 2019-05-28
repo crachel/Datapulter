@@ -5,7 +5,7 @@
 //  Created by Craig Rachel on 5/15/19.
 //  Copyright © 2019 Craig Rachel. All rights reserved.
 //
-/*
+
 import UIKit
 import Photos
 import Promises
@@ -15,17 +15,29 @@ class S3: Provider {
     
     //MARK: Properties
     
+    var metatype: ProviderMetatype { return .s3 }
+    
     struct Defaults {
         static let maxParts     = 10_000
         static let uploadCutoff = 50 * 1_000 * 1_000
         static let chunkSize    = 50 * 1_000 * 1_000
     }
+
+    var cell: ProviderTableViewCell?
+    var processingLargeFile: Bool = false
+    var largeFilePool = Set<PHAsset>()
+    var assetsToUpload = Set<PHAsset>()
+    var uploadingAssets = [URLSessionTask: PHAsset]()
+    var totalAssetsToUpload: Int = 0
+    var totalAssetsUploaded: Int = 0
     
     var accessKeyID: String
-    var secretAccessKey: String
     var bucket: String
-    var regionName: String
     var hostName: String
+    var name: String
+    var regionName: String
+    var remoteFileList: [String: Data]
+    var secretAccessKey: String
     
     //MARK: Types
     
@@ -64,33 +76,25 @@ class S3: Provider {
         var uploadTimestamp: Int64
     }
     
-    struct PropertyKey {
-        static let accessKeyID     = "accessKeyID"
-        static let secretAccessKey = "secretAccessKey"
-        static let bucket          = "bucket"
-        static let regionName      = "regionName"
-        static let hostName        = "hostName"
-    }
-    
     //MARK: Initialization
     
     init(name: String, accessKeyID: String, secretAccessKey: String, bucket: String, regionName: String, hostName: String, remoteFileList: [String:Data]) {
         self.accessKeyID = accessKeyID
-        self.secretAccessKey = secretAccessKey
         self.bucket = bucket
-        self.regionName = regionName
         self.hostName = hostName
-        
-        super.init(name: name, backend: .S3, remoteFileList: remoteFileList)
+        self.name = name
+        self.regionName = regionName
+        self.remoteFileList = remoteFileList
+        self.secretAccessKey = secretAccessKey
     }
     
     //MARK: Public methods
     
-    override func authorize() -> Promise<Bool> {
-        return Promise(false)
+    func authorize() -> Promise<Bool> {
+        return Promise(true)
     }
     
-    override func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
+    func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
         let putObject: Endpoint = {
             var components = URLComponents()
             components.scheme = "https"
@@ -199,7 +203,7 @@ class S3: Provider {
         }
     }
     
-    override func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data?,_ task: URLSessionTask,_ asset: PHAsset) {
+    func decodeURLResponse(_ response: HTTPURLResponse,_ data: Data?,_ task: URLSessionTask,_ asset: PHAsset) {
         if let originalRequest = task.originalRequest,
             var allHeaders = originalRequest.allHTTPHeaderFields {
             if (originalRequest.httpMethod == HTTPMethod.put) {
@@ -229,9 +233,14 @@ class S3: Provider {
         }
     }
     
-    override func willDelete() {
+    func willDelete() {
         print("willoverride")
     }
+    
+    func check() {
+        
+    }
+    
     
     //MARK: Private methods
     
@@ -388,36 +397,40 @@ class S3: Provider {
         }*/
     }
     
-    //MARK: NSCoding
+    //MARK: Codable
     
-    override func encode(with aCoder: NSCoder) {
-        aCoder.encode(name, forKey: PropertyKey.name)
-        aCoder.encode(accessKeyID, forKey: PropertyKey.accessKeyID)
-        aCoder.encode(secretAccessKey, forKey: PropertyKey.secretAccessKey)
-        aCoder.encode(bucket, forKey: PropertyKey.bucket)
-        aCoder.encode(regionName, forKey: PropertyKey.regionName)
-        aCoder.encode(hostName, forKey: PropertyKey.hostName)
-        aCoder.encode(remoteFileList, forKey: PropertyKey.remoteFileList)
+    enum CodingKeys: String, CodingKey {
+        case accessKeyID
+        case bucket
+        case hostName
+        case name
+        case regionName
+        case remoteFileList
+        case secretAccessKey
     }
     
-    required convenience init?(coder aDecoder: NSCoder) {
-        // These are required. If we cannot decode, the initializer should fail.
-        guard
-            let name = aDecoder.decodeObject(forKey: PropertyKey.name) as? String,
-            let accessKeyID = aDecoder.decodeObject(forKey: PropertyKey.accessKeyID) as? String,
-            let secretAccessKey = aDecoder.decodeObject(forKey: PropertyKey.secretAccessKey) as? String,
-            let bucket = aDecoder.decodeObject(forKey: PropertyKey.bucket) as? String,
-            let regionName = aDecoder.decodeObject(forKey: PropertyKey.regionName) as? String,
-            let hostName = aDecoder.decodeObject(forKey: PropertyKey.hostName) as? String,
-            let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as? [String: Data]
-            else
-        {
-            os_log("Unable to decode a S3 object.", log: OSLog.default, type: .debug)
-            return nil
-        }
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
         
-        // Must call designated initializer.
-        self.init(name: name, accessKeyID: accessKeyID, secretAccessKey: secretAccessKey, bucket: bucket, regionName: regionName, hostName: hostName, remoteFileList: remoteFileList)
+        try container.encode(accessKeyID, forKey: .accessKeyID)
+        try container.encode(bucket, forKey: .bucket)
+        try container.encode(hostName, forKey: .hostName)
+        try container.encode(name, forKey: .name)
+        try container.encode(regionName, forKey: .regionName)
+        try container.encode(remoteFileList, forKey: .remoteFileList)
+        try container.encode(secretAccessKey, forKey: .secretAccessKey)
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        
+        accessKeyID = try values.decode(String.self, forKey: .accessKeyID)
+        bucket = try values.decode(String.self, forKey: .bucket)
+        hostName = try values.decode(String.self, forKey: .hostName)
+        name = try values.decode(String.self, forKey: .name)
+        regionName = try values.decode(String.self, forKey: .regionName)
+        remoteFileList = try values.decode([String:Data].self, forKey: .remoteFileList)
+        secretAccessKey = try values.decode(String.self, forKey: .secretAccessKey)
     }
 }
-*/
+

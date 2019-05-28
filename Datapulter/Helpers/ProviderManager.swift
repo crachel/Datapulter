@@ -26,11 +26,7 @@ final class ProviderManager {
         }
     }
     
-    //var test = ProviderArray()
-    
-    //var providers = [Provider]()
     var providers = ProviderArray()
-    
     
     //MARK: Archiving Paths
     
@@ -45,22 +41,20 @@ final class ProviderManager {
     
     public func saveProviders() {
         do {
-            //let data = try NSKeyedArchiver.archivedData(withRootObject: providers, requiringSecureCoding: false)
             let data = try JSONEncoder().encode(providers)
+            
             try data.write(to: ProviderManager.ArchiveURL)
         } catch {
-            os_log("failed to save providers", log: .providerManager, type: .error)
+            os_log("failed to save providers: %@", log: .providerManager, type: .error, error.localizedDescription)
         }
     }
     
-    //public func loadProviders() -> [Provider]? {
     public func loadProviders() -> ProviderArray? {
-        let fullPath = ProviderManager.ArchiveURL
-        if let nsData = NSData(contentsOf: fullPath) {
+        if let nsData = NSData(contentsOf: ProviderManager.ArchiveURL) {
             do {
-                let data = Data(referencing:nsData)
+                let data = Data(referencing: nsData)
                 let array = try JSONDecoder().decode(ProviderArray.self, from: data)
-                print(String(data:data, encoding:.utf8)!)
+                
                 return array
             } catch {
                 os_log("failed to load providers: %@", log: .providerManager, type: .error, error.localizedDescription)

@@ -35,6 +35,7 @@ protocol Provider: AnyObject, Codable {
 }
 
 extension Provider {
+    
     public func updateRing() {
         let percentDone = CGFloat((totalAssetsUploaded * 100) / totalAssetsToUpload)
         
@@ -132,7 +133,7 @@ enum ProviderMetatype: String, Meta {
     typealias Element = Provider
     
     case b2
-    //case s3
+    case s3
     
     static func metatype(for element: Provider) -> ProviderMetatype {
         return element.metatype
@@ -141,7 +142,34 @@ enum ProviderMetatype: String, Meta {
     var type: Decodable.Type {
         switch self {
         case .b2: return B2.self
-        //case .s3: return S3.self
+        case .s3: return S3.self
+        }
+    }
+}
+
+enum providerError: Error {
+    case optionalBinding
+    case connectionError
+    case invalidResponse
+    case invalidJson
+    case preparationFailed
+    case unhandledStatusCode
+    case foundNil
+    case largeFile
+    case unmatched
+    case validResponse(Data)
+    var localizedDescription: String {
+        switch self {
+        case .optionalBinding: return "Optional binding"
+        case .connectionError: return "Client side error"
+        case .invalidResponse: return "Invalid response"
+        case .invalidJson: return "Could not decode JSON"
+        case .preparationFailed: return "Preparation failed"
+        case .unhandledStatusCode: return "Status code not handled"
+        case .foundNil: return "Found nil"
+        case .largeFile: return "Large file encountered"
+        case .unmatched: return "Unmatched error"
+        case .validResponse: return "Response is valid"
         }
     }
 }

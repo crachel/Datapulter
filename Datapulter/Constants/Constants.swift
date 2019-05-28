@@ -53,29 +53,4 @@ struct JSONError: Codable, Error {
     var message: String
 }
 
-enum providerError: Error {
-    case optionalBinding
-    case connectionError
-    case invalidResponse
-    case invalidJson
-    case preparationFailed
-    case unhandledStatusCode
-    case foundNil
-    case largeFile
-    case unmatched
-    case validResponse(Data)
-    var localizedDescription: String {
-        switch self {
-        case .optionalBinding: return "Optional binding"
-        case .connectionError: return "Client side error"
-        case .invalidResponse: return "Invalid response"
-        case .invalidJson: return "Could not decode JSON"
-        case .preparationFailed: return "Preparation failed"
-        case .unhandledStatusCode: return "Status code not handled"
-        case .foundNil: return "Found nil"
-        case .largeFile: return "Large file encountered"
-        case .unmatched: return "Unmatched error"
-        case .validResponse: return "Response is valid"
-        }
-    }
-}
+
