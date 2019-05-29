@@ -7,9 +7,9 @@
 //
 
 import UIKit
+import os.log
 import Photos
 import Promises
-import os.log
 
 class S3: Provider {
     
@@ -293,39 +293,62 @@ class S3: Provider {
         let canonicalRequest =
             "POST\n" +
             "/" + fileName + "\n" +
-            "uploads\n" +
-            "expect:100-continue\n" +
+            "uploads=\n" +
             "host:\(putObject.components.host!)\n" +
-            "x-amz-date:\(date)\n" +
-            HTTPHeaders.modified + ":\(String(unixCreationDate!))\n\n" +
-            "expect;host;x-amz-date;\(HTTPHeaders.modified)\n"
+            "x-amz-content-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n" +
+            "x-amz-date:\(date)\n\n" +
+            "host;x-amz-content-sha256;x-amz-date\n" +
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         
+        print("canrequest \(canonicalRequest)")
         
         let stringToSign = "AWS4-HMAC-SHA256" + "\n" +
             date + "\n" +
             "\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)" + "\n" +
             canonicalRequest.data(using: .utf8)!.sha256
         
-        //print("stringtosign \(stringToSign)")
+        print("stringtosign \(stringToSign)")
         
         let signature = stringToSign.hmac_sha256(key: kSigning)
         
-        let header = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=host;expect;x-amz-date;\(HTTPHeaders.modified),Signature=\(signature.hex)"
+        let header = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=host;x-amz-content-sha256;x-amz-date,Signature=\(signature.hex)"
         
         print(header)
         
         var urlRequest = URLRequest(url: url)
         
-        urlRequest.httpMethod = HTTPMethod.put
-        urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+        urlRequest.httpMethod = HTTPMethod.post
+        urlRequest.setValue("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", forHTTPHeaderField: HTTPHeaders.contentSHA256)
+        //urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
-        urlRequest.setValue("100-continue", forHTTPHeaderField: "Expect")
+        urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)
         
         let xmlHelper = XMLHelper(data: xml,
                                   recordKey: "InitiateMultipartUploadResult",
                                   dictionaryKeys: ["Bucket", "Key", "UploadId"])
         
-        let multipartResponse = xmlHelper.go()
+        fetch(from: urlRequest).then { data, response in
+            guard let httpResponse = response as? HTTPURLResponse else { return }
+            print("\(httpResponse.statusCode)")
+            let xmlerror = XMLHelper(data:data!, recordKey: "InitiateMultipartUploadResult", dictionaryKeys: ["Bucket", "Key", "UploadId"])
+            let multipartResponse = xmlerror.go()
+            print(multipartResponse)
+            print(String(data:data!, encoding:.utf8))
+        }.catch { error in
+            switch error {
+            case providerError.validResponse(let data):
+                print(String(data:data, encoding:.utf8))
+                let xmlerror = XMLHelper(data:data, recordKey: "Error", dictionaryKeys: ["Code", "Message", "RequestId", "Resource"])
+                let multipartResponse = xmlerror.go()
+                print("response \(multipartResponse)")
+            print(error.localizedDescription)
+            default:
+            print("default")
+            }
+                
+        }
+        
+        
         
         
         /*

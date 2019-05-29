@@ -10,6 +10,13 @@ import UIKit
 import os.log
 import Photos
 
+protocol AutoUploading {
+    var uploadingAssets: [URLSessionTask: PHAsset] { get set }
+    var assetsToUpload: Set<PHAsset> { get set }
+    var totalAssetsToUpload: Int { get set }
+    var totalAssetsUploaded: Int { get set }
+}
+
 class AutoUpload {
     
     //MARK: Properties
@@ -48,18 +55,21 @@ class AutoUpload {
         for provider in ProviderManager.shared.providers.providers.array {
             
             if(APIClient.shared.isActive()) {
-                os_log("APIClient is active", log: .autoupload, type: .error)
+                os_log("APIClient is already active", log: .autoupload, type: .error)
                 
                 return
             }
             
+            provider.assetsToUpload.removeAll()
+            
             assets.enumerateObjects({ (asset, _, _) in
-                if(provider.remoteFileList[asset.localIdentifier] == nil && !provider.assetsToUpload.contains(asset)) {
-                    // object has not been uploaded & is not already in upload queue
+                if(provider.remoteFileList[asset.localIdentifier] == nil) {
+                    // object has not been uploaded
                     provider.assetsToUpload.insert(asset)
-                    provider.totalAssetsToUpload += 1
                 }
             })
+            
+            provider.totalAssetsToUpload = provider.assetsToUpload.count
             
             if (provider.totalAssetsToUpload > 0) {
                 

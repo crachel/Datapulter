@@ -10,7 +10,8 @@ import UIKit
 import Photos
 import Promises
 
-protocol Provider: AnyObject, Codable {
+protocol Provider: AnyObject, Codable, AutoUploading {
+    
     var metatype: ProviderMetatype { get }
     
     var name: String { get set }
@@ -18,12 +19,8 @@ protocol Provider: AnyObject, Codable {
     
     var cell: ProviderTableViewCell? { get set }
     
-    var assetsToUpload: Set<PHAsset> { get set }
-    var largeFilePool: Set<PHAsset> { get set }
     var uploadingAssets: [URLSessionTask: PHAsset] { get set }
-    
-    var processingLargeFile: Bool { get set }
-    
+    var assetsToUpload: Set<PHAsset> { get set }
     var totalAssetsToUpload: Int { get set }
     var totalAssetsUploaded: Int { get set }
     
@@ -35,7 +32,6 @@ protocol Provider: AnyObject, Codable {
 }
 
 extension Provider {
-    
     public func updateRing() {
         let percentDone = CGFloat((totalAssetsUploaded * 100) / totalAssetsToUpload)
         
@@ -92,6 +88,7 @@ extension Provider {
                     if (response.statusCode == 200) {
                         fulfill((data, response))
                     } else if (400...503).contains(response.statusCode) {
+                        print("validresponse")
                         reject(providerError.validResponse(data))
                         /*
                          do {
@@ -101,9 +98,11 @@ extension Provider {
                          reject (providerError.invalidJson) // handled status code but unknown problem decoding JSON
                          }*/
                     } else {
+                        print("unhandledstatuscode")
                         reject (providerError.unhandledStatusCode)
                     }
                 } else {
+                    print("invalidresponse")
                     reject (providerError.invalidResponse)
                 }
             }
@@ -118,6 +117,9 @@ extension Provider {
                     task.resume()
                 } else if let url = uploadURL {
                     task = APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler)
+                    task.resume()
+                } else {
+                    task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
                     task.resume()
                 }
             } else if (urlRequest.httpMethod == HTTPMethod.get) {

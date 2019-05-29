@@ -1,19 +1,18 @@
 //
 //  B2.swift
-//
+//  Datapulter
 //
 //  Created by Craig Rachel on 12/5/18.
+//  Copyright © 2018 Craig Rachel. All rights reserved.
 //
 
 import UIKit
 import os.log
-import Promises
 import Photos
+import Promises
 
 class B2: Provider {
-    //var id: Identifier<B2>
     
-
     //MARK: Properties
     
     var metatype: ProviderMetatype { return .b2 }
@@ -26,8 +25,16 @@ class B2: Provider {
         static let poolMinimum  = 3
     }
     
+    var account: String
+    var accountId: String
+    var bucket: String
+    var bucketId: String
+    var filePrefix: String
+    var key: String
     var name: String
     var remoteFileList: [String: Data]
+    //var versions: Bool
+    //var harddelete: Bool
     
     var cell: ProviderTableViewCell?
     var processingLargeFile: Bool = false
@@ -36,19 +43,7 @@ class B2: Provider {
     var uploadingAssets = [URLSessionTask: PHAsset]()
     var totalAssetsToUpload: Int = 0
     var totalAssetsUploaded: Int = 0
-    
-    
-    var account: String
-    var key: String
-    var bucket: String
-    var accountId: String
-    var bucketId: String
-    //var versions: Bool
-    //var harddelete: Bool
-    var filePrefix: String
-    
-    var testing: String?
-    
+        
     var pool = SynchronizedQueue<GetUploadURLResponse>()
     
     var authorizationToken: String? {
@@ -229,11 +224,7 @@ class B2: Provider {
         self.name = name
         self.remoteFileList = remoteFileList
         
-        //super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList, assetsToUpload: [], largeFiles: [])
-        //super.init(name: name, backend: .Backblaze, remoteFileList: remoteFileList)
-        
         //_ = KeychainHelper.update(account: account, value: "badtoken", server: apiUrl!)
-
     }
     
     //MARK: Public methods
@@ -589,6 +580,7 @@ class B2: Provider {
             var uploadTimestamp: Int64
             var fileInfo: [String: String]?
             
+            /*
             private enum CodingKeys: String, CodingKey {
                 case accountId
                 case action
@@ -620,7 +612,7 @@ class B2: Provider {
                     fileInfo?[key.stringValue] = try subContainer.decode(String.self, forKey: key)
                 }
                 
-            }
+            }*/
             
         }
         
@@ -823,47 +815,6 @@ class B2: Provider {
         ProviderManager.shared.saveProviders()
     }
     
-    //MARK: NSCoding
-    
-    /*
-    override func encode(with aCoder: NSCoder) {
-        aCoder.encode(name, forKey: PropertyKey.name)
-        aCoder.encode(account, forKey: PropertyKey.account)
-        aCoder.encode(key, forKey: PropertyKey.key)
-        aCoder.encode(bucket, forKey: PropertyKey.bucket)
-        aCoder.encode(versions, forKey: PropertyKey.versions)
-        aCoder.encode(harddelete, forKey: PropertyKey.harddelete)
-        aCoder.encode(accountId, forKey: PropertyKey.accountId)
-        aCoder.encode(bucketId, forKey: PropertyKey.bucketId)
-        aCoder.encode(remoteFileList, forKey: PropertyKey.remoteFileList)
-        aCoder.encode(filePrefix, forKey: PropertyKey.filePrefix)
-    }
-    
-    required convenience init?(coder aDecoder: NSCoder) {
-        // These are required. If we cannot decode, the initializer should fail.
-        guard
-            let name = aDecoder.decodeObject(forKey: PropertyKey.name) as? String,
-            let account = aDecoder.decodeObject(forKey: PropertyKey.account) as? String,
-            let key = aDecoder.decodeObject(forKey: PropertyKey.key) as? String,
-            let bucket = aDecoder.decodeObject(forKey: PropertyKey.bucket) as? String,
-            let accountId = aDecoder.decodeObject(forKey: PropertyKey.accountId) as? String,
-            let bucketId = aDecoder.decodeObject(forKey: PropertyKey.bucketId) as? String,
-            let remoteFileList = aDecoder.decodeObject(forKey: PropertyKey.remoteFileList) as? [String: Data],
-            let filePrefix = aDecoder.decodeObject(forKey: PropertyKey.filePrefix) as? String
-        else
-        {
-            os_log("Unable to decode a B2 object.", log: OSLog.default, type: .debug)
-            return nil
-        }
-        
-        let versions = aDecoder.decodeBool(forKey: PropertyKey.versions)
-        let harddelete = aDecoder.decodeBool(forKey: PropertyKey.harddelete)
-        
-        // Must call designated initializer.
-        self.init(name: name, account: account, key: key, bucket: bucket, versions: versions, harddelete: harddelete, accountId: accountId, bucketId: bucketId, remoteFileList: remoteFileList, filePrefix: filePrefix)
-    }
-    */
-    
     //MARK: Codable
     
     enum CodingKeys: String, CodingKey {
@@ -876,7 +827,6 @@ class B2: Provider {
         case name
         case remoteFileList
     }
-    
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
