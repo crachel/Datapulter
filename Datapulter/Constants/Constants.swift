@@ -10,25 +10,6 @@ import UIKit
 
 typealias NetworkCompletionHandler = (Data?, URLResponse?, Error?) -> Void
 
-struct Endpoint {
-    var components = URLComponents()
-    
-    var method: String?
-    
-    init(components: URLComponents, method: String = HTTPMethod.post) {
-        self.components = components
-        self.method = method
-    }
-    
-    init(scheme: String? = "https",
-         path: String,
-         method: String? = HTTPMethod.post) {
-        self.components.scheme = scheme
-        self.components.path = path
-        self.method = method
-    }
-}
-
 struct GenericCodingKeys: CodingKey {
     var intValue: Int?
     var stringValue: String

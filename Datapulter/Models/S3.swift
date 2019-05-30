@@ -246,25 +246,10 @@ class S3: Provider {
     
 
     
-    private func getAuthorizationHeader(canonicalRequest: String) {
+    private func getAuthorizationHeader(method: String, endpoint: Endpoint, headers: [String:String], hashedPayload: String, date: String, dateStamp: String) throws -> String {
         
-    }
-    
-    private func processLargeFile(_ asset: PHAsset) throws {
-        
-        let putObject: Endpoint = {
-            var components = URLComponents()
-            components.scheme = "https"
-            components.host   = bucket + "." + hostName
-            return Endpoint(components: components)
-        }()
-        
-        let date      = Date().iso8601
-        let dateStamp = Date.getFormattedDate()
-        
-        guard var canonicalURI = asset.percentEncodedFilename else {
-            throw (providerError.foundNil)
-        }
+        //let date      = Date().iso8601
+        //let dateStamp = Date.getFormattedDate()
         
         func getSigningKey() throws -> Data {
             
@@ -279,21 +264,8 @@ class S3: Provider {
             
             return kSigning
         }
-
-        guard let url = URL(string: putObject.components.string! + "/" + asset.percentEncodedFilename! + "?uploads") else {
-            throw (providerError.preparationFailed)
-        }
         
-        let kSigning = try getSigningKey()
-        
-        canonicalURI = "/" + canonicalURI
-        
-        let canonicalQueryString = "uploads="
-        let hashedPayload = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        
-        let headers = ["host": putObject.components.host!,
-                       "x-amz-content-sha256": hashedPayload,
-                       "x-amz-date": date]
+        let canonicalURI = endpoint.components.percentEncodedPath
         
         let signedHeaders = headers.keys.sorted().joined(separator: ";")
         
@@ -301,10 +273,10 @@ class S3: Provider {
             return "\(key):\(value)"
         }).sorted().joined(separator: "\n")
         
-        //return
+        let canonicalQueryString = endpoint.components.percentEncodedQuery?.addingSuffixIfNeeded("=") ?? ""
         
         let canonicalRequest = """
-        \(HTTPMethod.post)
+        \(method)
         \(canonicalURI)
         \(canonicalQueryString)
         \(canonicalHeaders)
@@ -313,6 +285,8 @@ class S3: Provider {
         \(hashedPayload)
         """
         
+        print("new canRequest \(canonicalRequest)")
+        
         let stringToSign = """
         AWS4-HMAC-SHA256
         \(date)
@@ -320,13 +294,58 @@ class S3: Provider {
         \(canonicalRequest.data(using: .utf8)!.sha256)
         """
         
+        print("new stringtosing \(stringToSign)")
+        
+        let kSigning = try getSigningKey()
+        
         let signature = stringToSign.hmac_sha256(key: kSigning)
         
-        let header = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=\(signedHeaders),Signature=\(signature.hex)"
+        let authorizationHeader = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=\(signedHeaders),Signature=\(signature.hex)"
+        
+        print("new header \(authorizationHeader)")
+        
+        return authorizationHeader
+    }
+    
+    private func processLargeFile(_ asset: PHAsset) throws {
+        
+        guard let assetFileName = asset.originalFilename else {
+            throw (providerError.foundNil)
+        }
+        
+        let queryItemToken = URLQueryItem(name: "uploads", value: nil)
+        
+        let putObject: Endpoint = {
+            var components = URLComponents()
+            components.host       = [bucket, hostName].joined(separator: ".")
+            components.path       = assetFileName.addingPrefixIfNeeded("/")
+            components.queryItems = [queryItemToken]
+            return Endpoint(components: components)
+        }()
+        
+        let date      = Date().iso8601
+        let dateStamp = Date.getFormattedDate()
+        
+        let hashedPayload = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        
+        guard let fullHost = putObject.components.host else {
+            throw (providerError.preparationFailed)
+        }
+        
+        let headers = ["host": fullHost,
+                       "x-amz-content-sha256": hashedPayload,
+                       "x-amz-date": date]
+        
+        let header = try getAuthorizationHeader(method: HTTPMethod.post, endpoint: putObject, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp)
+        
+        guard let url = putObject.components.url else {
+            throw (providerError.preparationFailed)
+        }
         
         var urlRequest = URLRequest(url: url)
         
         urlRequest.httpMethod = HTTPMethod.post
+        
         urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
         urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)

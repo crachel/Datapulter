@@ -29,4 +29,16 @@ extension String {
         
         return Data(digest)
     }
+    
+    func trim() -> String {
+        return self.trimmingCharacters(in: .whitespaces)
+    }
+    
+    func addingPrefixIfNeeded(_ prefix: String) -> String {
+        guard !hasPrefix(prefix) else {
+            return self
+        }
+        
+        return (prefix + self)
+    }
 }

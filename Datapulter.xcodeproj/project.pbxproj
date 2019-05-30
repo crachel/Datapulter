@@ -41,6 +41,7 @@
 		9BE8C43E2274B2DC00250C81 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE8C43D2274B2DC00250C81 /* APIClient.swift */; };
 		9BF509E6229ABFFA00B0C0BF /* XMLHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF509E5229ABFFA00B0C0BF /* XMLHelper.swift */; };
 		9BF509EC229C80AB00B0C0BF /* Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF509EB229C80AB00B0C0BF /* Meta.swift */; };
+		9BF509EE229FFB3600B0C0BF /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF509ED229FFB3600B0C0BF /* Endpoint.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +95,7 @@
 		9BE8C43D2274B2DC00250C81 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		9BF509E5229ABFFA00B0C0BF /* XMLHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLHelper.swift; sourceTree = "<group>"; };
 		9BF509EB229C80AB00B0C0BF /* Meta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Meta.swift; sourceTree = "<group>"; };
+		9BF509ED229FFB3600B0C0BF /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
 		C6B1006B5F6D4F9825A46B2D /* Pods_Datapulter.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Datapulter.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -280,6 +282,7 @@
 				9B4CC80222620B1800A832EA /* Queue.swift */,
 				9BCD85BD22981480009F8388 /* Identity.swift */,
 				9BF509EB229C80AB00B0C0BF /* Meta.swift */,
+				9BF509ED229FFB3600B0C0BF /* Endpoint.swift */,
 			);
 			path = Libraries;
 			sourceTree = "<group>";
@@ -458,6 +461,7 @@
 				9B4CC80322620B1800A832EA /* Queue.swift in Sources */,
 				9B2075E721DB9890006ECD02 /* Utility.swift in Sources */,
 				9B356B39228C98A100A6E30C /* S3.swift in Sources */,
+				9BF509EE229FFB3600B0C0BF /* Endpoint.swift in Sources */,
 				9BC163E321B7E1EC003272FF /* ProviderTableViewCell.swift in Sources */,
 				9BD86B1A21C2D8B300958EAD /* AutoUpload.swift in Sources */,
 				9BC163ED21B95263003272FF /* B2.swift in Sources */,
