@@ -244,6 +244,12 @@ class S3: Provider {
     
     //MARK: Private methods
     
+
+    
+    private func getAuthorizationHeader(canonicalRequest: String) {
+        
+    }
+    
     private func processLargeFile(_ asset: PHAsset) throws {
         
         let putObject: Endpoint = {
@@ -256,20 +262,16 @@ class S3: Provider {
         let date      = Date().iso8601
         let dateStamp = Date.getFormattedDate()
         
-        let xml = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-              <Bucket>example-bucket</Bucket>
-              <Key>example-object</Key>
-              <UploadId>VXBsb2FkIElEIGZvciA2aWWpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA</UploadId>
-            </InitiateMultipartUploadResult>
-            """.data(using: .utf8)!
-        
-        guard let fileName = asset.percentEncodedFilename else {
+        guard var canonicalURI = asset.percentEncodedFilename else {
             throw (providerError.foundNil)
         }
         
-        func getSigningKey(_ kSecret: Data) -> Data {
+        func getSigningKey() throws -> Data {
+            
+            guard let kSecret = (AuthorizationHeader.signatureVersion + self.secretAccessKey).data(using: .utf8) else {
+                throw (providerError.foundNil)
+            }
+            
             let kDate    = dateStamp.hmac_sha256(key: kSecret)
             let kRegion  = regionName.hmac_sha256(key: kDate)
             let kService = AuthorizationHeader.serviceName.hmac_sha256(key: kRegion)
@@ -277,55 +279,57 @@ class S3: Provider {
             
             return kSigning
         }
-        
-        let unixCreationDate = asset.creationDate?.millisecondsSince1970
-        
-        guard let kSecret = (AuthorizationHeader.signatureVersion + self.secretAccessKey).data(using: .utf8) else {
-            throw (providerError.foundNil)
-        }
-        
+
         guard let url = URL(string: putObject.components.string! + "/" + asset.percentEncodedFilename! + "?uploads") else {
             throw (providerError.preparationFailed)
         }
         
-        let kSigning = getSigningKey(kSecret)
+        let kSigning = try getSigningKey()
         
-        let canonicalRequest =
-            "POST\n" +
-            "/" + fileName + "\n" +
-            "uploads=\n" +
-            "host:\(putObject.components.host!)\n" +
-            "x-amz-content-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n" +
-            "x-amz-date:\(date)\n\n" +
-            "host;x-amz-content-sha256;x-amz-date\n" +
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        canonicalURI = "/" + canonicalURI
         
-        print("canrequest \(canonicalRequest)")
+        let canonicalQueryString = "uploads="
+        let hashedPayload = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         
-        let stringToSign = "AWS4-HMAC-SHA256" + "\n" +
-            date + "\n" +
-            "\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)" + "\n" +
-            canonicalRequest.data(using: .utf8)!.sha256
+        let headers = ["host": putObject.components.host!,
+                       "x-amz-content-sha256": hashedPayload,
+                       "x-amz-date": date]
         
-        print("stringtosign \(stringToSign)")
+        let signedHeaders = headers.keys.sorted().joined(separator: ";")
+        
+        let canonicalHeaders = headers.compactMap({ (key, value) -> String in
+            return "\(key):\(value)"
+        }).sorted().joined(separator: "\n")
+        
+        //return
+        
+        let canonicalRequest = """
+        \(HTTPMethod.post)
+        \(canonicalURI)
+        \(canonicalQueryString)
+        \(canonicalHeaders)
+        
+        \(signedHeaders)
+        \(hashedPayload)
+        """
+        
+        let stringToSign = """
+        AWS4-HMAC-SHA256
+        \(date)
+        \(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)
+        \(canonicalRequest.data(using: .utf8)!.sha256)
+        """
         
         let signature = stringToSign.hmac_sha256(key: kSigning)
         
-        let header = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=host;x-amz-content-sha256;x-amz-date,Signature=\(signature.hex)"
-        
-        print(header)
+        let header = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=\(signedHeaders),Signature=\(signature.hex)"
         
         var urlRequest = URLRequest(url: url)
         
         urlRequest.httpMethod = HTTPMethod.post
-        urlRequest.setValue("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", forHTTPHeaderField: HTTPHeaders.contentSHA256)
-        //urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+        urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
         urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)
-        
-        let xmlHelper = XMLHelper(data: xml,
-                                  recordKey: "InitiateMultipartUploadResult",
-                                  dictionaryKeys: ["Bucket", "Key", "UploadId"])
         
         fetch(from: urlRequest).then { data, response in
             guard let httpResponse = response as? HTTPURLResponse else { return }
