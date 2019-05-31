@@ -77,7 +77,7 @@ extension Provider {
                 APIClient.shared.remove(task)
                 
                 if (error != nil) {
-                    reject(providerError.connectionError)
+                    reject(ProviderError.connectionError)
                 }
                 
                 if let response = response as? HTTPURLResponse,
@@ -89,7 +89,7 @@ extension Provider {
                         fulfill((data, response))
                     } else if (400...503).contains(response.statusCode) {
                         print("validresponse")
-                        reject(providerError.validResponse(data))
+                        reject(ProviderError.validResponse(data))
                         /*
                          do {
                          let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
@@ -99,11 +99,11 @@ extension Provider {
                          }*/
                     } else {
                         print("unhandledstatuscode")
-                        reject (providerError.unhandledStatusCode)
+                        reject (ProviderError.unhandledStatusCode)
                     }
                 } else {
                     print("invalidresponse")
-                    reject (providerError.invalidResponse)
+                    reject (ProviderError.invalidResponse)
                 }
             }
             
@@ -149,7 +149,7 @@ enum ProviderMetatype: String, Meta {
     }
 }
 
-enum providerError: Error {
+enum ProviderError: Error {
     case optionalBinding
     case connectionError
     case invalidResponse

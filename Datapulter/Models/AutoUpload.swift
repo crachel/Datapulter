@@ -144,7 +144,7 @@ class AutoUpload {
                     }
                 }.catch { error in
                     switch error {
-                    case providerError.largeFile:
+                    case ProviderError.largeFile:
                         // ignore large files (as defined by each provider) and allow the
                         // individual provider to manage chunking, uploading, etc
                         self.initiate(N, provider)

@@ -259,7 +259,7 @@ class B2: Provider {
             }
         }
         
-        return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
+        return Promise(ProviderError.largeFile) //need to return here so we don't try to process large file anyway
     }
     
     func buildUploadFileRequest(from asset: PHAsset, with result: GetUploadURLResponse) -> Promise<(URLRequest?, Data?)> {
@@ -277,13 +277,13 @@ class B2: Provider {
             if let fileName = asset.percentEncodedFilename {
                 urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
             } else {
-                reject(providerError.foundNil)
+                reject(ProviderError.foundNil)
             }
             
             if let unixCreationDate = asset.creationDate?.millisecondsSince1970  {
                 urlRequest.setValue(String(unixCreationDate), forHTTPHeaderField: HTTPHeaders.time)
             } else {
-                reject(providerError.foundNil)
+                reject(ProviderError.foundNil)
             }
             
             Utility.getData(from: asset) { data, _ in
@@ -476,11 +476,11 @@ class B2: Provider {
     
     private func authorizeAccount() -> Promise<(Data?, URLResponse?)> {
         guard let authNData = "\(account):\(key)".data(using: .utf8)?.base64EncodedString() else {
-            return Promise(providerError.preparationFailed)
+            return Promise(ProviderError.preparationFailed)
         }
         
         guard let url = Endpoints.authorizeAccount.components.url else {
-            return Promise(providerError.preparationFailed)
+            return Promise(ProviderError.preparationFailed)
         }
         
         var urlRequest = URLRequest(url: url)
@@ -499,7 +499,7 @@ class B2: Provider {
         }
         
         guard let url = URL(string: "\(apiUrl)\(endpoint.components.path)") else {
-            return Promise(providerError.preparationFailed)
+            return Promise(ProviderError.preparationFailed)
         }
         
         var urlRequest = URLRequest(url: url)
@@ -531,7 +531,7 @@ class B2: Provider {
         }
         
         switch error {
-        case providerError.validResponse(let data):
+        case ProviderError.validResponse(let data):
             /**
              A valid response other than 200 was received. Decode the json data
              and then determine if it is recoverable.
@@ -542,7 +542,7 @@ class B2: Provider {
             do {
                 jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
             } catch {
-                return Promise(providerError.invalidJson) // unknown problem decoding JSON
+                return Promise(ProviderError.invalidJson) // unknown problem decoding JSON
             }
             
             switch(jsonerror.code) {
@@ -553,7 +553,7 @@ class B2: Provider {
             }
         case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.apiUrlNotSet:
             return retry()
-        case providerError.connectionError:
+        case ProviderError.connectionError:
             return self.fetch(from: endpoint, with: uploadData) // retry call
         default:
             return Promise(error)
@@ -721,7 +721,7 @@ class B2: Provider {
                                 switch error {
                                 case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.service_unavailable:
                                     return buildUploadPartRequest()
-                                case providerError.connectionError:
+                                case ProviderError.connectionError:
                                     return self.fetch(from: urlRequest, from: url)
                                 default:
                                     return Promise(error)
@@ -735,7 +735,7 @@ class B2: Provider {
         }
         
         guard let fileName = asset.originalFilename else {
-            throw providerError.foundNil
+            throw ProviderError.foundNil
         }
         
         let request = StartLargeFileRequest(bucketId: bucketId,
@@ -747,7 +747,7 @@ class B2: Provider {
         do {
             uploadData = try JSONEncoder().encode(request)
         } catch {
-            throw providerError.preparationFailed
+            throw ProviderError.preparationFailed
         }
         
         self.fetch(from: Endpoints.startLargeFile, with: uploadData).recover { error -> Promise<(Data?, URLResponse?)> in
@@ -777,12 +777,12 @@ class B2: Provider {
                         if let newAsset = self.largeFilePool.popFirst() {
                             try self.processLargeFile(newAsset)
                         } else {
-                            throw providerError.foundNil
+                            throw ProviderError.foundNil
                         }
                     }
                 }
             } else {
-                throw providerError.invalidResponse
+                throw ProviderError.invalidResponse
             }
         }
     }

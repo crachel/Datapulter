@@ -95,24 +95,20 @@ class S3: Provider {
     }
     
     func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
+        
+        guard let assetFileName = asset.originalFilename else {
+            return Promise(ProviderError.foundNil)
+        }
+        
         let putObject: Endpoint = {
             var components = URLComponents()
-            components.scheme = "https"
-            components.host   = bucket + "." + hostName
+            components.host = [bucket, hostName].joined(separator: ".")
+            components.path = assetFileName.addingPrefixIfNeeded("/")
             return Endpoint(components: components)
         }()
         
         let date      = Date().iso8601
         let dateStamp = Date.getFormattedDate()
-        
-        func getSigningKey(_ kSecret: Data) -> Data {
-            let kDate    = dateStamp.hmac_sha256(key: kSecret)
-            let kRegion  = regionName.hmac_sha256(key: kDate)
-            let kService = AuthorizationHeader.serviceName.hmac_sha256(key: kRegion)
-            let kSigning = AuthorizationHeader.signatureRequest.hmac_sha256(key: kService)
-            
-            return kSigning
-        }
         
         if (asset.size > Defaults.uploadCutoff ) {
             
@@ -127,76 +123,53 @@ class S3: Provider {
                 }
             }
             
-            return Promise(providerError.largeFile) //need to return here so we don't try to process large file anyway
+            return Promise(ProviderError.largeFile) //need to return here so we don't try to process large file anyway
         }
+        
+        guard let fullHost = putObject.components.host else {
+            return Promise(ProviderError.preparationFailed)
+        }
+        
+        guard let url = putObject.components.url else {
+            return Promise(ProviderError.preparationFailed)
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        
+        urlRequest.httpMethod = HTTPMethod.put
+        urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+        urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
+        urlRequest.setValue("100-continue", forHTTPHeaderField: "Expect")
+        
+        let unixCreationDate = asset.creationDate?.millisecondsSince1970
+        
+        urlRequest.setValue((unixCreationDate?.description), forHTTPHeaderField: HTTPHeaders.modified)
 
         return Promise { fulfill, reject in
-            guard let kSecret = (AuthorizationHeader.signatureVersion + self.secretAccessKey).data(using: .utf8) else {
-                throw (providerError.foundNil)
-            }
-            
-            let kSigning = getSigningKey(kSecret)
-            
-            guard let url = URL(string: putObject.components.string! + "/" + asset.percentEncodedFilename!) else {
-                throw (providerError.preparationFailed)
-            }
-            
-            guard let fileName = asset.percentEncodedFilename else {
-                throw (providerError.foundNil)
-            }
-            
-            var urlRequest = URLRequest(url: url)
-            
-            urlRequest.httpMethod = HTTPMethod.put
-            urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
-            urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
-            urlRequest.setValue("100-continue", forHTTPHeaderField: "Expect")
-    
             Utility.getData(from: asset) { data, _ in
-                let sha256hash = data.sha256
                 
-                urlRequest.setValue(sha256hash, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+                let hashedPayload = data.sha256
                 
-                if asset.creationDate != nil {
-                    
+                urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+   
+                let headers = ["content-length": String(asset.size),
+                               "expect":"100-continue",
+                               "host":fullHost,
+                               "x-amz-content-sha256":hashedPayload,
+                               "x-amz-date":date,
+                               HTTPHeaders.modified:String(unixCreationDate!)]
+                
+                var authorizationHeader: String
+                
+                switch self.getAuthorizationHeader(method: HTTPMethod.put, endpoint: putObject, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp) {
+                case .success(let result):
+                    authorizationHeader = result
+                case .failure(let error):
+                    reject(error)
+                    return //fixme
                 }
-                
-                let unixCreationDate = asset.creationDate?.millisecondsSince1970
-                
-                urlRequest.setValue((unixCreationDate?.description), forHTTPHeaderField: HTTPHeaders.modified)
-                    
-                //print("asset \(asset)")
-                
-                //asset.mediaType
-                //asset.originalFilename
-            
-                let canonicalRequest =
-                    "PUT\n" +
-                    "/" + fileName + "\n" +
-                    "\n" +
-                    "content-length:\(String(asset.size))\n" +
-                    "expect:100-continue\n" +
-                    "host:\(putObject.components.host!)\n" +
-                    "x-amz-content-sha256:\(sha256hash)\n" +
-                    "x-amz-date:\(date)\n" +
-                    HTTPHeaders.modified + ":\(String(unixCreationDate!))\n\n" +
-                    "content-length;expect;host;x-amz-content-sha256;x-amz-date;\(HTTPHeaders.modified)\n" +
-                    sha256hash
-                
-                //print("canrequest \(canonicalRequest)")
-                
-                let stringToSign = "AWS4-HMAC-SHA256" + "\n" +
-                    date + "\n" +
-                    "\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)" + "\n" +
-                    canonicalRequest.data(using: .utf8)!.sha256
-                
-                //print("stringtosign \(stringToSign)")
-                
-                let signature = stringToSign.hmac_sha256(key: kSigning)
-                
-                let header = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=host;expect;content-length;x-amz-content-sha256;x-amz-date;\(HTTPHeaders.modified),Signature=\(signature.hex)"
-                
-                urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)
+    
+                urlRequest.setValue(authorizationHeader, forHTTPHeaderField: HTTPHeaders.authorization)
                 
                 fulfill((urlRequest, data))
             }
@@ -241,20 +214,14 @@ class S3: Provider {
         
     }
     
-    
     //MARK: Private methods
     
-
-    
-    private func getAuthorizationHeader(method: String, endpoint: Endpoint, headers: [String:String], hashedPayload: String, date: String, dateStamp: String) throws -> String {
+    private func getAuthorizationHeader(method: String, endpoint: Endpoint, headers: [String:String], hashedPayload: String, date: String, dateStamp: String) -> Result<String, Error> {
         
-        //let date      = Date().iso8601
-        //let dateStamp = Date.getFormattedDate()
-        
-        func getSigningKey() throws -> Data {
+        func getSigningKey() -> Result<Data, ProviderError>  {
             
             guard let kSecret = (AuthorizationHeader.signatureVersion + self.secretAccessKey).data(using: .utf8) else {
-                throw (providerError.foundNil)
+                return .failure(.foundNil)
             }
             
             let kDate    = dateStamp.hmac_sha256(key: kSecret)
@@ -262,7 +229,7 @@ class S3: Provider {
             let kService = AuthorizationHeader.serviceName.hmac_sha256(key: kRegion)
             let kSigning = AuthorizationHeader.signatureRequest.hmac_sha256(key: kService)
             
-            return kSigning
+            return .success(kSigning)
         }
         
         let canonicalURI = endpoint.components.percentEncodedPath
@@ -295,22 +262,28 @@ class S3: Provider {
         """
         
         print("new stringtosing \(stringToSign)")
+    
+        var signature: Data
         
-        let kSigning = try getSigningKey()
-        
-        let signature = stringToSign.hmac_sha256(key: kSigning)
+        switch getSigningKey() {
+        case .success(let kSigning):
+            signature = stringToSign.hmac_sha256(key: kSigning)
+        case .failure(let error):
+            print(error.localizedDescription) //fixme
+            return .failure(error)
+        }
         
         let authorizationHeader = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=\(signedHeaders),Signature=\(signature.hex)"
         
         print("new header \(authorizationHeader)")
         
-        return authorizationHeader
+        return .success(authorizationHeader)
     }
     
     private func processLargeFile(_ asset: PHAsset) throws {
         
         guard let assetFileName = asset.originalFilename else {
-            throw (providerError.foundNil)
+            throw (ProviderError.foundNil)
         }
         
         let queryItemToken = URLQueryItem(name: "uploads", value: nil)
@@ -329,17 +302,24 @@ class S3: Provider {
         let hashedPayload = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         
         guard let fullHost = putObject.components.host else {
-            throw (providerError.preparationFailed)
+            throw (ProviderError.preparationFailed)
         }
         
         let headers = ["host": fullHost,
                        "x-amz-content-sha256": hashedPayload,
                        "x-amz-date": date]
         
-        let header = try getAuthorizationHeader(method: HTTPMethod.post, endpoint: putObject, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp)
+        var header: String
+        
+        switch getAuthorizationHeader(method: HTTPMethod.post, endpoint: putObject, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp) {
+        case .success(let result):
+            header = result
+        case .failure(let error):
+            throw error
+        }
         
         guard let url = putObject.components.url else {
-            throw (providerError.preparationFailed)
+            throw (ProviderError.preparationFailed)
         }
         
         var urlRequest = URLRequest(url: url)
@@ -359,7 +339,7 @@ class S3: Provider {
             print(String(data:data!, encoding:.utf8))
         }.catch { error in
             switch error {
-            case providerError.validResponse(let data):
+            case ProviderError.validResponse(let data):
                 print(String(data:data, encoding:.utf8))
                 let xmlerror = XMLHelper(data:data, recordKey: "Error", dictionaryKeys: ["Code", "Message", "RequestId", "Resource"])
                 let multipartResponse = xmlerror.go()

@@ -161,7 +161,7 @@ class Utility {
             if let object = object as? T {
                 fulfill(object)
             } else {
-                reject(providerError.optionalBinding)
+                reject(ProviderError.optionalBinding)
             }
         }
     }
