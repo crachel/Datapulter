@@ -347,6 +347,8 @@ class S3: Provider {
 
         
         func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String:String])>  {
+            print("got here \(fileId)")
+            return Promise(ProviderError.foundNil)
             return Promise { fulfill, reject in
                 Utility.getURL(ofPhotoWith: asset) { url in
                     
