@@ -1,9 +1,9 @@
 PODS:
   - Eureka (5.0.0)
-  - PromisesObjC (1.2.7)
-  - PromisesSwift (1.2.7):
-    - PromisesObjC (= 1.2.7)
-  - UICircularProgressRing (6.1.0)
+  - PromisesObjC (1.2.8)
+  - PromisesSwift (1.2.8):
+    - PromisesObjC (= 1.2.8)
+  - UICircularProgressRing (6.2.0)
   - WLEmptyState (1.0.2)
 
 DEPENDENCIES:
@@ -22,9 +22,9 @@ SPEC REPOS:
 
 SPEC CHECKSUMS:
   Eureka: 0f64f477ec8ef6201c6fec143d60ff5c201cf654
-  PromisesObjC: 7b28ddd1e78cce8f80f1ada927d2217663a9c672
-  PromisesSwift: b27f410f9ea693753cfd4cfd8ac1c60a471f137b
-  UICircularProgressRing: b3eba859a515e4d9d38503eec913f09c28450785
+  PromisesObjC: c119f3cd559f50b7ae681fa59dc1acd19173b7e6
+  PromisesSwift: 37bad6f4daddb02f7c9c531efe91e8b21c13ee2f
+  UICircularProgressRing: 0ff679b05a17f15ad6301a7886686837b8c301a9
   WLEmptyState: 083ceb8181b65b0008e1cca260b14a768f6c3ab6
 
 PODFILE CHECKSUM: c6dc1ccad007f9338f9d99a37f4e395efd249574

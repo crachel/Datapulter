@@ -252,8 +252,6 @@ class S3: Provider {
         \(hashedPayload)
         """
         
-        print("new canRequest \(canonicalRequest)")
-        
         let stringToSign = """
         AWS4-HMAC-SHA256
         \(date)
@@ -261,8 +259,6 @@ class S3: Provider {
         \(canonicalRequest.data(using: .utf8)!.sha256)
         """
         
-        print("new stringtosing \(stringToSign)")
-    
         var signature: Data
         
         switch getSigningKey() {
@@ -273,8 +269,6 @@ class S3: Provider {
         }
         
         let authorizationHeader = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=\(signedHeaders),Signature=\(signature.hex)"
-        
-        print("new header \(authorizationHeader)")
         
         return .success(authorizationHeader)
     }
@@ -331,13 +325,12 @@ class S3: Provider {
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
         urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)
         
-        fetch(from: urlRequest).then { data, response in
-            guard let httpResponse = response as? HTTPURLResponse else { return }
-            print("\(httpResponse.statusCode)")
-            let xmlerror = XMLHelper(data:data!, recordKey: "InitiateMultipartUploadResult", dictionaryKeys: ["Bucket", "Key", "UploadId"])
-            let multipartResponse = xmlerror.go()
-            print(multipartResponse)
-            print(String(data:data!, encoding:.utf8))
+        fetch(from: urlRequest).then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            XMLHelper(data:data, recordKey: "InitiateMultipartUploadResult", dictionaryKeys: ["Bucket", "Key", "UploadId"]).go()
+        }.then { responseDictionary in
+            createParts(asset, (responseDictionary?.first!["UploadId"])!)
         }.catch { error in
             switch error {
             case ProviderError.validResponse(let data):
