@@ -49,13 +49,14 @@ class S3: Provider {
     }
     
     struct HTTPHeaders {
-        static let authorization = "Authorization"
-        static let date          = "X-Amz-Date"
+        static let authorization = "authorization"
+        static let date          = "x-amz-date"
         static let mimeType      = "application/json"
-        static let contentLength = "Content-Length"
-        static let contentType   = "Content-Type"
-        static let contentMD5    = "Content-MD5"
-        static let expect        = "Expect" // 100-continue
+        static let contentLength = "content-length"
+        static let contentType   = "content-type"
+        static let contentMD5    = "content-md5"
+        static let expect        = "expect" // 100-continue
+        static let host          = "host"
         static let contentSHA256 = "x-amz-content-sha256"
         static let prefix        = "x-amz-meta-"
         static let modified      = prefix + "src_last_modified_millis"
@@ -139,7 +140,7 @@ class S3: Provider {
         urlRequest.httpMethod = HTTPMethod.put
         urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
-        urlRequest.setValue("100-continue", forHTTPHeaderField: "Expect")
+        urlRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
         
         let unixCreationDate = asset.creationDate?.millisecondsSince1970
         
@@ -152,21 +153,20 @@ class S3: Provider {
                 
                 urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
    
-                let headers = ["content-length": String(asset.size),
-                               "expect":"100-continue",
-                               "host":fullHost,
-                               "x-amz-content-sha256":hashedPayload,
-                               "x-amz-date":date,
+                let headers = [HTTPHeaders.contentLength: String(asset.size),
+                               HTTPHeaders.expect:"100-continue",
+                               HTTPHeaders.host:fullHost,
+                               HTTPHeaders.contentSHA256:hashedPayload,
+                               HTTPHeaders.date:date,
                                HTTPHeaders.modified:String(unixCreationDate!)]
                 
-                var authorizationHeader: String
+                var authorizationHeader = String()
                 
                 switch self.getAuthorizationHeader(method: HTTPMethod.put, endpoint: putObject, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp) {
                 case .success(let result):
                     authorizationHeader = result
                 case .failure(let error):
                     reject(error)
-                    return //fixme
                 }
     
                 urlRequest.setValue(authorizationHeader, forHTTPHeaderField: HTTPHeaders.authorization)
@@ -269,7 +269,6 @@ class S3: Provider {
         case .success(let kSigning):
             signature = stringToSign.hmac_sha256(key: kSigning)
         case .failure(let error):
-            print(error.localizedDescription) //fixme
             return .failure(error)
         }
         
@@ -305,13 +304,15 @@ class S3: Provider {
             throw (ProviderError.preparationFailed)
         }
         
-        let headers = ["host": fullHost,
-                       "x-amz-content-sha256": hashedPayload,
-                       "x-amz-date": date]
+        let headers = [HTTPHeaders.host: fullHost,
+                       HTTPHeaders.contentSHA256: hashedPayload,
+                       HTTPHeaders.date: date]
         
         var header: String
         
-        switch getAuthorizationHeader(method: HTTPMethod.post, endpoint: putObject, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp) {
+        let headerResult = getAuthorizationHeader(method: HTTPMethod.post, endpoint: putObject, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp)
+        
+        switch headerResult {
         case .success(let result):
             header = result
         case .failure(let error):
@@ -350,12 +351,9 @@ class S3: Provider {
             }
                 
         }
+
         
-        
-        
-        
-        /*
-        func createParts(_ asset: PHAsset,_ fileId: String) {
+        func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String:String])>  {
             return Promise { fulfill, reject in
                 Utility.getURL(ofPhotoWith: asset) { url in
                     
@@ -381,7 +379,8 @@ class S3: Provider {
                                 part += 1
                                 
                                 let data = Data(bytes: buffer, count: bytes)
-                                partSha1Array.append(data.sha1)
+                                //partETagArray[part] = etag
+                                //partETagArray.append(data.sha1)
                                 
                                 do {
                                     let file = try FileHandle(forWritingTo: payloadFileURL)
@@ -391,10 +390,10 @@ class S3: Provider {
                                 } catch {
                                     reject (error)
                                 }
-                                
+                                /*
                                 buildUploadPartRequest().then { _, _ in
                                     readBytes()
-                                }
+                                }*/
                                 
                             } else {
                                 do {
@@ -405,22 +404,23 @@ class S3: Provider {
                                 
                                 inputStream.close()
                                 
-                                fulfill((fileId, partSha1Array))
+                                fulfill((fileId, partETagArray))
                             }
                         }
                         readBytes()
                         
+                        /*
                         func buildUploadPartRequest() -> Promise<(Data?, URLResponse?)> {
                             
                         }
                         
                         func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
                             
-                        }
+                        }*/
                     }
                 }
             }
-        }*/
+        }
     }
     
     //MARK: Codable

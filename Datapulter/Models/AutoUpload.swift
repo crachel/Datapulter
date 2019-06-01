@@ -46,12 +46,11 @@ class AutoUpload {
             os_log("no photo permission", log: .autoupload, type: .error)
             return
         }
+        
         os_log("started", log: .autoupload, type: .info)
         
         assets = Utility.getCameraRollAssets()
         
-        //for provider in ProviderManager.shared.providers {
-        //if var provider = ProviderManager.shared.providers.first {
         for provider in ProviderManager.shared.providers.providers.array {
             
             if(APIClient.shared.isActive()) {
@@ -64,7 +63,6 @@ class AutoUpload {
             
             assets.enumerateObjects({ (asset, _, _) in
                 if(provider.remoteFileList[asset.localIdentifier] == nil) {
-                    // object has not been uploaded
                     provider.assetsToUpload.insert(asset)
                 }
             })

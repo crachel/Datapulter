@@ -23,7 +23,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
         //tableView.tableFooterView = UIView()
-            
+        
         AutoUpload.shared.start()
     
         // Register to receive photo library change messages
