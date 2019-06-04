@@ -86,6 +86,7 @@ extension Provider {
                     let data = data {
                     
                     if (response.statusCode == 200) {
+                        print("200 was received")
                         fulfill((data, response))
                     } else if (400...503).contains(response.statusCode) {
                         print("validresponse")
@@ -125,6 +126,11 @@ extension Provider {
             } else if (urlRequest.httpMethod == HTTPMethod.get) {
                 task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
                 task.resume()
+            } else if (urlRequest.httpMethod == HTTPMethod.put) {
+                if let url = uploadURL {
+                    task = APIClient.shared.uploadTask(with: urlRequest, fromFile: url, completionHandler: completionHandler)
+                    task.resume()
+                }
             }
         }
     }

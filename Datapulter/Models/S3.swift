@@ -240,7 +240,12 @@ class S3: Provider {
             return "\(key):\(value)"
         }).sorted().joined(separator: "\n")
         
-        let canonicalQueryString = endpoint.components.percentEncodedQuery?.addingSuffixIfNeeded("=") ?? ""
+        //take the percentencodequery off this and possibly the equal sign
+        //let canonicalQueryString = endpoint.components.percentEncodedQuery?.addingSuffixIfNeeded("=") ?? ""
+        //let canonicalQueryString = endpoint.components.query?.addingSuffixIfNeeded("=") ?? ""
+        let canonicalQueryString = endpoint.components.queryItems?.compactMap({ queryItem -> String in
+            return "\(queryItem.name)=\(queryItem.value ?? "")"
+        }).joined(separator: "&amp;") ?? ""
         
         let canonicalRequest = """
         \(method)
@@ -252,12 +257,15 @@ class S3: Provider {
         \(hashedPayload)
         """
         
+        print("canrequest \(canonicalRequest)")
+        
         let stringToSign = """
         AWS4-HMAC-SHA256
         \(date)
         \(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)
         \(canonicalRequest.data(using: .utf8)!.sha256)
         """
+        print("stringtosign \(stringToSign)")
         
         var signature: Data
         
@@ -331,13 +339,15 @@ class S3: Provider {
             XMLHelper(data:data, recordKey: "InitiateMultipartUploadResult", dictionaryKeys: ["Bucket", "Key", "UploadId"]).go()
         }.then { responseDictionary in
             createParts(asset, (responseDictionary?.first!["UploadId"])!)
+        }.then {
+        
         }.catch { error in
             switch error {
             case ProviderError.validResponse(let data):
-                print(String(data:data, encoding:.utf8))
+                print(String(data:data, encoding:.utf8)!)
                 let xmlerror = XMLHelper(data:data, recordKey: "Error", dictionaryKeys: ["Code", "Message", "RequestId", "Resource"])
                 let multipartResponse = xmlerror.go()
-                print("response \(multipartResponse)")
+                print("response \(String(describing: multipartResponse))")
             print(error.localizedDescription)
             default:
             print("default")
@@ -347,8 +357,6 @@ class S3: Provider {
 
         
         func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String:String])>  {
-            print("got here \(fileId)")
-            return Promise(ProviderError.foundNil)
             return Promise { fulfill, reject in
                 Utility.getURL(ofPhotoWith: asset) { url in
                     
@@ -356,6 +364,8 @@ class S3: Provider {
                     
                     var partETagArray = [String:String]()
                     var part = 0
+                    
+                    let fullSize = asset.size
                     
                     if let url = url,
                         let inputStream = InputStream.init(url: url),
@@ -376,6 +386,8 @@ class S3: Provider {
                                 let data = Data(bytes: buffer, count: bytes)
                                 //partETagArray[part] = etag
                                 //partETagArray.append(data.sha1)
+                                let hash = data.sha256
+                                let md5 = data.md5
                                 
                                 do {
                                     let file = try FileHandle(forWritingTo: payloadFileURL)
@@ -385,10 +397,14 @@ class S3: Provider {
                                 } catch {
                                     reject (error)
                                 }
-                                /*
-                                buildUploadPartRequest().then { _, _ in
+                                
+                                buildUploadPartRequest(hash: hash, md5: md5).then { data, _ in
+                                    print("looop")
+                                    print(String(data:data!, encoding:.utf8))
                                     readBytes()
-                                }*/
+                                }.catch { error in
+                                    print("readbytes \(error.localizedDescription)")
+                                }
                                 
                             } else {
                                 do {
@@ -404,11 +420,76 @@ class S3: Provider {
                         }
                         readBytes()
                         
-                        /*
-                        func buildUploadPartRequest() -> Promise<(Data?, URLResponse?)> {
-                            
-                        }
                         
+                        func buildUploadPartRequest(hash: String, md5: String) -> Promise<(Data?, URLResponse?)> {
+                            let queryItemTokens = [URLQueryItem(name: "partNumber", value: String(part)),
+                                                   URLQueryItem(name: "uploadId", value: fileId)]
+                            
+                            let uploadPart: Endpoint = {
+                                var components = URLComponents()
+                                components.host       = [self.bucket, self.hostName].joined(separator: ".")
+                                components.path       = assetFileName.addingPrefixIfNeeded("/")
+                                components.queryItems = queryItemTokens
+                                return Endpoint(components: components)
+                            }()
+                            
+                            guard let url2 = uploadPart.components.url else {
+                                return Promise (ProviderError.preparationFailed)
+                            }
+                            
+                            let headers = [HTTPHeaders.contentLength:String(bytes),
+                                           HTTPHeaders.expect:"100-continue",
+                                           HTTPHeaders.contentSHA256:hash,
+                                           HTTPHeaders.date: date,
+                                           HTTPHeaders.host: putObject.components.host!,
+                                           "content-md5":md5]
+                            
+                            var upRequest = URLRequest(url: url2)
+                            
+                            upRequest.httpMethod = HTTPMethod.put
+                            upRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
+                            upRequest.setValue(String(bytes), forHTTPHeaderField: HTTPHeaders.contentLength)
+                            upRequest.setValue(hash, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+                            upRequest.setValue(md5,forHTTPHeaderField: "content-md5")
+                            //upRequest.setValue("aws-chunked", forHTTPHeaderField: "content-encoding")
+                            //upRequest.setValue(String(fullSize), forHTTPHeaderField: "x-amz-decoded-content-length")
+                            
+                            
+                            
+                            var authHeader: String
+                            
+                            let authResult = self.getAuthorizationHeader(method: HTTPMethod.put, endpoint: uploadPart, headers: headers, hashedPayload: hash, date: date, dateStamp: dateStamp)
+                            
+                            switch authResult {
+                            case .success(let result):
+                                authHeader = result
+                            case .failure(let error):
+                                print("authheader \(error.localizedDescription)")
+                                return Promise(error)
+                            }
+                            print("\(authHeader)")
+                            print("\(url2.absoluteString)")
+                            
+                            upRequest.setValue(authHeader, forHTTPHeaderField: HTTPHeaders.authorization)
+                            
+                            upRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
+                            
+                            print(upRequest.allHTTPHeaderFields)
+                            
+                            return self.fetch(from: upRequest, from: payloadFileURL).catch { error in
+                                switch error {
+                                case ProviderError.validResponse(let data):
+                                    print(String(data:data, encoding:.utf8)!)
+                                    let xmlerror = XMLHelper(data:data, recordKey: "Error", dictionaryKeys: ["Code", "Message", "RequestId", "Resource"])
+                                    let multipartResponse = xmlerror.go()
+                                    print("response \(String(describing: multipartResponse))")
+                                    print(error.localizedDescription)
+                                default:
+                                    print("default")
+                                }
+                            }
+                        }
+                        /*
                         func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
                             
                         }*/
