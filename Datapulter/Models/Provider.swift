@@ -87,6 +87,7 @@ extension Provider {
                     
                     if (response.statusCode == 200) {
                         print("200 was received")
+                        
                         fulfill((data, response))
                     } else if (400...503).contains(response.statusCode) {
                         print("validresponse")

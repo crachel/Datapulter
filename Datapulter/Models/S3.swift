@@ -245,7 +245,8 @@ class S3: Provider {
         //let canonicalQueryString = endpoint.components.query?.addingSuffixIfNeeded("=") ?? ""
         let canonicalQueryString = endpoint.components.queryItems?.compactMap({ queryItem -> String in
             return "\(queryItem.name)=\(queryItem.value ?? "")"
-        }).joined(separator: "&amp;") ?? ""
+        //}).joined(separator: "&amp;") ?? ""
+        }).joined(separator: "&") ?? ""
         
         let canonicalRequest = """
         \(method)
@@ -338,9 +339,8 @@ class S3: Provider {
         }.then { data in
             XMLHelper(data:data, recordKey: "InitiateMultipartUploadResult", dictionaryKeys: ["Bucket", "Key", "UploadId"]).go()
         }.then { responseDictionary in
+            print (responseDictionary)
             createParts(asset, (responseDictionary?.first!["UploadId"])!)
-        }.then {
-        
         }.catch { error in
             switch error {
             case ProviderError.validResponse(let data):
@@ -398,8 +398,11 @@ class S3: Provider {
                                     reject (error)
                                 }
                                 
-                                buildUploadPartRequest(hash: hash, md5: md5).then { data, _ in
+                                buildUploadPartRequest(hash: hash, md5: md5).then { data, response in
                                     print("looop")
+                                    if let response = response as? HTTPURLResponse {
+                                        print(response.allHeaderFields)
+                                    }
                                     print(String(data:data!, encoding:.utf8))
                                     readBytes()
                                 }.catch { error in
@@ -437,28 +440,27 @@ class S3: Provider {
                                 return Promise (ProviderError.preparationFailed)
                             }
                             
+                            let date2      = Date().iso8601
+                            let dateStamp2 = Date.getFormattedDate()
+                            
                             let headers = [HTTPHeaders.contentLength:String(bytes),
                                            HTTPHeaders.expect:"100-continue",
                                            HTTPHeaders.contentSHA256:hash,
-                                           HTTPHeaders.date: date,
-                                           HTTPHeaders.host: putObject.components.host!,
-                                           "content-md5":md5]
+                                           HTTPHeaders.date: date2,
+                                           HTTPHeaders.host: uploadPart.components.host!]
+                                           //"content-md5":md5]
                             
                             var upRequest = URLRequest(url: url2)
                             
                             upRequest.httpMethod = HTTPMethod.put
-                            upRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
+                            upRequest.setValue(date2, forHTTPHeaderField: HTTPHeaders.date)
                             upRequest.setValue(String(bytes), forHTTPHeaderField: HTTPHeaders.contentLength)
                             upRequest.setValue(hash, forHTTPHeaderField: HTTPHeaders.contentSHA256)
-                            upRequest.setValue(md5,forHTTPHeaderField: "content-md5")
-                            //upRequest.setValue("aws-chunked", forHTTPHeaderField: "content-encoding")
-                            //upRequest.setValue(String(fullSize), forHTTPHeaderField: "x-amz-decoded-content-length")
-                            
-                            
+                            //upRequest.setValue(md5,forHTTPHeaderField: "content-md5")
                             
                             var authHeader: String
                             
-                            let authResult = self.getAuthorizationHeader(method: HTTPMethod.put, endpoint: uploadPart, headers: headers, hashedPayload: hash, date: date, dateStamp: dateStamp)
+                            let authResult = self.getAuthorizationHeader(method: HTTPMethod.put, endpoint: uploadPart, headers: headers, hashedPayload: hash, date: date2, dateStamp: dateStamp2)
                             
                             switch authResult {
                             case .success(let result):
@@ -489,10 +491,6 @@ class S3: Provider {
                                 }
                             }
                         }
-                        /*
-                        func uploadPart(_ result: GetUploadPartURLResponse,_ dataCount: Int,_ url: URL,_ partNumber: Int,_ sha1: String) -> Promise<(Data?, URLResponse?)> {
-                            
-                        }*/
                     }
                 }
             }
