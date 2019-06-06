@@ -86,11 +86,8 @@ extension Provider {
                     let data = data {
                     
                     if (response.statusCode == 200) {
-                        print("200 was received")
-                        
                         fulfill((data, response))
                     } else if (400...503).contains(response.statusCode) {
-                        print("validresponse")
                         reject(ProviderError.validResponse(data))
                         /*
                          do {
@@ -100,11 +97,9 @@ extension Provider {
                          reject (providerError.invalidJson) // handled status code but unknown problem decoding JSON
                          }*/
                     } else {
-                        print("unhandledstatuscode")
                         reject (ProviderError.unhandledStatusCode)
                     }
                 } else {
-                    print("invalidresponse")
                     reject (ProviderError.invalidResponse)
                 }
             }

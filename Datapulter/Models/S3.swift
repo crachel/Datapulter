@@ -61,17 +61,14 @@ class S3: Provider {
         static let prefix        = "x-amz-meta-"
         static let modified      = prefix + "src_last_modified_millis"
         static let fileName      = prefix + "file-name"
+        static let typeXml       = "application/xml"
     }
     
     struct File: Codable {
-        // x-amz-content-sha256
-        // x-amz-meta-src_last_modified_millis
-        // Content-Length
-        // X-Amz-Date
         var accessKeyID: String
         var bucket: String
         var contentLength: Int64
-        var contentSha1: String?
+        var contentSha256: String?
         var contentType: String
         var fileName: String
         var uploadTimestamp: Int64
@@ -120,7 +117,7 @@ class S3: Provider {
                 do {
                     try processLargeFile(asset)
                 } catch {
-                    os_log("processingLargeFile %@", log: .b2, type: .error, error.localizedDescription)
+                    os_log("processingLargeFile %@", log: .s3, type: .error, error.localizedDescription)
                 }
             }
             
@@ -240,12 +237,8 @@ class S3: Provider {
             return "\(key):\(value)"
         }).sorted().joined(separator: "\n")
         
-        //take the percentencodequery off this and possibly the equal sign
-        //let canonicalQueryString = endpoint.components.percentEncodedQuery?.addingSuffixIfNeeded("=") ?? ""
-        //let canonicalQueryString = endpoint.components.query?.addingSuffixIfNeeded("=") ?? ""
         let canonicalQueryString = endpoint.components.queryItems?.compactMap({ queryItem -> String in
             return "\(queryItem.name)=\(queryItem.value ?? "")"
-        //}).joined(separator: "&amp;") ?? ""
         }).joined(separator: "&") ?? ""
         
         let canonicalRequest = """
@@ -258,15 +251,12 @@ class S3: Provider {
         \(hashedPayload)
         """
         
-        print("canrequest \(canonicalRequest)")
-        
         let stringToSign = """
         AWS4-HMAC-SHA256
         \(date)
         \(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)
         \(canonicalRequest.data(using: .utf8)!.sha256)
         """
-        print("stringtosign \(stringToSign)")
         
         var signature: Data
         
@@ -303,60 +293,63 @@ class S3: Provider {
             
             post.append("\n</CompleteMultipartUpload>")
             
-            print(post)
-            
-            let queryItemToken2 = URLQueryItem(name: "uploadId", value: uploadId)
+            let queryUploadId = URLQueryItem(name: "uploadId", value: uploadId)
             
             let completeMulti: Endpoint = {
                 var components = URLComponents()
                 components.host       = [bucket, hostName].joined(separator: ".")
                 components.path       = assetFileName.addingPrefixIfNeeded("/")
-                components.queryItems = [queryItemToken2]
+                components.queryItems = [queryUploadId]
                 return Endpoint(components: components)
             }()
             
-            let date3      = Date().iso8601
-            let dateStamp3 = Date.getFormattedDate()
+            let completeDate      = Date().iso8601
+            let completeDateStamp = Date.getFormattedDate()
             
-            guard let url3 = completeMulti.components.url else {
+            guard let completePayload = post.data(using: .utf8) else {
+                os_log("finishLargeFile could not convert payload to data", log: .s3, type: .error)
                 return Promise(ProviderError.foundNil)
             }
-            print(url3)
-            var completeRequest = URLRequest(url: url3)
             
-            let payload = post.data(using: .utf8)?.sha256
+            let completeHash = completePayload.sha256
             
             let postSize = post.data(using: .utf8)!.count
             
+            guard let completeUrl = completeMulti.components.url else {
+                os_log("finishLargeFile bad url", log: .s3, type: .error)
+                return Promise(ProviderError.foundNil)
+            }
+            
+            var completeRequest = URLRequest(url: completeUrl)
+            
             completeRequest.httpMethod = HTTPMethod.post
-            completeRequest.setValue(date3, forHTTPHeaderField: HTTPHeaders.date)
+            completeRequest.setValue(completeDate, forHTTPHeaderField: HTTPHeaders.date)
             completeRequest.setValue(String(postSize), forHTTPHeaderField: HTTPHeaders.contentLength)
-            completeRequest.setValue(payload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
-            completeRequest.setValue("application/xml", forHTTPHeaderField: "content-type")
+            completeRequest.setValue(completeHash, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+            completeRequest.setValue(HTTPHeaders.typeXml, forHTTPHeaderField: HTTPHeaders.contentType)
             
-            let headers3 = [HTTPHeaders.contentLength:String(postSize),
-                            HTTPHeaders.date: date3,
-                            HTTPHeaders.contentSHA256: payload!,
-                            HTTPHeaders.host: completeMulti.components.host!,
-                            "content-type":"application/xml"]
+            let completeHeaders = [HTTPHeaders.contentLength:String(postSize),
+                                   HTTPHeaders.date: completeDate,
+                                   HTTPHeaders.contentSHA256: completeHash,
+                                   HTTPHeaders.host: completeMulti.components.host!,
+                                   HTTPHeaders.contentType:HTTPHeaders.typeXml]
             
-            let authResult3 = getAuthorizationHeader(method: HTTPMethod.post, endpoint: completeMulti, headers: headers3, hashedPayload: payload!, date: date3, dateStamp: dateStamp3)
+            let completeResult = getAuthorizationHeader(method: HTTPMethod.post, endpoint: completeMulti, headers: completeHeaders, hashedPayload: completeHash, date: completeDate, dateStamp: completeDateStamp)
             
-            var authHeader3: String
+            var completeAuthHeader: String
             
-            switch authResult3 {
+            switch completeResult {
             case .success(let result):
-                authHeader3 = result
+                completeAuthHeader = result
             case .failure(let error):
-                print("authheader \(error.localizedDescription)")
+                os_log("finishLargeFile could not getAuthorizationHeader", log: .s3, type: .error)
                 return Promise(error)
             }
             
-            completeRequest.setValue(authHeader3, forHTTPHeaderField: HTTPHeaders.authorization)
-            completeRequest.httpBody = post.data(using: .utf8)
+            completeRequest.setValue(completeAuthHeader, forHTTPHeaderField: HTTPHeaders.authorization)
+            completeRequest.httpBody = completePayload
             
             return self.fetch(from: completeRequest)
-            //return self.fetch(from: completeRequest, with: post.data(using: String.Encoding.utf8))
         }
         
         let queryItemToken = URLQueryItem(name: "uploads", value: nil)
@@ -396,14 +389,10 @@ class S3: Provider {
         guard let url = putObject.components.url else {
             throw (ProviderError.preparationFailed)
         }
-        
-        
-        
+    
         var urlRequest = URLRequest(url: url)
-        
-        
+ 
         urlRequest.httpMethod = HTTPMethod.post
-        
         
         urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
@@ -462,10 +451,7 @@ class S3: Provider {
                                 part += 1
                                 
                                 let data = Data(bytes: buffer, count: bytes)
-                                //partETagArray[part] = etag
-                                //partETagArray.append(data.sha1)
                                 let hash = data.sha256
-                                let md5 = data.md5
                                 
                                 do {
                                     let file = try FileHandle(forWritingTo: payloadFileURL)
@@ -476,14 +462,10 @@ class S3: Provider {
                                     reject (error)
                                 }
                                 
-                                buildUploadPartRequest(hash: hash, md5: md5).then { data, response in
-                                    print("looop")
+                                buildUploadPartRequest(hash: hash).then { data, response in
                                     if let response = response as? HTTPURLResponse {
-                                        print(response.allHeaderFields)
                                         partETagArray[String(part)] = response.allHeaderFields["Etag"] as? String
                                     }
-                                    
-                                    print(String(data:data!, encoding:.utf8))
                                     readBytes()
                                 }.catch { error in
                                     print("readbytes \(error.localizedDescription)")
@@ -504,7 +486,7 @@ class S3: Provider {
                         readBytes()
                         
                         
-                        func buildUploadPartRequest(hash: String, md5: String) -> Promise<(Data?, URLResponse?)> {
+                        func buildUploadPartRequest(hash: String) -> Promise<(Data?, URLResponse?)> {
                             let queryItemTokens = [URLQueryItem(name: "partNumber", value: String(part)),
                                                    URLQueryItem(name: "uploadId", value: fileId)]
                             
@@ -528,7 +510,6 @@ class S3: Provider {
                                            HTTPHeaders.contentSHA256:hash,
                                            HTTPHeaders.date: date2,
                                            HTTPHeaders.host: uploadPart.components.host!]
-                                           //"content-md5":md5]
                             
                             var upRequest = URLRequest(url: url2)
                             
@@ -536,7 +517,6 @@ class S3: Provider {
                             upRequest.setValue(date2, forHTTPHeaderField: HTTPHeaders.date)
                             upRequest.setValue(String(bytes), forHTTPHeaderField: HTTPHeaders.contentLength)
                             upRequest.setValue(hash, forHTTPHeaderField: HTTPHeaders.contentSHA256)
-                            //upRequest.setValue(md5,forHTTPHeaderField: "content-md5")
                             
                             var authHeader: String
                             
@@ -555,8 +535,6 @@ class S3: Provider {
                             upRequest.setValue(authHeader, forHTTPHeaderField: HTTPHeaders.authorization)
                             
                             upRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
-                            
-                            print(upRequest.allHTTPHeaderFields)
                             
                             return self.fetch(from: upRequest, from: payloadFileURL).catch { error in
                                 switch error {
