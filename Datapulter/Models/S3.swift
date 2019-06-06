@@ -288,6 +288,77 @@ class S3: Provider {
             throw (ProviderError.foundNil)
         }
         
+        func finishLargeFile(uploadId: String, partETagArray: [String:String], size: Int64) -> Promise<(Data?, URLResponse?)> {
+            var post: String = "<CompleteMultipartUpload>"
+            
+            for (key, value) in partETagArray.sorted(by: { $0.key < $1.key }) {
+                let node: String = """
+                \n<Part>
+                <PartNumber>\(key)</PartNumber>
+                <ETag>\(value)</ETag>
+                </Part>
+                """
+                post.append(node)
+            }
+            
+            post.append("\n</CompleteMultipartUpload>")
+            
+            print(post)
+            
+            let queryItemToken2 = URLQueryItem(name: "uploadId", value: uploadId)
+            
+            let completeMulti: Endpoint = {
+                var components = URLComponents()
+                components.host       = [bucket, hostName].joined(separator: ".")
+                components.path       = assetFileName.addingPrefixIfNeeded("/")
+                components.queryItems = [queryItemToken2]
+                return Endpoint(components: components)
+            }()
+            
+            let date3      = Date().iso8601
+            let dateStamp3 = Date.getFormattedDate()
+            
+            guard let url3 = completeMulti.components.url else {
+                return Promise(ProviderError.foundNil)
+            }
+            print(url3)
+            var completeRequest = URLRequest(url: url3)
+            
+            let payload = post.data(using: .utf8)?.sha256
+            
+            let postSize = post.data(using: .utf8)!.count
+            
+            completeRequest.httpMethod = HTTPMethod.post
+            completeRequest.setValue(date3, forHTTPHeaderField: HTTPHeaders.date)
+            completeRequest.setValue(String(postSize), forHTTPHeaderField: HTTPHeaders.contentLength)
+            completeRequest.setValue(payload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+            completeRequest.setValue("application/xml", forHTTPHeaderField: "content-type")
+            
+            let headers3 = [HTTPHeaders.contentLength:String(postSize),
+                            HTTPHeaders.date: date3,
+                            HTTPHeaders.contentSHA256: payload!,
+                            HTTPHeaders.host: completeMulti.components.host!,
+                            "content-type":"application/xml"]
+            
+            let authResult3 = getAuthorizationHeader(method: HTTPMethod.post, endpoint: completeMulti, headers: headers3, hashedPayload: payload!, date: date3, dateStamp: dateStamp3)
+            
+            var authHeader3: String
+            
+            switch authResult3 {
+            case .success(let result):
+                authHeader3 = result
+            case .failure(let error):
+                print("authheader \(error.localizedDescription)")
+                return Promise(error)
+            }
+            
+            completeRequest.setValue(authHeader3, forHTTPHeaderField: HTTPHeaders.authorization)
+            completeRequest.httpBody = post.data(using: .utf8)
+            
+            return self.fetch(from: completeRequest)
+            //return self.fetch(from: completeRequest, with: post.data(using: String.Encoding.utf8))
+        }
+        
         let queryItemToken = URLQueryItem(name: "uploads", value: nil)
         
         let putObject: Endpoint = {
@@ -326,9 +397,13 @@ class S3: Provider {
             throw (ProviderError.preparationFailed)
         }
         
+        
+        
         var urlRequest = URLRequest(url: url)
         
+        
         urlRequest.httpMethod = HTTPMethod.post
+        
         
         urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
@@ -339,8 +414,9 @@ class S3: Provider {
         }.then { data in
             XMLHelper(data:data, recordKey: "InitiateMultipartUploadResult", dictionaryKeys: ["Bucket", "Key", "UploadId"]).go()
         }.then { responseDictionary in
-            print (responseDictionary)
             createParts(asset, (responseDictionary?.first!["UploadId"])!)
+        }.then { fileId, partETagArray in
+            finishLargeFile(uploadId: fileId, partETagArray: partETagArray, size: asset.size)
         }.catch { error in
             switch error {
             case ProviderError.validResponse(let data):
@@ -354,6 +430,8 @@ class S3: Provider {
             }
                 
         }
+        
+        
 
         
         func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String:String])>  {
@@ -402,7 +480,9 @@ class S3: Provider {
                                     print("looop")
                                     if let response = response as? HTTPURLResponse {
                                         print(response.allHeaderFields)
+                                        partETagArray[String(part)] = response.allHeaderFields["Etag"] as? String
                                     }
+                                    
                                     print(String(data:data!, encoding:.utf8))
                                     readBytes()
                                 }.catch { error in
