@@ -29,7 +29,7 @@ class B2: Provider {
     var accountId: String
     var bucket: String
     var bucketId: String
-    var filePrefix: String
+    var filePrefix: String?
     var key: String
     var name: String
     var remoteFileList: [String: Data]
@@ -210,7 +210,7 @@ class B2: Provider {
 
     //MARK: Initialization
     
-    init(name: String, account: String, key: String, bucket: String, accountId: String, bucketId: String, remoteFileList: [String: Data], filePrefix: String) {
+    init(name: String, account: String, key: String, bucket: String, accountId: String, bucketId: String, remoteFileList: [String: Data], filePrefix: String?) {
         self.account = account
         self.key = key
         self.bucket = bucket
@@ -274,8 +274,12 @@ class B2: Provider {
             
             //urlRequest.setValue("fail_some_uploads",forHTTPHeaderField: "X-Bz-Test-Mode")
             
-            if let fileName = asset.percentEncodedFilename {
-                urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
+            if var fileName = asset.percentEncodedFilename {
+                if let prefix = self.filePrefix {
+                    fileName = prefix.addingSuffixIfNeeded("/") + fileName
+                }
+                //urlRequest.setValue(self.filePrefix.addingSuffixIfNeeded("/") + fileName, forHTTPHeaderField: HTTPHeaders.fileName)
+                urlRequest.setValue(fileName, forHTTPHeaderField: HTTPHeaders.fileName)
             } else {
                 reject(ProviderError.foundNil)
             }
@@ -734,12 +738,17 @@ class B2: Provider {
         
         }
         
-        guard let fileName = asset.originalFilename else {
+        guard var fileName = asset.originalFilename else {
             throw ProviderError.foundNil
         }
         
+        if let prefix = filePrefix {
+            fileName = prefix.addingSuffixIfNeeded("/") + fileName
+        }
+        
         let request = StartLargeFileRequest(bucketId: bucketId,
-                                            fileName: self.filePrefix.addingSuffixIfNeeded("/") + fileName,
+                                            fileName: fileName,
+                                            //fileName: self.filePrefix.addingSuffixIfNeeded("/") + fileName,
                                             contentType: HTTPHeaders.contentTypeValue)
         
         var uploadData: Data

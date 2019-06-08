@@ -33,7 +33,13 @@ protocol Provider: AnyObject, Codable, AutoUploading {
 
 extension Provider {
     public func updateRing() {
-        let percentDone = CGFloat((totalAssetsUploaded * 100) / totalAssetsToUpload)
+        var percentDone: CGFloat
+        
+        if (totalAssetsToUpload > 0) {
+            percentDone = CGFloat((totalAssetsUploaded * 100) / totalAssetsToUpload)
+        } else {
+            return
+        }
         
         DispatchQueue.main.async {
             self.cell?.ringView.startProgress(to: percentDone, duration: 0) {

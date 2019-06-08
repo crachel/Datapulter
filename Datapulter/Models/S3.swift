@@ -38,6 +38,8 @@ class S3: Provider {
     var regionName: String
     var remoteFileList: [String: Data]
     var secretAccessKey: String
+    var filePrefix: String?
+    var storageClass: String = "STANDARD"
     
     //MARK: Types
     
@@ -62,6 +64,7 @@ class S3: Provider {
         static let modified      = prefix + "src_last_modified_millis"
         static let fileName      = prefix + "file-name"
         static let typeXml       = "application/xml"
+        static let storageClass  = "x-amz-storage-class"
     }
     
     struct File: Codable {
@@ -76,7 +79,7 @@ class S3: Provider {
     
     //MARK: Initialization
     
-    init(name: String, accessKeyID: String, secretAccessKey: String, bucket: String, regionName: String, hostName: String, remoteFileList: [String:Data]) {
+    init(name: String, accessKeyID: String, secretAccessKey: String, bucket: String, regionName: String, hostName: String, remoteFileList: [String:Data], filePrefix: String?, storageClass: String) {
         self.accessKeyID = accessKeyID
         self.bucket = bucket
         self.hostName = hostName
@@ -84,6 +87,8 @@ class S3: Provider {
         self.regionName = regionName
         self.remoteFileList = remoteFileList
         self.secretAccessKey = secretAccessKey
+        self.filePrefix = filePrefix
+        self.storageClass = storageClass
     }
     
     //MARK: Public methods
@@ -94,8 +99,12 @@ class S3: Provider {
     
     func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
         
-        guard let assetFileName = asset.originalFilename else {
+        guard var assetFileName = asset.originalFilename else {
             return Promise(ProviderError.foundNil)
+        }
+        
+        if let prefix = filePrefix {
+            assetFileName = prefix.addingSuffixIfNeeded("/") + assetFileName
         }
         
         let putObject: Endpoint = {
@@ -135,7 +144,7 @@ class S3: Provider {
         var urlRequest = URLRequest(url: url)
         
         urlRequest.httpMethod = HTTPMethod.put
-        urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
+        //urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
         urlRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
         
@@ -149,13 +158,17 @@ class S3: Provider {
                 let hashedPayload = data.sha256
                 
                 urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+                urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
+                urlRequest.setValue(self.storageClass, forHTTPHeaderField: HTTPHeaders.storageClass)
    
-                let headers = [HTTPHeaders.contentLength: String(asset.size),
+                //let headers = [HTTPHeaders.contentLength: String(asset.size),
+                let headers = [HTTPHeaders.contentLength: String(data.count),
                                HTTPHeaders.expect:"100-continue",
                                HTTPHeaders.host:fullHost,
                                HTTPHeaders.contentSHA256:hashedPayload,
                                HTTPHeaders.date:date,
-                               HTTPHeaders.modified:String(unixCreationDate!)]
+                               HTTPHeaders.modified:String(unixCreationDate!),
+                               HTTPHeaders.storageClass:self.storageClass]
                 
                 var authorizationHeader = String()
                 
@@ -181,7 +194,6 @@ class S3: Provider {
                     
                     allHeaders["fileName"] = asset.originalFilename
                     
-                    print("allHeaders \(allHeaders)")
                     do {
                         let data = try JSONSerialization.data(withJSONObject: allHeaders, options: [])
                         remoteFileList[asset.localIdentifier] = data
@@ -197,7 +209,14 @@ class S3: Provider {
                     
                     AutoUpload.shared.initiate(1, self)
                 } else {
+                    if let data = data {
+                        print(String(data:data, encoding:.utf8))
+                        //<Code>SignatureDoesNotMatch</Code>
+                    }
                     // parse xml and figure out what happened. decide course of action
+                    assetsToUpload.insert(asset)
+                    
+                    AutoUpload.shared.initiate(1, self)
                 }
             }
         }
@@ -274,8 +293,12 @@ class S3: Provider {
     
     private func processLargeFile(_ asset: PHAsset) throws {
         
-        guard let assetFileName = asset.originalFilename else {
+        guard var assetFileName = asset.originalFilename else {
             throw (ProviderError.foundNil)
+        }
+        
+        if let prefix = filePrefix {
+            assetFileName = prefix.addingSuffixIfNeeded("/") + assetFileName
         }
         
         func finishLargeFile(uploadId: String, partETagArray: [String:String], size: Int64) -> Promise<(Data?, URLResponse?)> {
@@ -373,7 +396,8 @@ class S3: Provider {
         
         let headers = [HTTPHeaders.host: fullHost,
                        HTTPHeaders.contentSHA256: hashedPayload,
-                       HTTPHeaders.date: date]
+                       HTTPHeaders.date: date,
+                       HTTPHeaders.storageClass:storageClass]
         
         var header: String
         
@@ -397,6 +421,7 @@ class S3: Provider {
         urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
         urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)
+        urlRequest.setValue(storageClass, forHTTPHeaderField: HTTPHeaders.storageClass)
         
         fetch(from: urlRequest).then { data, _ in
             Utility.objectIsType(object: data, someObjectOfType: Data.self)
@@ -406,6 +431,31 @@ class S3: Provider {
             createParts(asset, (responseDictionary?.first!["UploadId"])!)
         }.then { fileId, partETagArray in
             finishLargeFile(uploadId: fileId, partETagArray: partETagArray, size: asset.size)
+        }.then { data, response in
+            //self.finishUploadOperation(asset.localIdentifier, data)
+            if let response = response as? HTTPURLResponse {
+                if(response.statusCode == 200) {
+                    let data = try JSONSerialization.data(withJSONObject: response.allHeaderFields, options: [])
+                    self.remoteFileList[asset.localIdentifier] = data
+                    
+                    self.totalAssetsUploaded += 1
+                    
+                    self.updateRing()
+                    
+                    ProviderManager.shared.saveProviders()
+                }
+            }
+            
+            
+            if (self.largeFilePool.isEmpty) {
+                self.processingLargeFile = false // ends here
+            } else {
+                if let newAsset = self.largeFilePool.popFirst() {
+                    try self.processLargeFile(newAsset)
+                } else {
+                    throw ProviderError.foundNil
+                }
+            }
         }.catch { error in
             switch error {
             case ProviderError.validResponse(let data):
@@ -529,14 +579,14 @@ class S3: Provider {
                                 print("authheader \(error.localizedDescription)")
                                 return Promise(error)
                             }
-                            print("\(authHeader)")
-                            print("\(url2.absoluteString)")
+                            //print("\(authHeader)")
+                            //print("\(url2.absoluteString)")
                             
                             upRequest.setValue(authHeader, forHTTPHeaderField: HTTPHeaders.authorization)
                             
                             upRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
                             
-                            return self.fetch(from: upRequest, from: payloadFileURL).catch { error in
+                            return self.fetch(from: upRequest, from: payloadFileURL).recover { error -> Promise<(Data?, URLResponse?)> in
                                 switch error {
                                 case ProviderError.validResponse(let data):
                                     print(String(data:data, encoding:.utf8)!)
@@ -544,8 +594,9 @@ class S3: Provider {
                                     let multipartResponse = xmlerror.go()
                                     print("response \(String(describing: multipartResponse))")
                                     print(error.localizedDescription)
+                                    return buildUploadPartRequest(hash: hash)
                                 default:
-                                    print("default")
+                                    return Promise(error)
                                 }
                             }
                         }
@@ -560,11 +611,13 @@ class S3: Provider {
     enum CodingKeys: String, CodingKey {
         case accessKeyID
         case bucket
+        case filePrefix
         case hostName
         case name
         case regionName
         case remoteFileList
         case secretAccessKey
+        case storageClass
     }
     
     func encode(to encoder: Encoder) throws {
@@ -572,11 +625,13 @@ class S3: Provider {
         
         try container.encode(accessKeyID, forKey: .accessKeyID)
         try container.encode(bucket, forKey: .bucket)
+        try container.encode(filePrefix, forKey: .filePrefix)
         try container.encode(hostName, forKey: .hostName)
         try container.encode(name, forKey: .name)
         try container.encode(regionName, forKey: .regionName)
         try container.encode(remoteFileList, forKey: .remoteFileList)
         try container.encode(secretAccessKey, forKey: .secretAccessKey)
+        try container.encode(storageClass, forKey: .storageClass)
     }
     
     required init(from decoder: Decoder) throws {
@@ -584,11 +639,13 @@ class S3: Provider {
         
         accessKeyID = try values.decode(String.self, forKey: .accessKeyID)
         bucket = try values.decode(String.self, forKey: .bucket)
+        filePrefix = try values.decode(String.self, forKey: .filePrefix)
         hostName = try values.decode(String.self, forKey: .hostName)
         name = try values.decode(String.self, forKey: .name)
         regionName = try values.decode(String.self, forKey: .regionName)
         remoteFileList = try values.decode([String:Data].self, forKey: .remoteFileList)
         secretAccessKey = try values.decode(String.self, forKey: .secretAccessKey)
+        storageClass = try values.decode(String.self, forKey: .storageClass)
     }
 }
 
