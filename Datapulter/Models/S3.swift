@@ -35,11 +35,13 @@ class S3: Provider {
     var bucket: String
     var hostName: String
     var name: String
+    var port: Int = 443 //
     var regionName: String
     var remoteFileList: [String: Data]
     var secretAccessKey: String
     var filePrefix: String?
     var storageClass: String = "STANDARD"
+    var useVirtual: Bool = true //
     
     //MARK: Types
     
@@ -79,16 +81,18 @@ class S3: Provider {
     
     //MARK: Initialization
     
-    init(name: String, accessKeyID: String, secretAccessKey: String, bucket: String, regionName: String, hostName: String, remoteFileList: [String:Data], filePrefix: String?, storageClass: String) {
+    init(name: String, accessKeyID: String, secretAccessKey: String, bucket: String, regionName: String, hostName: String, remoteFileList: [String:Data], filePrefix: String?, storageClass: String, useVirtual: Bool, port: Int) {
         self.accessKeyID = accessKeyID
         self.bucket = bucket
         self.hostName = hostName
         self.name = name
+        self.port = port
         self.regionName = regionName
         self.remoteFileList = remoteFileList
         self.secretAccessKey = secretAccessKey
         self.filePrefix = filePrefix
         self.storageClass = storageClass
+        self.useVirtual = useVirtual
     }
     
     //MARK: Public methods
@@ -107,9 +111,19 @@ class S3: Provider {
             assetFileName = prefix.addingSuffixIfNeeded("/") + assetFileName
         }
         
+        if(!useVirtual) {
+            assetFileName = bucket.addingSuffixIfNeeded("/") + assetFileName
+        }
+        
         let putObject: Endpoint = {
             var components = URLComponents()
-            components.host = [bucket, hostName].joined(separator: ".")
+            if (useVirtual) {
+                components.host = [bucket, hostName].joined(separator: ".")
+            } else {
+                components.scheme = "http"
+                components.host = hostName
+                components.port = port
+            }
             components.path = assetFileName.addingPrefixIfNeeded("/")
             return Endpoint(components: components)
         }()
@@ -123,6 +137,7 @@ class S3: Provider {
                 largeFilePool.insert(asset)
             } else {
                 processingLargeFile = true
+                
                 do {
                     try processLargeFile(asset)
                 } catch {
@@ -144,7 +159,6 @@ class S3: Provider {
         var urlRequest = URLRequest(url: url)
         
         urlRequest.httpMethod = HTTPMethod.put
-        //urlRequest.setValue(String(asset.size), forHTTPHeaderField: HTTPHeaders.contentLength)
         urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
         urlRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
         
@@ -161,14 +175,20 @@ class S3: Provider {
                 urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
                 urlRequest.setValue(self.storageClass, forHTTPHeaderField: HTTPHeaders.storageClass)
    
-                //let headers = [HTTPHeaders.contentLength: String(asset.size),
-                let headers = [HTTPHeaders.contentLength: String(data.count),
+                var headers = [HTTPHeaders.contentLength: String(data.count),
                                HTTPHeaders.expect:"100-continue",
-                               HTTPHeaders.host:fullHost,
+                               //HTTPHeaders.host:[fullHost, String(putObject.components.port ?? 443)].joined(separator: ":")
+                               //HTTPHeaders.host:fullHost,
                                HTTPHeaders.contentSHA256:hashedPayload,
                                HTTPHeaders.date:date,
                                HTTPHeaders.modified:String(unixCreationDate!),
                                HTTPHeaders.storageClass:self.storageClass]
+                
+                if (self.useVirtual) {
+                    headers[HTTPHeaders.host] = fullHost
+                } else {
+                    headers[HTTPHeaders.host] = [fullHost, String(putObject.components.port ?? 443)].joined(separator: ":")
+                }
                 
                 var authorizationHeader = String()
                 
@@ -270,6 +290,8 @@ class S3: Provider {
         \(hashedPayload)
         """
         
+        print(canonicalRequest)
+        
         let stringToSign = """
         AWS4-HMAC-SHA256
         \(date)
@@ -301,6 +323,11 @@ class S3: Provider {
             assetFileName = prefix.addingSuffixIfNeeded("/") + assetFileName
         }
         
+        if(!useVirtual) {
+            assetFileName = bucket.addingSuffixIfNeeded("/") + assetFileName
+        }
+        
+        
         func finishLargeFile(uploadId: String, partETagArray: [String:String], size: Int64) -> Promise<(Data?, URLResponse?)> {
             var post: String = "<CompleteMultipartUpload>"
             
@@ -320,7 +347,14 @@ class S3: Provider {
             
             let completeMulti: Endpoint = {
                 var components = URLComponents()
-                components.host       = [bucket, hostName].joined(separator: ".")
+                //components.host       = [bucket, hostName].joined(separator: ".")
+                if (useVirtual) {
+                    components.host = [bucket, hostName].joined(separator: ".")
+                } else {
+                    components.scheme = "http"
+                    components.host = hostName
+                    components.port = port
+                }
                 components.path       = assetFileName.addingPrefixIfNeeded("/")
                 components.queryItems = [queryUploadId]
                 return Endpoint(components: components)
@@ -351,11 +385,17 @@ class S3: Provider {
             completeRequest.setValue(completeHash, forHTTPHeaderField: HTTPHeaders.contentSHA256)
             completeRequest.setValue(HTTPHeaders.typeXml, forHTTPHeaderField: HTTPHeaders.contentType)
             
-            let completeHeaders = [HTTPHeaders.contentLength:String(postSize),
+            var completeHeaders = [HTTPHeaders.contentLength:String(postSize),
                                    HTTPHeaders.date: completeDate,
                                    HTTPHeaders.contentSHA256: completeHash,
-                                   HTTPHeaders.host: completeMulti.components.host!,
+                                   //HTTPHeaders.host: completeMulti.components.host!,
                                    HTTPHeaders.contentType:HTTPHeaders.typeXml]
+            
+            if (self.useVirtual) {
+                completeHeaders[HTTPHeaders.host] = completeMulti.components.host!
+            } else {
+                completeHeaders[HTTPHeaders.host] = [completeMulti.components.host!, String(completeMulti.components.port ?? 443)].joined(separator: ":")
+            }
             
             let completeResult = getAuthorizationHeader(method: HTTPMethod.post, endpoint: completeMulti, headers: completeHeaders, hashedPayload: completeHash, date: completeDate, dateStamp: completeDateStamp)
             
@@ -372,14 +412,21 @@ class S3: Provider {
             completeRequest.setValue(completeAuthHeader, forHTTPHeaderField: HTTPHeaders.authorization)
             completeRequest.httpBody = completePayload
             
-            return self.fetch(from: completeRequest)
+            return self.fetch(with: completeRequest)
         }
         
         let queryItemToken = URLQueryItem(name: "uploads", value: nil)
         
         let putObject: Endpoint = {
             var components = URLComponents()
-            components.host       = [bucket, hostName].joined(separator: ".")
+            //components.host       = [bucket, hostName].joined(separator: ".")
+            if (useVirtual) {
+                components.host = [bucket, hostName].joined(separator: ".")
+            } else {
+                components.scheme = "http"
+                components.host = hostName
+                components.port = port
+            }
             components.path       = assetFileName.addingPrefixIfNeeded("/")
             components.queryItems = [queryItemToken]
             return Endpoint(components: components)
@@ -394,10 +441,16 @@ class S3: Provider {
             throw (ProviderError.preparationFailed)
         }
         
-        let headers = [HTTPHeaders.host: fullHost,
+        var headers = [//HTTPHeaders.host: fullHost,
                        HTTPHeaders.contentSHA256: hashedPayload,
                        HTTPHeaders.date: date,
                        HTTPHeaders.storageClass:storageClass]
+        
+        if (self.useVirtual) {
+            headers[HTTPHeaders.host] = fullHost
+        } else {
+            headers[HTTPHeaders.host] = [fullHost, String(putObject.components.port ?? 443)].joined(separator: ":")
+        }
         
         var header: String
         
@@ -413,7 +466,7 @@ class S3: Provider {
         guard let url = putObject.components.url else {
             throw (ProviderError.preparationFailed)
         }
-    
+       
         var urlRequest = URLRequest(url: url)
  
         urlRequest.httpMethod = HTTPMethod.post
@@ -423,7 +476,7 @@ class S3: Provider {
         urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)
         urlRequest.setValue(storageClass, forHTTPHeaderField: HTTPHeaders.storageClass)
         
-        fetch(from: urlRequest).then { data, _ in
+        fetch(with: urlRequest).then { data, _ in
             Utility.objectIsType(object: data, someObjectOfType: Data.self)
         }.then { data in
             XMLHelper(data:data, recordKey: "InitiateMultipartUploadResult", dictionaryKeys: ["Bucket", "Key", "UploadId"]).go()
@@ -542,7 +595,14 @@ class S3: Provider {
                             
                             let uploadPart: Endpoint = {
                                 var components = URLComponents()
-                                components.host       = [self.bucket, self.hostName].joined(separator: ".")
+                                //components.host       = [self.bucket, self.hostName].joined(separator: ".")
+                                if (self.useVirtual) {
+                                    components.host = [self.bucket, self.hostName].joined(separator: ".")
+                                } else {
+                                    components.scheme = "http"
+                                    components.host = self.hostName
+                                    components.port = self.port
+                                }
                                 components.path       = assetFileName.addingPrefixIfNeeded("/")
                                 components.queryItems = queryItemTokens
                                 return Endpoint(components: components)
@@ -555,11 +615,17 @@ class S3: Provider {
                             let date2      = Date().iso8601
                             let dateStamp2 = Date.getFormattedDate()
                             
-                            let headers = [HTTPHeaders.contentLength:String(bytes),
+                            var headers = [HTTPHeaders.contentLength:String(bytes),
                                            HTTPHeaders.expect:"100-continue",
                                            HTTPHeaders.contentSHA256:hash,
-                                           HTTPHeaders.date: date2,
-                                           HTTPHeaders.host: uploadPart.components.host!]
+                                           HTTPHeaders.date: date2]
+                                           //HTTPHeaders.host: uploadPart.components.host!]
+                            
+                            if (self.useVirtual) {
+                                headers[HTTPHeaders.host] = uploadPart.components.host!
+                            } else {
+                                headers[HTTPHeaders.host] = [uploadPart.components.host!, String(uploadPart.components.port ?? 443)].joined(separator: ":")
+                            }
                             
                             var upRequest = URLRequest(url: url2)
                             
@@ -567,6 +633,7 @@ class S3: Provider {
                             upRequest.setValue(date2, forHTTPHeaderField: HTTPHeaders.date)
                             upRequest.setValue(String(bytes), forHTTPHeaderField: HTTPHeaders.contentLength)
                             upRequest.setValue(hash, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+                            
                             
                             var authHeader: String
                             
@@ -586,7 +653,7 @@ class S3: Provider {
                             
                             upRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
                             
-                            return self.fetch(from: upRequest, from: payloadFileURL).recover { error -> Promise<(Data?, URLResponse?)> in
+                            return self.fetch(with: upRequest, fromFile: payloadFileURL).recover { error -> Promise<(Data?, URLResponse?)> in
                                 switch error {
                                 case ProviderError.validResponse(let data):
                                     print(String(data:data, encoding:.utf8)!)
@@ -614,10 +681,12 @@ class S3: Provider {
         case filePrefix
         case hostName
         case name
+        case port
         case regionName
         case remoteFileList
         case secretAccessKey
         case storageClass
+        case useVirtual
     }
     
     func encode(to encoder: Encoder) throws {
@@ -628,10 +697,12 @@ class S3: Provider {
         try container.encode(filePrefix, forKey: .filePrefix)
         try container.encode(hostName, forKey: .hostName)
         try container.encode(name, forKey: .name)
+        try container.encode(port, forKey: .port)
         try container.encode(regionName, forKey: .regionName)
         try container.encode(remoteFileList, forKey: .remoteFileList)
         try container.encode(secretAccessKey, forKey: .secretAccessKey)
         try container.encode(storageClass, forKey: .storageClass)
+        try container.encode(useVirtual, forKey: .useVirtual)
     }
     
     required init(from decoder: Decoder) throws {
@@ -642,10 +713,12 @@ class S3: Provider {
         filePrefix = try values.decode(String.self, forKey: .filePrefix)
         hostName = try values.decode(String.self, forKey: .hostName)
         name = try values.decode(String.self, forKey: .name)
+        port = try values.decode(Int.self, forKey: .port)
         regionName = try values.decode(String.self, forKey: .regionName)
         remoteFileList = try values.decode([String:Data].self, forKey: .remoteFileList)
         secretAccessKey = try values.decode(String.self, forKey: .secretAccessKey)
         storageClass = try values.decode(String.self, forKey: .storageClass)
+        useVirtual = try values.decode(Bool.self, forKey: .useVirtual)
     }
 }
 

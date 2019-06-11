@@ -11,6 +11,7 @@ import Photos
 import Promises
 
 protocol Provider: AnyObject, Codable, AutoUploading {
+//protocol Provider: Codable, AutoUploading {
     
     var metatype: ProviderMetatype { get }
     
@@ -33,6 +34,7 @@ protocol Provider: AnyObject, Codable, AutoUploading {
 
 extension Provider {
     public func updateRing() {
+        
         var percentDone: CGFloat
         
         if (totalAssetsToUpload > 0) {
@@ -62,15 +64,7 @@ extension Provider {
         }
     }
     
-    public func fetch(from urlRequest: URLRequest, with uploadData: Data? = nil, from uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
-        /**
-         Starts a URLSessionUploadTask or URLSessionDataTask depending on the
-         HTTP method of the URLRequest.
-         
-         In addition to all client-side errors, it also treats any URLResponse
-         status code other than 200 as a "validResponse" error so that we may
-         parse the data (xml/json/etc) at the subclass and recover from it.
-         */
+    public func fetch(with urlRequest: URLRequest, from uploadData: Data? = nil, fromFile uploadURL: URL? = nil) -> Promise<(Data?, URLResponse?)> {
         return Promise { fulfill, reject in
             
             var task = URLSessionTask()
@@ -87,26 +81,17 @@ extension Provider {
                 }
                 
                 if let response = response as? HTTPURLResponse,
-                    //let mimeType = response.mimeType,
-                    //mimeType == HTTPHeaders.mimeType,
                     let data = data {
                     
                     if (response.statusCode == 200) {
                         fulfill((data, response))
                     } else if (400...503).contains(response.statusCode) {
                         reject(ProviderError.validResponse(data))
-                        /*
-                         do {
-                         let jsonerror = try JSONDecoder().decode(JSONError.self, from: data)
-                         reject (B2Error(rawValue: jsonerror.code) ?? providerError.unmatched)
-                         } catch {
-                         reject (providerError.invalidJson) // handled status code but unknown problem decoding JSON
-                         }*/
                     } else {
-                        reject (ProviderError.unhandledStatusCode)
+                        reject(ProviderError.unhandledStatusCode)
                     }
                 } else {
-                    reject (ProviderError.invalidResponse)
+                    reject(ProviderError.invalidResponse)
                 }
             }
             
@@ -114,6 +99,17 @@ extension Provider {
                 UIApplication.shared.isNetworkActivityIndicatorVisible = true
             }
             
+            if let data = uploadData {
+                task = APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler)
+            } else if let url = uploadURL {
+                task = APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler)
+            } else {
+                task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
+            }
+            
+            task.resume()
+            
+            /*
             if (urlRequest.httpMethod == HTTPMethod.post) {
                 if let data = uploadData {
                     task = APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler)
@@ -133,7 +129,7 @@ extension Provider {
                     task = APIClient.shared.uploadTask(with: urlRequest, fromFile: url, completionHandler: completionHandler)
                     task.resume()
                 }
-            }
+            }*/
         }
     }
 }

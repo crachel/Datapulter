@@ -493,7 +493,7 @@ class B2: Provider {
         
         os_log("Transactions Class C - %@", log: .b2, type: .info, Endpoints.authorizeAccount.components.path)
         
-        return fetch(from: urlRequest)
+        return fetch(with: urlRequest)
     }
     
     private func fetch(from endpoint: Endpoint, with uploadData: Data? = nil) -> Promise<(Data?, URLResponse?)> {
@@ -516,7 +516,7 @@ class B2: Provider {
             urlRequest.setValue(authorizationToken, forHTTPHeaderField: HTTPHeaders.authorization)
         }
         
-        return fetch(from: urlRequest,with: uploadData)
+        return fetch(with: urlRequest,from: uploadData)
     }
     
     private func recover(from error: Error,retry endpoint: Endpoint,with uploadData: Data) -> Promise<(Data?, URLResponse?)> {
@@ -721,12 +721,12 @@ class B2: Provider {
                             urlRequest.setValue(String(dataCount), forHTTPHeaderField: HTTPHeaders.contentLength)
                             urlRequest.setValue(sha1, forHTTPHeaderField: HTTPHeaders.sha1)
                             
-                            return self.fetch(from: urlRequest, from: url).recover { error -> Promise<(Data?, URLResponse?)> in
+                            return self.fetch(with: urlRequest, fromFile: url).recover { error -> Promise<(Data?, URLResponse?)> in
                                 switch error {
                                 case B2Error.bad_auth_token, B2Error.expired_auth_token, B2Error.service_unavailable:
                                     return buildUploadPartRequest()
                                 case ProviderError.connectionError:
-                                    return self.fetch(from: urlRequest, from: url)
+                                    return self.fetch(with: urlRequest, fromFile: url)
                                 default:
                                     return Promise(error)
                                 }

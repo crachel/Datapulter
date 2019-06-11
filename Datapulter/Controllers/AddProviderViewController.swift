@@ -13,21 +13,8 @@ import Promises
 
 class AddProviderViewController: FormViewController, UITextFieldDelegate {
     
-    /*
-     
-     /*row.hidden = Condition.function(["actionsProvider"])
-     { form in
-     if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
-     return row.value != "Backblaze B2"
-     }
-     return false
-     }*/
-     
-     
-     
-     */
-    
     //MARK: Properties
+    
     var provider: Provider?
 
     @IBOutlet weak var saveButton: UIBarButtonItem!
@@ -35,7 +22,6 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Do any additional setup after loading the view, typically from a nib.
         form +++ Section()
             <<< ActionSheetRow<String>("actionsProvider") {
                     $0.title = "Provider"
@@ -64,6 +50,34 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
                 }
+            <<< AccountRow("tagPort") { row in
+                row.title = "Port"
+                row.placeholder = "443"
+                row.add(rule: RuleRequired())
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Amazon S3"
+                    }
+                    return false
+                }
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+            }
+            <<< AccountRow("tagRegionName") { row in
+                row.title = "Region"
+                row.placeholder = "us-east-1"
+                row.add(rule: RuleRequired())
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Amazon S3"
+                    }
+                    return false
+                }
+                }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+            }
             <<< ActionSheetRow<String>("tagStorageClass") {
                 $0.title = "Storage Class"
                 $0.selectorTitle = "Pick Storage Class"
@@ -104,6 +118,18 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                     row.add(rule: RuleRequired())
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
+                }
+            +++ Section("OPTIONS")
+            <<< SwitchRow("tagVirtual"){ row in
+                row.title = "Use Virtual Hosting"
+                row.value = true
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Amazon S3"
+                    }
+                    return false
+                }
                 }
             /*
             +++ Section("OPTIONS")
@@ -169,9 +195,11 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 
             } else if (row.value == "Amazon S3") {
                 
-                provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "AKIAZ46WPMYAAYVDOW5H", secretAccessKey: "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", bucket: "datapulter", regionName: "us-west-2", hostName: "s3.amazonaws.com",  remoteFileList: [:], filePrefix: "simulator2", storageClass: valuesDictionary["tagStorageClass"] as! String)
+                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "AKIAZ46WPMYAAYVDOW5H", secretAccessKey: "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", bucket: "datapulter", regionName: "us-west-2", hostName: "s3.amazonaws.com",  remoteFileList: [:], filePrefix: "simulator", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443)
                 
-                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:], filePrefix: "iphone6splus", storageClass: valuesDictionary["tagStorageClass"] as! String)
+                provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:], filePrefix: "simulator2", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443)
+                
+                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "crachel", secretAccessKey: "Vjg4S3R5AW", bucket: "datapulter", regionName: "us-east-1", hostName: "192.168.1.186",  remoteFileList: [:], filePrefix: "simulator", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: false, port: 9000)
                 
                 self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
             }

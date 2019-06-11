@@ -23,9 +23,11 @@ struct Endpoint {
     }
     
     init(scheme: String? = "https",
+         port: Int? = 443,
          path: String,
          method: String? = HTTPMethod.post) {
         self.components.scheme = scheme
+        self.components.port = port
         self.components.path = path
         self.method = method
     }
