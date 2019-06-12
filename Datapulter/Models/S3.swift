@@ -19,8 +19,8 @@ class S3: Provider {
     
     struct Defaults {
         static let maxParts     = 10_000
-        static let uploadCutoff = 50 * 1_000 * 1_000
-        static let chunkSize    = 50 * 1_000 * 1_000
+        static let uploadCutoff = 25 * 1_000 * 1_000
+        static let chunkSize    = 25 * 1_000 * 1_000
     }
 
     var cell: ProviderTableViewCell?
@@ -125,7 +125,7 @@ class S3: Provider {
                 components.port = port
             }
             components.path = assetFileName.addingPrefixIfNeeded("/")
-            return Endpoint(components: components)
+            return Endpoint(components: components, method: HTTPMethod.put)
         }()
         
         let date      = Date().iso8601
@@ -156,20 +156,20 @@ class S3: Provider {
             return Promise(ProviderError.preparationFailed)
         }
         
-        var urlRequest = URLRequest(url: url)
-        
-        urlRequest.httpMethod = HTTPMethod.put
-        urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
-        urlRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
-        
-        let unixCreationDate = asset.creationDate?.millisecondsSince1970
-        
-        urlRequest.setValue((unixCreationDate?.description), forHTTPHeaderField: HTTPHeaders.modified)
-
         return Promise { fulfill, reject in
             Utility.getData(from: asset) { data, _ in
                 
                 let hashedPayload = data.sha256
+                
+                var urlRequest = URLRequest(url: url)
+                
+                urlRequest.httpMethod = putObject.method
+                urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
+                urlRequest.setValue("100-continue", forHTTPHeaderField: HTTPHeaders.expect)
+                
+                let unixCreationDate = asset.creationDate?.millisecondsSince1970
+                
+                urlRequest.setValue((unixCreationDate?.description), forHTTPHeaderField: HTTPHeaders.modified)
                 
                 urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
                 urlRequest.setValue(String(data.count), forHTTPHeaderField: HTTPHeaders.contentLength)
@@ -331,7 +331,7 @@ class S3: Provider {
         func finishLargeFile(uploadId: String, partETagArray: [String:String], size: Int64) -> Promise<(Data?, URLResponse?)> {
             var post: String = "<CompleteMultipartUpload>"
             
-            for (key, value) in partETagArray.sorted(by: { $0.key < $1.key }) {
+            for (key, value) in partETagArray.sorted(by: { Int($0.key) ?? 0 < Int($1.key) ?? 0 }) {
                 let node: String = """
                 \n<Part>
                 <PartNumber>\(key)</PartNumber>
@@ -342,6 +342,8 @@ class S3: Provider {
             }
             
             post.append("\n</CompleteMultipartUpload>")
+            
+            print(post)
             
             let queryUploadId = URLQueryItem(name: "uploadId", value: uploadId)
             
@@ -357,7 +359,7 @@ class S3: Provider {
                 }
                 components.path       = assetFileName.addingPrefixIfNeeded("/")
                 components.queryItems = [queryUploadId]
-                return Endpoint(components: components)
+                return Endpoint(components: components, method: HTTPMethod.post)
             }()
             
             let completeDate      = Date().iso8601
@@ -429,7 +431,7 @@ class S3: Provider {
             }
             components.path       = assetFileName.addingPrefixIfNeeded("/")
             components.queryItems = [queryItemToken]
-            return Endpoint(components: components)
+            return Endpoint(components: components, method: HTTPMethod.post)
         }()
         
         let date      = Date().iso8601
@@ -523,9 +525,6 @@ class S3: Provider {
                 
         }
         
-        
-
-        
         func createParts(_ asset: PHAsset,_ fileId: String) -> Promise<(String, [String:String])>  {
             return Promise { fulfill, reject in
                 Utility.getURL(ofPhotoWith: asset) { url in
@@ -568,6 +567,7 @@ class S3: Provider {
                                 buildUploadPartRequest(hash: hash).then { data, response in
                                     if let response = response as? HTTPURLResponse {
                                         partETagArray[String(part)] = response.allHeaderFields["Etag"] as? String
+                                        //partETagArray[part] = response.allHeaderFields["Etag"] as? String
                                     }
                                     readBytes()
                                 }.catch { error in
