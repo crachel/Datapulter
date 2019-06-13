@@ -35,13 +35,14 @@ class S3: Provider {
     var bucket: String
     var hostName: String
     var name: String
-    var port: Int = 443 //
+    var port: Int = 443
     var regionName: String
     var remoteFileList: [String: Data]
     var secretAccessKey: String
     var filePrefix: String?
     var storageClass: String = "STANDARD"
-    var useVirtual: Bool = true //
+    var useVirtual: Bool = true
+    var scheme: String = "https"
     
     //MARK: Types
     
@@ -81,16 +82,17 @@ class S3: Provider {
     
     //MARK: Initialization
     
-    init(name: String, accessKeyID: String, secretAccessKey: String, bucket: String, regionName: String, hostName: String, remoteFileList: [String:Data], filePrefix: String?, storageClass: String, useVirtual: Bool, port: Int) {
+    init(name: String, accessKeyID: String, secretAccessKey: String, bucket: String, regionName: String, hostName: String, remoteFileList: [String:Data], filePrefix: String?, storageClass: String, useVirtual: Bool, port: Int, scheme: String) {
         self.accessKeyID = accessKeyID
         self.bucket = bucket
+        self.filePrefix = filePrefix
         self.hostName = hostName
         self.name = name
         self.port = port
         self.regionName = regionName
         self.remoteFileList = remoteFileList
+        self.scheme = scheme
         self.secretAccessKey = secretAccessKey
-        self.filePrefix = filePrefix
         self.storageClass = storageClass
         self.useVirtual = useVirtual
     }
@@ -120,7 +122,7 @@ class S3: Provider {
             if (useVirtual) {
                 components.host = [bucket, hostName].joined(separator: ".")
             } else {
-                components.scheme = "http"
+                components.scheme = scheme
                 components.host = hostName
                 components.port = port
             }
@@ -177,8 +179,6 @@ class S3: Provider {
    
                 var headers = [HTTPHeaders.contentLength: String(data.count),
                                HTTPHeaders.expect:"100-continue",
-                               //HTTPHeaders.host:[fullHost, String(putObject.components.port ?? 443)].joined(separator: ":")
-                               //HTTPHeaders.host:fullHost,
                                HTTPHeaders.contentSHA256:hashedPayload,
                                HTTPHeaders.date:date,
                                HTTPHeaders.modified:String(unixCreationDate!),
@@ -290,8 +290,6 @@ class S3: Provider {
         \(hashedPayload)
         """
         
-        print(canonicalRequest)
-        
         let stringToSign = """
         AWS4-HMAC-SHA256
         \(date)
@@ -331,6 +329,7 @@ class S3: Provider {
         func finishLargeFile(uploadId: String, partETagArray: [String:String], size: Int64) -> Promise<(Data?, URLResponse?)> {
             var post: String = "<CompleteMultipartUpload>"
             
+            // cast the partETagArray key to an Int then sort in ascending order
             for (key, value) in partETagArray.sorted(by: { Int($0.key) ?? 0 < Int($1.key) ?? 0 }) {
                 let node: String = """
                 \n<Part>
@@ -343,17 +342,14 @@ class S3: Provider {
             
             post.append("\n</CompleteMultipartUpload>")
             
-            print(post)
-            
             let queryUploadId = URLQueryItem(name: "uploadId", value: uploadId)
             
             let completeMulti: Endpoint = {
                 var components = URLComponents()
-                //components.host       = [bucket, hostName].joined(separator: ".")
                 if (useVirtual) {
                     components.host = [bucket, hostName].joined(separator: ".")
                 } else {
-                    components.scheme = "http"
+                    components.scheme = scheme
                     components.host = hostName
                     components.port = port
                 }
@@ -421,11 +417,10 @@ class S3: Provider {
         
         let putObject: Endpoint = {
             var components = URLComponents()
-            //components.host       = [bucket, hostName].joined(separator: ".")
             if (useVirtual) {
                 components.host = [bucket, hostName].joined(separator: ".")
             } else {
-                components.scheme = "http"
+                components.scheme = scheme
                 components.host = hostName
                 components.port = port
             }
@@ -567,7 +562,6 @@ class S3: Provider {
                                 buildUploadPartRequest(hash: hash).then { data, response in
                                     if let response = response as? HTTPURLResponse {
                                         partETagArray[String(part)] = response.allHeaderFields["Etag"] as? String
-                                        //partETagArray[part] = response.allHeaderFields["Etag"] as? String
                                     }
                                     readBytes()
                                 }.catch { error in
@@ -599,7 +593,7 @@ class S3: Provider {
                                 if (self.useVirtual) {
                                     components.host = [self.bucket, self.hostName].joined(separator: ".")
                                 } else {
-                                    components.scheme = "http"
+                                    components.scheme = self.scheme
                                     components.host = self.hostName
                                     components.port = self.port
                                 }
@@ -684,6 +678,7 @@ class S3: Provider {
         case port
         case regionName
         case remoteFileList
+        case scheme
         case secretAccessKey
         case storageClass
         case useVirtual
@@ -700,6 +695,7 @@ class S3: Provider {
         try container.encode(port, forKey: .port)
         try container.encode(regionName, forKey: .regionName)
         try container.encode(remoteFileList, forKey: .remoteFileList)
+        try container.encode(scheme, forKey: .scheme)
         try container.encode(secretAccessKey, forKey: .secretAccessKey)
         try container.encode(storageClass, forKey: .storageClass)
         try container.encode(useVirtual, forKey: .useVirtual)
@@ -716,6 +712,7 @@ class S3: Provider {
         port = try values.decode(Int.self, forKey: .port)
         regionName = try values.decode(String.self, forKey: .regionName)
         remoteFileList = try values.decode([String:Data].self, forKey: .remoteFileList)
+        scheme = try values.decode(String.self, forKey: .scheme)
         secretAccessKey = try values.decode(String.self, forKey: .secretAccessKey)
         storageClass = try values.decode(String.self, forKey: .storageClass)
         useVirtual = try values.decode(Bool.self, forKey: .useVirtual)
