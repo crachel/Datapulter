@@ -69,6 +69,8 @@ class AutoUpload {
             
             provider.totalAssetsToUpload = provider.assetsToUpload.count
             
+            provider.totalAssetsUploaded = 0
+            
             if (provider.totalAssetsToUpload > 0) {
                 
                 provider.updateRing()

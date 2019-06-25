@@ -80,7 +80,86 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                     self.save.isEnabled = true
                 }
             }*/
-        } // else if let s3-compliant = provider as? s3
+        } else if let s3 = provider as? S3 {
+            form
+            +++ Section("REQUIRED")
+            <<< AccountRow("tagName"){ row in
+                row.title = "Name"
+                row.value = s3.name
+                row.add(rule: RuleRequired())
+            }.cellUpdate { cell, row in
+                    cell.textField.delegate = self
+            }
+            <<< URLRow("tagHostName") { row in
+                row.title = "Host Name"
+                row.value = URL(string:s3.hostName)
+                row.add(rule: RuleRequired())
+            }.cellUpdate { cell, row in
+                cell.textField.delegate = self
+            }
+            <<< IntRow("tagPort") { row in
+                row.title = "Port"
+                row.value = s3.port
+                row.add(rule: RuleRequired())
+            }.cellUpdate { cell, row in
+                cell.textField.delegate = self
+            }
+            <<< AccountRow("tagRegionName") { row in
+                row.title = "Region"
+                row.value = s3.regionName
+                row.add(rule: RuleRequired())
+            }.cellUpdate { cell, row in
+                cell.textField.delegate = self
+            }
+            <<< ActionSheetRow<String>("tagStorageClass") {
+                $0.title = "Storage Class"
+                $0.selectorTitle = "Pick Storage Class"
+                $0.options = ["STANDARD","STANDARD_IA","INTELLIGENT_TIERING","ONEZONE_IA","GLACIER","DEEP_ARCHIVE"]
+                $0.value = s3.storageClass
+            }.onChange { row in
+                self.save.isEnabled = true
+            }
+            
+                <<< AccountRow("tagKeyID") { row in
+                    row.title = "Key ID"
+                    row.value = s3.accessKeyID
+                    row.add(rule: RuleRequired())
+                    }.cellUpdate { cell, _ in
+                        cell.textField.delegate = self
+                }
+                <<< PasswordRow("tagKey") { row in
+                    row.title = "Key"
+                    row.value = s3.secretAccessKey
+                    row.add(rule: RuleRequired())
+                    }.cellUpdate { cell, row in
+                        cell.textField.delegate = self
+                }
+                <<< AccountRow("tagBucket") { row in
+                    row.title = "Bucket"
+                    row.value = s3.bucket
+                    row.add(rule: RuleRequired())
+                    }.cellUpdate { cell, row in
+                        cell.textField.delegate = self
+                }
+                <<< AccountRow("tagPrefix") { row in
+                    row.title = "Prefix"
+                    row.value = s3.filePrefix
+                    row.add(rule: RuleRequired())
+                    }.cellUpdate { cell, row in
+                        cell.textField.delegate = self
+                }
+                +++ Section("OPTIONS")
+                <<< SwitchRow("tagVirtual"){ row in
+                    row.title = "Virtual Hosting"
+                    row.value = s3.useVirtual
+                }
+                <<< SwitchRow("tagScheme"){ row in
+                    row.title = "SSL (HTTPS)"
+                    row.value = (s3.scheme == "https" || s3.scheme == "HTTPS")
+            }
+            
+            ////
+        }
     }
         
     func textFieldDidBeginEditing(_ textField: UITextField) {
