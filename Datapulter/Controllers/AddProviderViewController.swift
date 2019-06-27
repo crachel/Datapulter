@@ -119,7 +119,15 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
                 }
-            +++ Section("OPTIONS")
+            +++ Section("OPTIONS") { row in
+                row.hidden = Condition.function(["actionsProvider"])
+                { form in
+                    if let row = form.rowBy(tag: "actionsProvider") as? ActionSheetRow<String> {
+                        return row.value != "Amazon S3"
+                    }
+                    return false
+                }
+            }
             <<< SwitchRow("tagVirtual"){ row in
                 row.title = "Virtual Hosting"
                 row.value = true
@@ -206,9 +214,9 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 
             } else if (row.value == "Amazon S3") {
                 
-                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "AKIAZ46WPMYAAYVDOW5H", secretAccessKey: "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", bucket: "datapulter", regionName: "us-west-2", hostName: "s3.amazonaws.com",  remoteFileList: [:], filePrefix: "simulator", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443, scheme: "https")
+                provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "AKIAZ46WPMYAAYVDOW5H", secretAccessKey: "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", bucket: "datapulter", regionName: "us-west-2", hostName: "s3.amazonaws.com",  remoteFileList: [:], filePrefix: "simulator", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443, scheme: "https")
                 
-                provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:], filePrefix: "iphone6splus", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443, scheme: "https")
+                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:], filePrefix: "iphone6splus", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443, scheme: "https")
                 
                 //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "crachel", secretAccessKey: "Vjg4S3R5AW", bucket: "datapulter", regionName: "us-east-1", hostName: "192.168.1.186",  remoteFileList: [:], filePrefix: "simulator", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: false, port: 9000, scheme: "http")
                 

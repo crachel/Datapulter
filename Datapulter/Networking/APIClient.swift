@@ -15,7 +15,7 @@ class APIClient: NSObject {
     
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.default
-        //configuration.httpAdditionalHeaders = ["User-Agent": "Datapulter/\(Bundle.main.releaseVersionNumber ?? "")"]
+        configuration.httpAdditionalHeaders = ["User-Agent": "Datapulter/\(Bundle.main.releaseVersionNumber ?? "")"]
         configuration.waitsForConnectivity = true
         configuration.allowsCellularAccess = false
         return URLSession(configuration: configuration,
@@ -23,6 +23,8 @@ class APIClient: NSObject {
     }()
     
     private lazy var activeTasks = Set<URLSessionTask>()
+    
+    var clientErrors = 0
 
     //MARK: Singleton
     
@@ -127,6 +129,8 @@ extension APIClient: URLSessionDataDelegate {
         
         if let error = error {
             // client-side errors only ("unable to resolve the hostname or connect to the host")
+            clientErrors += 1
+            
             os_log("task %d %@", log: .apiclient, type: .error, task.taskIdentifier, error.localizedDescription)
             
             AutoUpload.shared.clientError(task)

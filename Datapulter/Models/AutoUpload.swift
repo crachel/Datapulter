@@ -71,6 +71,8 @@ class AutoUpload {
             
             provider.totalAssetsUploaded = 0
             
+            APIClient.shared.clientErrors = 0
+            
             if (provider.totalAssetsToUpload > 0) {
                 
                 provider.updateRing()
@@ -131,6 +133,10 @@ class AutoUpload {
     
     public func initiate(_ N: Int,_ provider: Provider) {
         if (N > 0) {
+            if (APIClient.shared.clientErrors > 9) {
+                os_log("Too many client errors.", log: .autoupload, type: .error)
+                return
+            }
             if let asset = provider.assetsToUpload.popFirst() {
                 provider.getUploadFileURLRequest(from: asset).then { request, data in
                     if let request = request,

@@ -19,8 +19,8 @@ class B2: Provider {
     
     struct Defaults {
         static let maxParts     = 10_000
-        static let uploadCutoff = 50 * 1_000 * 1_000
-        static let chunkSize    = 50 * 1_000 * 1_000
+        static let uploadCutoff = 15 * 1_000 * 1_000
+        static let chunkSize    = 15 * 1_000 * 1_000
         
         static let poolMinimum  = 3
     }

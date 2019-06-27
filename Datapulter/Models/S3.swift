@@ -656,6 +656,8 @@ class S3: Provider {
                                     print("response \(String(describing: multipartResponse))")
                                     print(error.localizedDescription)
                                     return buildUploadPartRequest(hash: hash)
+                                case ProviderError.connectionError:
+                                    return buildUploadPartRequest(hash: hash)
                                 default:
                                     return Promise(error)
                                 }

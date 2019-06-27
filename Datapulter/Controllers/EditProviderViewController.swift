@@ -90,9 +90,10 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
             }.cellUpdate { cell, row in
                     cell.textField.delegate = self
             }
-            <<< URLRow("tagHostName") { row in
+            <<< AccountRow("tagHostName") { row in
                 row.title = "Host Name"
-                row.value = URL(string:s3.hostName)
+                //row.value = URL(string:s3.hostName)
+                row.value = s3.hostName
                 row.add(rule: RuleRequired())
             }.cellUpdate { cell, row in
                 cell.textField.delegate = self
@@ -152,11 +153,15 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 <<< SwitchRow("tagVirtual"){ row in
                     row.title = "Virtual Hosting"
                     row.value = s3.useVirtual
+                    }.onChange { row in
+                        self.save.isEnabled = true
                 }
                 <<< SwitchRow("tagScheme"){ row in
                     row.title = "SSL (HTTPS)"
                     row.value = (s3.scheme == "https" || s3.scheme == "HTTPS")
-            }
+                    }.onChange { row in
+                        self.save.isEnabled = true
+                }
             
             ////
         }
@@ -197,7 +202,24 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 backblaze.bucket = valuesDictionary["tagBucket"] as! String
                 //backblaze.versions = valuesDictionary["tagVersions"] as! Bool
                 //backblaze.harddelete = valuesDictionary["tagHardDelete"] as! Bool
-                backblaze.filePrefix = valuesDictionary["tagPrefix"] as! String
+                backblaze.filePrefix = (valuesDictionary["tagPrefix"] as! String)
+            } else if let s3 = provider as? S3 {
+                s3.name = valuesDictionary["tagName"] as! String
+                s3.hostName = valuesDictionary["tagHostName"] as! String //tagHostName
+                s3.port = valuesDictionary["tagPort"] as! Int
+                s3.regionName = valuesDictionary["tagRegionName"] as! String //tagRegionName
+                s3.storageClass = valuesDictionary["tagStorageClass"] as! String
+                s3.accessKeyID = valuesDictionary["tagKeyID"] as! String
+                s3.secretAccessKey = valuesDictionary["tagKey"] as! String
+                s3.bucket = valuesDictionary["tagBucket"] as! String
+                s3.filePrefix = (valuesDictionary["tagPrefix"] as! String)
+                s3.useVirtual = valuesDictionary["tagVirtual"] as! Bool
+                
+                if(valuesDictionary["tagScheme"] as! Bool == true) {
+                    s3.scheme = "https"
+                } else {
+                    s3.scheme = "http"
+                }
             } // else if let s3
             os_log("Unwinding to provider list.", log: OSLog.default, type: .debug)
             
