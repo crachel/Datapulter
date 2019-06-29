@@ -19,8 +19,8 @@ class S3: Provider {
     
     struct Defaults {
         static let maxParts     = 10_000
-        static let uploadCutoff = 25 * 1_000 * 1_000
-        static let chunkSize    = 25 * 1_000 * 1_000
+        static let uploadCutoff = 15 * 1_000 * 1_000
+        static let chunkSize    = 15 * 1_000 * 1_000
     }
 
     var cell: ProviderTableViewCell?
@@ -100,7 +100,77 @@ class S3: Provider {
     //MARK: Public methods
     
     func authorize() -> Promise<Bool> {
-        return Promise(true)
+        
+        let getService: Endpoint = {
+            var components = URLComponents()
+            if (useVirtual) {
+                //components.host = [bucket, hostName].joined(separator: ".")
+                components.host = hostName
+                components.scheme = scheme
+                //components.port = port
+            } else {
+                components.scheme = scheme
+                components.host = hostName
+                components.port = port
+            }
+            components.path       = "/"
+            components.queryItems = nil
+            return Endpoint(components: components, method: HTTPMethod.get)
+        }()
+        
+        let date      = Date().iso8601
+        let dateStamp = Date.getFormattedDate()
+        
+        let hashedPayload = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        
+        guard let fullHost = getService.components.host else {
+            //throw (ProviderError.preparationFailed)
+            return Promise(ProviderError.preparationFailed)
+        }
+        
+        var headers = [//HTTPHeaders.host: fullHost,
+            HTTPHeaders.contentSHA256: hashedPayload,
+            HTTPHeaders.date: date]
+        
+        if (self.useVirtual) {
+            headers[HTTPHeaders.host] = fullHost
+        } else {
+            headers[HTTPHeaders.host] = [fullHost, String(getService.components.port ?? 443)].joined(separator: ":")
+        }
+        
+        var header: String
+        
+        let headerResult = getAuthorizationHeader(method: getService.method!, endpoint: getService, headers: headers, hashedPayload: hashedPayload, date: date, dateStamp: dateStamp, region: "us-east-1")
+        
+        switch headerResult {
+        case .success(let result):
+            header = result
+        case .failure(let error):
+            return Promise(error)
+        }
+        
+        guard let url = getService.components.url else {
+            return Promise (ProviderError.preparationFailed)
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        
+        urlRequest.httpMethod = getService.method!
+        
+        urlRequest.setValue(hashedPayload, forHTTPHeaderField: HTTPHeaders.contentSHA256)
+        urlRequest.setValue(date, forHTTPHeaderField: HTTPHeaders.date)
+        urlRequest.setValue(header, forHTTPHeaderField: HTTPHeaders.authorization)
+        
+        return fetch(with: urlRequest).then { data, _ in
+            Utility.objectIsType(object: data, someObjectOfType: Data.self)
+        }.then { data in
+            print(String(data:data, encoding:.utf8))
+            let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Bucket", "Buckets", "CreationDate", "DisplayName", "ID", "Name", "Owner"])
+            //let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Buckets", "Owner"])
+            let multipartResponse = xml.go()
+            print("response \(String(describing: multipartResponse))")
+            return Promise(true)
+        }
     }
     
     func getUploadFileURLRequest(from asset: PHAsset) -> Promise<(URLRequest?, Data?)> {
@@ -236,7 +306,7 @@ class S3: Provider {
                     // parse xml and figure out what happened. decide course of action
                     assetsToUpload.insert(asset)
                     
-                    AutoUpload.shared.initiate(1, self)
+                    //AutoUpload.shared.initiate(1, self)
                 }
             }
         }
@@ -252,7 +322,7 @@ class S3: Provider {
     
     //MARK: Private methods
     
-    private func getAuthorizationHeader(method: String, endpoint: Endpoint, headers: [String:String], hashedPayload: String, date: String, dateStamp: String) -> Result<String, Error> {
+    private func getAuthorizationHeader(method: String, endpoint: Endpoint, headers: [String:String], hashedPayload: String, date: String, dateStamp: String, region: String? = nil) -> Result<String, Error> {
         
         func getSigningKey() -> Result<Data, ProviderError>  {
             
@@ -261,7 +331,7 @@ class S3: Provider {
             }
             
             let kDate    = dateStamp.hmac_sha256(key: kSecret)
-            let kRegion  = regionName.hmac_sha256(key: kDate)
+            let kRegion  = (region ?? regionName).hmac_sha256(key: kDate)
             let kService = AuthorizationHeader.serviceName.hmac_sha256(key: kRegion)
             let kSigning = AuthorizationHeader.signatureRequest.hmac_sha256(key: kService)
             
@@ -293,7 +363,7 @@ class S3: Provider {
         let stringToSign = """
         AWS4-HMAC-SHA256
         \(date)
-        \(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)
+        \(dateStamp)/\(region ?? self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest)
         \(canonicalRequest.data(using: .utf8)!.sha256)
         """
         
@@ -306,7 +376,7 @@ class S3: Provider {
             return .failure(error)
         }
         
-        let authorizationHeader = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=\(signedHeaders),Signature=\(signature.hex)"
+        let authorizationHeader = "AWS4-HMAC-SHA256 Credential=\(self.accessKeyID)/\(dateStamp)/\(region ?? self.regionName)/\(AuthorizationHeader.serviceName)/\(AuthorizationHeader.signatureRequest),SignedHeaders=\(signedHeaders),Signature=\(signature.hex)"
         
         return .success(authorizationHeader)
     }
@@ -655,7 +725,8 @@ class S3: Provider {
                                     let multipartResponse = xmlerror.go()
                                     print("response \(String(describing: multipartResponse))")
                                     print(error.localizedDescription)
-                                    return buildUploadPartRequest(hash: hash)
+                                    //return buildUploadPartRequest(hash: hash)
+                                    return Promise(ProviderError.validResponse(data))
                                 case ProviderError.connectionError:
                                     return buildUploadPartRequest(hash: hash)
                                 default:

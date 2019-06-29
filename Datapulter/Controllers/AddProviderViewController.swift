@@ -26,7 +26,7 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
             <<< ActionSheetRow<String>("actionsProvider") {
                     $0.title = "Provider"
                     $0.selectorTitle = "Pick Provider"
-                    $0.options = ["Backblaze B2","Amazon S3","Datapulter Managed"]
+                    $0.options = ["Backblaze B2","Amazon S3"]
                     $0.value = "Backblaze B2"    // initially selected
                 }
             <<< AccountRow("tagName") { row in
@@ -218,9 +218,16 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 
                 //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:], filePrefix: "iphone6splus", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443, scheme: "https")
                 
-                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "crachel", secretAccessKey: "Vjg4S3R5AW", bucket: "datapulter", regionName: "us-east-1", hostName: "192.168.1.186",  remoteFileList: [:], filePrefix: "simulator", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: false, port: 9000, scheme: "http")
+                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "crachel", secretAccessKey: "Vjg4S3R5AW", bucket: "datapulter", regionName: "us-east-1", hostName: "192.168.1.186",  remoteFileList: [:], filePrefix: "iphone6splus", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: false, port: 9000, scheme: "http")
                 
-                self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+                provider?.authorize().then { _ in
+                    //provider?.authorizeAccount().then { _ in
+                    self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
+                }.catch { _ in
+                    self.present(alert, animated: true, completion: nil)
+                }
+                
+                //self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
             }
         }
         
