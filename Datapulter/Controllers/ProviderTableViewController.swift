@@ -41,7 +41,6 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        //return ProviderManager.shared.providers.count
         return ProviderManager.shared.providers.providers.array.count
     }
 
@@ -54,7 +53,6 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         }
         
         // Fetches the appropriate provider for the data source layout.
-        //let provider = ProviderManager.shared.providers[indexPath.row]
         let provider = ProviderManager.shared.providers.providers.array[indexPath.row]
 
         // Configure the cell...
@@ -87,7 +85,6 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
                 UserDefaults.standard.removePersistentDomain(forName: appDomain)
             }
             
-            //let provider = ProviderManager.shared.providers[indexPath.row]
             let provider = ProviderManager.shared.providers.providers.array[indexPath.row]
             
             // Do any provider-specific preparation before deleting
@@ -97,12 +94,13 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             APIClient.shared.cancel()
             
             // Delete the row from the data source
-            //ProviderManager.shared.providers.remove(at: indexPath.row)
             ProviderManager.shared.providers.providers.array.remove(at: indexPath.row)
             
             ProviderManager.shared.saveProviders()
             
             tableView.deleteRows(at: [indexPath], with: .fade)
+            
+            self.navigationItem.rightBarButtonItem?.isEnabled = true
             
             tableView.reloadData()
         } else if editingStyle == .insert {
@@ -135,7 +133,6 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
                 fatalError("The selected cell is not being displayed by the table")
             }
             
-            //let selectedProvider = ProviderManager.shared.providers[indexPath.row]
             let selectedProvider = ProviderManager.shared.providers.providers.array[indexPath.row]
             
             providerDetailViewController.provider = selectedProvider
@@ -174,7 +171,6 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             
             if let selectedIndexPath = tableView.indexPathForSelectedRow {
                 // Update an existing provider.
-                //ProviderManager.shared.providers[selectedIndexPath.row] = provider
                 ProviderManager.shared.providers.providers.array[selectedIndexPath.row] = provider
                 
                 
@@ -182,8 +178,9 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             }
         } else if let sourceViewController = sender.source as? AddProviderViewController, let provider = sourceViewController.provider {
             // Add a new provider.
-            //ProviderManager.shared.providers += [provider]
             ProviderManager.shared.providers.providers.array += [provider]
+            
+            self.navigationItem.rightBarButtonItem?.isEnabled = false
             
             tableView.reloadData()
         }

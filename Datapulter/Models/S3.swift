@@ -104,10 +104,8 @@ class S3: Provider {
         let getService: Endpoint = {
             var components = URLComponents()
             if (useVirtual) {
-                //components.host = [bucket, hostName].joined(separator: ".")
                 components.host = hostName
                 components.scheme = scheme
-                //components.port = port
             } else {
                 components.scheme = scheme
                 components.host = hostName
@@ -124,7 +122,6 @@ class S3: Provider {
         let hashedPayload = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         
         guard let fullHost = getService.components.host else {
-            //throw (ProviderError.preparationFailed)
             return Promise(ProviderError.preparationFailed)
         }
         
@@ -164,7 +161,7 @@ class S3: Provider {
         return fetch(with: urlRequest).then { data, _ in
             Utility.objectIsType(object: data, someObjectOfType: Data.self)
         }.then { data in
-            print(String(data:data, encoding:.utf8))
+            print(String(data:data, encoding:.utf8) ?? "")
             let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Bucket", "Buckets", "CreationDate", "DisplayName", "ID", "Name", "Owner"])
             //let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Buckets", "Owner"])
             let multipartResponse = xml.go()
@@ -300,10 +297,16 @@ class S3: Provider {
                     AutoUpload.shared.initiate(1, self)
                 } else {
                     if let data = data {
-                        print(String(data:data, encoding:.utf8))
+                        print(String(data:data, encoding:.utf8) ?? "")
                         //<Code>SignatureDoesNotMatch</Code>
+                        // parse xml and figure out what happened. decide course of action
+                        let xmlerror = XMLHelper(data:data, recordKey: "Error", dictionaryKeys: ["Code", "Message", "RequestId", "Resource"])
+                        let multipartResponse = xmlerror.go()
+                        
+                        print(multipartResponse ?? "")
                     }
-                    // parse xml and figure out what happened. decide course of action
+                    
+                    
                     assetsToUpload.insert(asset)
                     
                     //AutoUpload.shared.initiate(1, self)
@@ -710,8 +713,6 @@ class S3: Provider {
                                 print("authheader \(error.localizedDescription)")
                                 return Promise(error)
                             }
-                            //print("\(authHeader)")
-                            //print("\(url2.absoluteString)")
                             
                             upRequest.setValue(authHeader, forHTTPHeaderField: HTTPHeaders.authorization)
                             

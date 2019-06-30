@@ -11,7 +11,6 @@ import Photos
 import Promises
 
 protocol Provider: AnyObject, Codable, AutoUploading {
-//protocol Provider: Codable, AutoUploading {
     
     var metatype: ProviderMetatype { get }
     
@@ -108,28 +107,6 @@ extension Provider {
             }
             
             task.resume()
-            
-            /*
-            if (urlRequest.httpMethod == HTTPMethod.post) {
-                if let data = uploadData {
-                    task = APIClient.shared.uploadTask(with: urlRequest, from:data, completionHandler: completionHandler)
-                    task.resume()
-                } else if let url = uploadURL {
-                    task = APIClient.shared.uploadTask(with: urlRequest, fromFile:url, completionHandler: completionHandler)
-                    task.resume()
-                } else {
-                    task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
-                    task.resume()
-                }
-            } else if (urlRequest.httpMethod == HTTPMethod.get) {
-                task = APIClient.shared.dataTask(with: urlRequest, completionHandler: completionHandler)
-                task.resume()
-            } else if (urlRequest.httpMethod == HTTPMethod.put) {
-                if let url = uploadURL {
-                    task = APIClient.shared.uploadTask(with: urlRequest, fromFile: url, completionHandler: completionHandler)
-                    task.resume()
-                }
-            }*/
         }
     }
 }
