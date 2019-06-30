@@ -22,7 +22,10 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
-        //tableView.tableFooterView = UIView()
+        if (ProviderManager.shared.providers.providers.array.isEmpty) {
+            self.navigationItem.leftBarButtonItem?.title = ""
+            self.navigationItem.leftBarButtonItem?.isEnabled = false
+        }
         
         AutoUpload.shared.start()
     
@@ -102,6 +105,9 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             
             self.navigationItem.rightBarButtonItem?.isEnabled = true
             
+            self.navigationItem.leftBarButtonItem?.title = ""
+            self.navigationItem.leftBarButtonItem?.isEnabled = false
+            
             tableView.reloadData()
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
@@ -160,7 +166,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     }
     
     func descriptionForEmptyDataSet() -> NSAttributedString {
-        let title = NSAttributedString(string: "Add a provider above to start.", attributes: [NSAttributedString.Key.font: UIFont.preferredFont(forTextStyle: .caption1)])
+        let title = NSAttributedString(string: "Click + above to start.", attributes: [NSAttributedString.Key.font: UIFont.preferredFont(forTextStyle: .caption1)])
         return title
     }
     
@@ -181,6 +187,9 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             ProviderManager.shared.providers.providers.array += [provider]
             
             self.navigationItem.rightBarButtonItem?.isEnabled = false
+            
+            self.navigationItem.leftBarButtonItem?.title = "Edit"
+            self.navigationItem.leftBarButtonItem?.isEnabled = true
             
             tableView.reloadData()
         }

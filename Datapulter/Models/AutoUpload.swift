@@ -47,6 +47,8 @@ class AutoUpload {
             return
         }
         
+        return
+            
         os_log("started", log: .autoupload, type: .info)
         
         assets = Utility.getCameraRollAssets()
