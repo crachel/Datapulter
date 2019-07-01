@@ -41,6 +41,8 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
         
         super.viewDidLoad()
         
+        self.navigationItem.rightBarButtonItem?.isEnabled = false
+        
         form +++ Section()
         <<< ActionSheetRow<String>(Tags.actionsProvider) { row in
             row.title = "Provider"
@@ -169,6 +171,27 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
         }
     }
     
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        // Disable the Save button while editing.
+        self.navigationItem.rightBarButtonItem?.isEnabled = false
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        if(formValidated()){
+            self.navigationItem.rightBarButtonItem?.isEnabled = true
+        }
+    }
+    
+    func formValidated() -> Bool {
+        for (_, value) in form.values() {
+            if(value == nil) {
+                // user left a form value blank
+                return false
+            }
+        }
+        return true
+    }
+    
     //MARK: Navigation
     
     override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
@@ -193,14 +216,15 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
             let valuesDictionary = form.values()
             
             if(row.value == Tags.b2) {
+                
                 provider = B2(name: valuesDictionary[Tags.name] as! String,
-                              account: "000bd9db9a329de0000000002",
-                              key: "K0002N7fDPHf/MaFFITLUinf8//4qqc",
-                              bucket: "datapulter",
-                              accountId: "bd9db9a329de",
-                              bucketId: "db9d09bd1b19ba3362790d1e",
+                              account: valuesDictionary[Tags.keyID] as! String,
+                              key: valuesDictionary[Tags.key] as! String,
+                              bucket: valuesDictionary[Tags.bucket] as! String,
+                              accountId: "",
+                              bucketId: "",
                               remoteFileList: [:],
-                              filePrefix: "iphone6splus")
+                              filePrefix: (valuesDictionary[Tags.prefix] as! String))
                 
                 provider?.authorize().then { _ in
                     self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
@@ -210,18 +234,6 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 
             } else if (row.value == Tags.s3) {
                 
-                /*provider = S3(name: valuesDictionary["tagName"] as! String,
-                              accessKeyID: "AKIAZ46WPMYAAYVDOW5H",
-                              secretAccessKey: "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",
-                              bucket: "datapulter",
-                              regionName: "us-west-2",
-                              hostName: "s3.amazonaws.com",
-                              remoteFileList: [:],
-                              filePrefix: "simulator",
-                              storageClass: valuesDictionary["tagStorageClass"] as! String,
-                              useVirtual: true,
-                              port: 443,
-                              scheme: "https")*/
                 var scheme: String
                 
                 if (valuesDictionary[Tags.scheme] as! Bool == true) {
@@ -242,10 +254,6 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                               useVirtual: valuesDictionary[Tags.virtual] as! Bool,
                               port: valuesDictionary[Tags.port] as! Int,
                               scheme: scheme) // tagScheme
-                
-                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "7UMVJ6E6SAVLPCXF3C2B", secretAccessKey: "Ag6DmIiBeE1qs0mLqLL6LjgbhHaAM8IjD/88Hu8HwC4", bucket: "datapulter", regionName: "sfo2", hostName: "sfo2.digitaloceanspaces.com", remoteFileList: [:], filePrefix: "iphone6splus", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: true, port: 443, scheme: "https")
-                
-                //provider = S3(name: valuesDictionary["tagName"] as! String, accessKeyID: "crachel", secretAccessKey: "Vjg4S3R5AW", bucket: "datapulter", regionName: "us-east-1", hostName: "1cr",  remoteFileList: [:], filePrefix: "iphone6splus", storageClass: valuesDictionary["tagStorageClass"] as! String, useVirtual: false, port: 9000, scheme: "http")
                 
                 provider?.authorize().then { _ in
                     self.performSegue(withIdentifier: "unwindToProviderList", sender: self)

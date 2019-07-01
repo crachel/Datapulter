@@ -62,24 +62,6 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 }.cellUpdate { cell, row in
                     cell.textField.delegate = self
             }
-                /*
-            +++ Section("OPTIONS")
-            <<< SwitchRow("tagVersions"){ row in
-                row.title = "Versions"
-                row.value = backblaze.versions
-            }.onChange { row in
-                if(self.formValidated()){
-                    self.save.isEnabled = true
-                }
-            }
-            <<< SwitchRow("tagHardDelete"){ row in
-                row.title = "Hard Delete"
-                row.value = backblaze.harddelete
-            }.onChange { row in
-                if(self.formValidated()){
-                    self.save.isEnabled = true
-                }
-            }*/
         } else if let s3 = provider as? S3 {
             form
             +++ Section("REQUIRED")
@@ -162,8 +144,6 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                     }.onChange { row in
                         self.save.isEnabled = true
                 }
-            
-            ////
         }
     }
         
@@ -200,8 +180,6 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 backblaze.account = valuesDictionary["tagKeyID"] as! String
                 backblaze.key = valuesDictionary["tagKey"] as! String
                 backblaze.bucket = valuesDictionary["tagBucket"] as! String
-                //backblaze.versions = valuesDictionary["tagVersions"] as! Bool
-                //backblaze.harddelete = valuesDictionary["tagHardDelete"] as! Bool
                 backblaze.filePrefix = (valuesDictionary["tagPrefix"] as! String)
             } else if let s3 = provider as? S3 {
                 s3.name = valuesDictionary["tagName"] as! String
@@ -220,65 +198,11 @@ class EditProviderViewController: FormViewController, UITextFieldDelegate {
                 } else {
                     s3.scheme = "http"
                 }
-            } // else if let s3
+            }
             os_log("Unwinding to provider list.", log: OSLog.default, type: .debug)
             
         default:
             fatalError("Unexpected Segue Identifier; \(String(describing: segue.identifier))")
         }
     }
-
-
-    /*
-    // Call unwindToProviderList when user clicks back button
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        /*
-        if self.isMovingFromParent {
-            self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
-        }*/
-     if self.isMovingFromParent {
-        os_log("Back button clicked", log: OSLog.default, type: .debug)
-     }
-    }
-
-    override func willMove(toParent parent: UIViewController?)
-    {
-        super.willMove(toParent: parent)
-        if parent == nil
-        {
-            os_log("Back button clicked", log: OSLog.default, type: .debug)
-        }
-    }*/
-    
-
-    
-
- /*
-    // MARK: - Navigation
-    @IBAction func cancel(_ sender: UIBarButtonItem) {
-        /*if let owningNavigationController = navigationController {
-            owningNavigationController.popViewController(animated: true)
-        }*/
-        //dismiss(animated: true, completion: nil)
-    }*/
-    
-    /*
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-        super.prepare(for: segue, sender: sender)
-        
-        
-        // Configure the destination view controller only when the save button is pressed.
-        guard let button = sender as? UIBarButtonItem, button === saveButton else {
-            os_log("The save button was not pressed, cancelling", log: OSLog.default, type: .debug)
-            return
-        }
-        
-
-    }
-    */
-
 }

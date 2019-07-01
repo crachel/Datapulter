@@ -117,7 +117,6 @@ extension APIClient: URLSessionDataDelegate {
         // downcast for access to statusCode
         guard let httpResponse = dataTask.response as? HTTPURLResponse else { return }
        
-        //print("\(dataTask.taskIdentifier) didReceivedata. calling handler")
         AutoUpload.shared.handler(data, httpResponse, dataTask)
     }
     
@@ -144,7 +143,7 @@ extension APIClient: URLSessionDataDelegate {
         if (httpResponse.statusCode != 200) {
             os_log("task %d status %d", log: .apiclient, type: .info, task.taskIdentifier, httpResponse.statusCode)
         }
-        //print("\(task.taskIdentifier) didcompletwitherror. calling handler")
+        
         AutoUpload.shared.handler(nil, httpResponse, task)
     }
     

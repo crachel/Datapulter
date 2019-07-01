@@ -85,6 +85,8 @@ class B2: Provider {
                 } else {
                     os_log("problem saving authorizationToken to Keychain", log: .b2, type: .error)
                 }
+                accountId = authorizeAccountResponse.accountId
+                bucketId = authorizeAccountResponse.allowed.bucketId ?? ""
             }
         }
     }

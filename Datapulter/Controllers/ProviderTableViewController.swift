@@ -24,6 +24,8 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         
         if (ProviderManager.shared.providers.providers.array.isEmpty) {
             self.navigationItem.leftBarButtonItem?.isEnabled = false
+        } else {
+            self.navigationItem.rightBarButtonItem?.isEnabled = false
         }
         
         AutoUpload.shared.start()
