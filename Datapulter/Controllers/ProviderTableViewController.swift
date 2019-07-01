@@ -23,7 +23,6 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
         if (ProviderManager.shared.providers.providers.array.isEmpty) {
-            self.navigationItem.leftBarButtonItem?.title = ""
             self.navigationItem.leftBarButtonItem?.isEnabled = false
         }
         
@@ -105,7 +104,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             
             self.navigationItem.rightBarButtonItem?.isEnabled = true
             
-            self.navigationItem.leftBarButtonItem?.title = ""
+            self.setEditing(false, animated: true)
             self.navigationItem.leftBarButtonItem?.isEnabled = false
             
             tableView.reloadData()
@@ -188,7 +187,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             
             self.navigationItem.rightBarButtonItem?.isEnabled = false
             
-            self.navigationItem.leftBarButtonItem?.title = "Edit"
+            self.setEditing(false, animated: true)
             self.navigationItem.leftBarButtonItem?.isEnabled = true
             
             tableView.reloadData()
