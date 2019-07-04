@@ -107,6 +107,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             self.navigationItem.rightBarButtonItem?.isEnabled = true
             
             self.setEditing(false, animated: true)
+            
             self.navigationItem.leftBarButtonItem?.isEnabled = false
             
             tableView.reloadData()
@@ -190,6 +191,7 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             self.navigationItem.rightBarButtonItem?.isEnabled = false
             
             self.setEditing(false, animated: true)
+            
             self.navigationItem.leftBarButtonItem?.isEnabled = true
             
             tableView.reloadData()
