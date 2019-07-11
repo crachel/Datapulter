@@ -77,13 +77,47 @@
                                                     <nil key="textColor"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
-                                                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="p34-SR-9nj">
+                                                <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="op4-KX-7bH">
                                                     <rect key="frame" x="0.0" y="308" width="343" height="30"/>
-                                                    <state key="normal" title="Stop"/>
-                                                    <connections>
-                                                        <action selector="pressed:" destination="6TP-fk-5t0" eventType="touchUpInside" id="T7Q-Gq-4B5"/>
-                                                    </connections>
-                                                </button>
+                                                    <subviews>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="a1x-OG-aaH">
+                                                            <rect key="frame" x="0.0" y="0.0" width="86" height="30"/>
+                                                            <state key="normal" title="Start"/>
+                                                            <connections>
+                                                                <action selector="started:" destination="6TP-fk-5t0" eventType="touchUpInside" id="Jzh-S3-fgk"/>
+                                                            </connections>
+                                                        </button>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="XoT-rG-yTX">
+                                                            <rect key="frame" x="86" y="0.0" width="85.5" height="30"/>
+                                                            <state key="normal" title="Pause"/>
+                                                            <connections>
+                                                                <action selector="paused:" destination="6TP-fk-5t0" eventType="touchUpInside" id="ll2-kN-lcG"/>
+                                                            </connections>
+                                                        </button>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="p34-SR-9nj">
+                                                            <rect key="frame" x="171.5" y="0.0" width="86" height="30"/>
+                                                            <state key="normal" title="Stop"/>
+                                                            <connections>
+                                                                <action selector="pressed:" destination="6TP-fk-5t0" eventType="touchUpInside" id="T7Q-Gq-4B5"/>
+                                                            </connections>
+                                                        </button>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="d5X-4W-Jat">
+                                                            <rect key="frame" x="257.5" y="0.0" width="85.5" height="30"/>
+                                                            <state key="normal" title="Reset"/>
+                                                            <connections>
+                                                                <action selector="reset:" destination="6TP-fk-5t0" eventType="touchUpInside" id="ahn-b8-zqf"/>
+                                                            </connections>
+                                                        </button>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstItem="p34-SR-9nj" firstAttribute="width" secondItem="a1x-OG-aaH" secondAttribute="width" id="DLu-0n-Aeu"/>
+                                                        <constraint firstItem="p34-SR-9nj" firstAttribute="width" secondItem="XoT-rG-yTX" secondAttribute="width" id="Daw-Uz-3EA"/>
+                                                        <constraint firstItem="XoT-rG-yTX" firstAttribute="width" secondItem="a1x-OG-aaH" secondAttribute="width" id="cRJ-xz-zvC"/>
+                                                        <constraint firstItem="p34-SR-9nj" firstAttribute="width" secondItem="a1x-OG-aaH" secondAttribute="width" id="hW3-vt-IdB"/>
+                                                        <constraint firstItem="d5X-4W-Jat" firstAttribute="width" secondItem="a1x-OG-aaH" secondAttribute="width" id="nBa-a9-Yao"/>
+                                                        <constraint firstItem="XoT-rG-yTX" firstAttribute="width" secondItem="a1x-OG-aaH" secondAttribute="width" id="pdV-Un-UV4"/>
+                                                    </constraints>
+                                                </stackView>
                                             </subviews>
                                         </stackView>
                                     </subviews>
@@ -96,8 +130,11 @@
                                 </tableViewCellContentView>
                                 <connections>
                                     <outlet property="hudLabel" destination="VUc-d5-Rdy" id="rVR-5u-1vZ"/>
+                                    <outlet property="pauseButton" destination="XoT-rG-yTX" id="Piv-c4-reH"/>
                                     <outlet property="providerLabel" destination="5nl-8G-Bor" id="3Lr-6Z-F4Q"/>
+                                    <outlet property="resetButton" destination="d5X-4W-Jat" id="0sO-hj-UWv"/>
                                     <outlet property="ringView" destination="GKD-Gr-D31" id="UWq-OS-8JB"/>
+                                    <outlet property="startButton" destination="a1x-OG-aaH" id="evr-lp-JLt"/>
                                     <outlet property="stopButton" destination="p34-SR-9nj" id="hUV-jb-bQA"/>
                                     <segue destination="DZ1-pT-mvI" kind="show" identifier="EditItem" id="Dtg-j8-Esu"/>
                                 </connections>
@@ -117,6 +154,9 @@
                         </barButtonItem>
                     </navigationItem>
                     <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
+                    <connections>
+                        <outlet property="toolbar" destination="Sga-yy-0D8" id="Q8P-eu-Sr1"/>
+                    </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="4yT-o9-vpl" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>

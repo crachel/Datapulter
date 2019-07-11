@@ -183,8 +183,8 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
     }
     
     func formValidated() -> Bool {
-        for (_, value) in form.values() {
-            if(value == nil) {
+        for (tag, value) in form.values() {
+            if(value == nil && tag != Tags.prefix) {
                 // user left a form value blank
                 return false
             }
@@ -257,7 +257,7 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
                 
                 provider?.authorize().then { _ in
                     self.performSegue(withIdentifier: "unwindToProviderList", sender: self)
-                }.catch { _ in
+                }.catch { error in
                     self.present(alert, animated: true, completion: nil)
                 }
             }

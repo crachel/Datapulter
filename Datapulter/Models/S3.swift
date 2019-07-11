@@ -166,7 +166,18 @@ class S3: Provider {
             //let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Buckets", "Owner"])
             let multipartResponse = xml.go()
             print("response \(String(describing: multipartResponse))")
-            return Promise(true)
+            
+            if let response = multipartResponse {
+                for bucket in response {
+                    if (bucket["Name"] == self.bucket) {
+                        return Promise(true)
+                    } else {
+                        return Promise(ProviderError.foundNil)
+                    }
+                }
+            }
+            
+            return Promise(ProviderError.invalidResponse)
         }
     }
     

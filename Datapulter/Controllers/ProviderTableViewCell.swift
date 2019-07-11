@@ -17,6 +17,9 @@ class ProviderTableViewCell: UITableViewCell {
     @IBOutlet weak var progressLine: UIProgressView!
     @IBOutlet weak var hudLabel: UILabel!
     @IBOutlet weak var stopButton: UIButton!
+    @IBOutlet weak var pauseButton: UIButton!
+    @IBOutlet weak var startButton: UIButton!
+    @IBOutlet weak var resetButton: UIButton!
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -25,6 +28,20 @@ class ProviderTableViewCell: UITableViewCell {
     
     @IBAction func pressed(_ sender: Any) {
         APIClient.shared.cancel()
+    }
+
+    @IBAction func paused(_ sender: Any) {
+        APIClient.shared.suspend()
+    }
+    
+    @IBAction func started(_ sender: Any) {
+        APIClient.shared.resume()
+    }
+    
+    @IBAction func reset(_ sender: Any) {
+        APIClient.shared.cancel()
+        
+        AutoUpload.shared.start()
     }
     
     override func setSelected(_ selected: Bool, animated: Bool) {

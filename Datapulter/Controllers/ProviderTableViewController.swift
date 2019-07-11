@@ -13,10 +13,11 @@ import UICircularProgressRing
 import WLEmptyState
 
 class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource {
+    @IBOutlet weak var toolbar: UINavigationItem!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         tableView.emptyStateDataSource = self // WLEmptyState
         
         // Display an Edit button in the navigation bar for this view controller.
