@@ -13,12 +13,24 @@ import UICircularProgressRing
 import WLEmptyState
 
 class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource {
+    
     @IBOutlet weak var toolbar: UINavigationItem!
+    
+    @IBOutlet weak var playButton: UIBarButtonItem!
+    @IBOutlet weak var pauseButton: UIBarButtonItem!
+    @IBOutlet weak var refreshButton: UIBarButtonItem!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         tableView.emptyStateDataSource = self // WLEmptyState
+        
+        //bottomToolbar.items = [UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.pause, target: nil, action: nil)]
+        //let flexibleSpace = UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.flexibleSpace, target: self, action: nil)
+        //let button1 = UIBarButtonItem(title: "A", style: UIBarButtonItem.Style.plain, target: self, action: nil)
+        //let button2 = UIBarButtonItem(title: "B", style: UIBarButtonItem.Style.plain, target: self, action: nil)
+        //let button3 = UIBarButtonItem(title: "C", style: UIBarButtonItem.Style.plain, target: self, action: nil)
+        //bottomToolbar.items = [flexibleSpace, flexibleSpace, UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.play, target: nil, action: nil), flexibleSpace, UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.refresh, target: nil, action: nil),flexibleSpace, flexibleSpace]
         
         // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
@@ -174,6 +186,17 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     }
     
     //MARK: Actions
+    @IBAction func playButtonClick(_ sender: Any) {
+    }
+    
+    @IBAction func pauseButtonClick(_ sender: Any) {
+    }
+    
+    @IBAction func refreshButtonClick(_ sender: Any) {
+        APIClient.shared.cancel()
+        
+        AutoUpload.shared.start()
+    }
     
     @IBAction func unwindToProviderList(sender: UIStoryboardSegue) {
         if let sourceViewController = sender.source as? EditProviderViewController, let provider = sourceViewController.provider {

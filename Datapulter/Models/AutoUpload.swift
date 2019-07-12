@@ -74,7 +74,7 @@ class AutoUpload {
             APIClient.shared.clientErrors = 0
             
             if (provider.totalAssetsToUpload > 0) {
-                
+            
                 provider.updateRing()
                 
                 os_log("found %d assets", log: .autoupload, type: .info, provider.totalAssetsToUpload)
