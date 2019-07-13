@@ -111,21 +111,16 @@
                         </connections>
                     </tableView>
                     <toolbarItems>
-                        <barButtonItem systemItem="play" id="JML-ls-Xto">
-                            <connections>
-                                <action selector="playButtonClick:" destination="Xyl-y3-lW8" id="QgU-pt-rR9"/>
-                            </connections>
-                        </barButtonItem>
-                        <barButtonItem width="42" systemItem="fixedSpace" id="oKM-xD-tM6"/>
+                        <barButtonItem systemItem="flexibleSpace" id="P0m-T8-NEu"/>
                         <barButtonItem systemItem="pause" id="mrd-yq-3TQ">
                             <connections>
                                 <action selector="pauseButtonClick:" destination="Xyl-y3-lW8" id="WhD-O3-CXh"/>
                             </connections>
                         </barButtonItem>
-                        <barButtonItem systemItem="flexibleSpace" id="P0m-T8-NEu"/>
-                        <barButtonItem systemItem="refresh" id="rYN-pL-brB">
+                        <barButtonItem width="42" systemItem="fixedSpace" id="oKM-xD-tM6"/>
+                        <barButtonItem systemItem="play" id="JML-ls-Xto">
                             <connections>
-                                <action selector="refreshButtonClick:" destination="Xyl-y3-lW8" id="JmI-BP-VgD"/>
+                                <action selector="playButtonClick:" destination="Xyl-y3-lW8" id="QgU-pt-rR9"/>
                             </connections>
                         </barButtonItem>
                     </toolbarItems>
@@ -140,7 +135,6 @@
                     <connections>
                         <outlet property="pauseButton" destination="mrd-yq-3TQ" id="hvO-Jv-Cgo"/>
                         <outlet property="playButton" destination="JML-ls-Xto" id="bgm-Wc-pM9"/>
-                        <outlet property="refreshButton" destination="rYN-pL-brB" id="yco-LC-0SI"/>
                         <outlet property="toolbar" destination="Sga-yy-0D8" id="SBo-k4-FaI"/>
                     </connections>
                 </tableViewController>

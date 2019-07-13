@@ -162,21 +162,30 @@ class S3: Provider {
             Utility.objectIsType(object: data, someObjectOfType: Data.self)
         }.then { data in
             print(String(data:data, encoding:.utf8) ?? "")
-            let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Bucket", "Buckets", "CreationDate", "DisplayName", "ID", "Name", "Owner"])
+           // let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Bucket", "Buckets", "CreationDate", "DisplayName", "ID", "Name", "Owner"])
+            let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Buckets"])
             //let xml = XMLHelper(data:data, recordKey: "ListAllMyBucketsResult", dictionaryKeys: ["Buckets", "Owner"])
             let multipartResponse = xml.go()
             print("response \(String(describing: multipartResponse))")
             
-            if let response = multipartResponse {
+            if let response = String(data:data, encoding:.utf8) {
+                if (response.contains("<Name>\(self.bucket)</Name>")) {
+                    return Promise(true)
+                } else {
+                    return Promise(ProviderError.foundNil)
+                }
+            }
+            
+            /*if let response = multipartResponse {
                 for bucket in response {
                     if (bucket["Name"] == self.bucket) {
                         return Promise(true)
                     } else {
                         return Promise(ProviderError.foundNil)
                     }
-                }
-            }
-            
+                
+            }*/
+                    
             return Promise(ProviderError.invalidResponse)
         }
     }

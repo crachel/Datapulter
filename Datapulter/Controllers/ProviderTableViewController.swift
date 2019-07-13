@@ -18,30 +18,28 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     
     @IBOutlet weak var playButton: UIBarButtonItem!
     @IBOutlet weak var pauseButton: UIBarButtonItem!
-    @IBOutlet weak var refreshButton: UIBarButtonItem!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         tableView.emptyStateDataSource = self // WLEmptyState
         
-        //bottomToolbar.items = [UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.pause, target: nil, action: nil)]
-        //let flexibleSpace = UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.flexibleSpace, target: self, action: nil)
-        //let button1 = UIBarButtonItem(title: "A", style: UIBarButtonItem.Style.plain, target: self, action: nil)
-        //let button2 = UIBarButtonItem(title: "B", style: UIBarButtonItem.Style.plain, target: self, action: nil)
-        //let button3 = UIBarButtonItem(title: "C", style: UIBarButtonItem.Style.plain, target: self, action: nil)
-        //bottomToolbar.items = [flexibleSpace, flexibleSpace, UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.play, target: nil, action: nil), flexibleSpace, UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.refresh, target: nil, action: nil),flexibleSpace, flexibleSpace]
-        
         // Display an Edit button in the navigation bar for this view controller.
         self.navigationItem.leftBarButtonItem = self.editButtonItem
         
         if (ProviderManager.shared.providers.providers.array.isEmpty) {
             self.navigationItem.leftBarButtonItem?.isEnabled = false
+            playButton.isEnabled = false
+            pauseButton.isEnabled = false
         } else {
             self.navigationItem.rightBarButtonItem?.isEnabled = false
+            playButton.isEnabled = true
+            pauseButton.isEnabled = true
         }
         
         AutoUpload.shared.start()
+        
+        configureRefreshControl()
     
         // Register to receive photo library change messages
         PHPhotoLibrary.shared().register(self)
@@ -123,10 +121,35 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             
             self.navigationItem.leftBarButtonItem?.isEnabled = false
             
+            playButton.isEnabled = false
+            pauseButton.isEnabled = false
+            
             tableView.reloadData()
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
         }    
+    }
+    
+    func configureRefreshControl () {
+        // Add the refresh control to your UIScrollView object.
+        tableView.refreshControl = UIRefreshControl()
+        tableView.refreshControl?.addTarget(self, action:
+            #selector(handleRefreshControl),
+                                                  for: .valueChanged)
+    }
+    
+    @objc func handleRefreshControl() {
+        // Update your content…
+        APIClient.shared.cancel()
+        
+        AutoUpload.shared.start()
+        
+        tableView.refreshControl?.endRefreshing()
+        
+        // Dismiss the refresh control.
+        DispatchQueue.main.async {
+            self.tableView.refreshControl?.endRefreshing()
+        }
     }
 
     //MARK: - Navigation
@@ -187,15 +210,11 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
     
     //MARK: Actions
     @IBAction func playButtonClick(_ sender: Any) {
+        APIClient.shared.resume()
     }
     
     @IBAction func pauseButtonClick(_ sender: Any) {
-    }
-    
-    @IBAction func refreshButtonClick(_ sender: Any) {
-        APIClient.shared.cancel()
-        
-        AutoUpload.shared.start()
+        APIClient.shared.suspend()
     }
     
     @IBAction func unwindToProviderList(sender: UIStoryboardSegue) {
@@ -217,6 +236,9 @@ class ProviderTableViewController: UITableViewController, WLEmptyStateDataSource
             self.setEditing(false, animated: true)
             
             self.navigationItem.leftBarButtonItem?.isEnabled = true
+            
+            playButton.isEnabled = true
+            pauseButton.isEnabled = true
             
             tableView.reloadData()
         }
