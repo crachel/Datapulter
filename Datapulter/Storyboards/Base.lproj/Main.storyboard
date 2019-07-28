@@ -55,15 +55,10 @@
                                                         <constraint firstAttribute="height" constant="60" id="7bf-p5-ba5"/>
                                                     </constraints>
                                                 </imageView>
-                                                <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="f1n-Wa-FBK">
+                                                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GKD-Gr-D31" customClass="UICircularProgressRing" customModule="UICircularProgressRing">
                                                     <rect key="frame" x="0.0" y="68" width="343" height="194"/>
-                                                    <subviews>
-                                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GKD-Gr-D31" customClass="UICircularProgressRing" customModule="UICircularProgressRing">
-                                                            <rect key="frame" x="0.0" y="0.0" width="343" height="194"/>
-                                                            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                                        </view>
-                                                    </subviews>
-                                                </stackView>
+                                                    <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                </view>
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="center" horizontalHuggingPriority="251" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" enabled="NO" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5nl-8G-Bor">
                                                     <rect key="frame" x="0.0" y="270" width="343" height="30"/>
                                                     <constraints>

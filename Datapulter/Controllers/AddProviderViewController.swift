@@ -129,7 +129,6 @@ class AddProviderViewController: FormViewController, UITextFieldDelegate {
         <<< AccountRow(Tags.bucket) { row in
             row.title = "Bucket"
             row.placeholder = "Your unique bucket name"
-            row.value = "test"
             row.add(rule: RuleRequired())
         }.cellUpdate { cell, row in
             cell.textField.delegate = self

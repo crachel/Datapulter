@@ -24,8 +24,6 @@ class AutoUpload {
     var assets = PHFetchResult<PHAsset>()
     var tasks = [URLSessionTask: Provider]()
     
-    var initialRequests: Int = 6 // start n threads
-    
     //MARK: Singleton
     
     static let shared = AutoUpload()
@@ -41,6 +39,8 @@ class AutoUpload {
     //MARK: Public Methods
     
     public func start() {
+        
+        let initialRequests: Int = 6 // start n threads
         
         if (PHPhotoLibrary.authorizationStatus() != .authorized) {
             os_log("no photo permission", log: .autoupload, type: .error)
@@ -135,6 +135,7 @@ class AutoUpload {
         if (N > 0) {
             if (APIClient.shared.clientErrors > 9) {
                 os_log("Too many client errors.", log: .autoupload, type: .error)
+                provider.hud("Too many client errors. Stopping.")
                 return
             }
             if let asset = provider.assetsToUpload.popFirst() {
