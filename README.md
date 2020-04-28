@@ -3,6 +3,8 @@ Beyond The Wall
 
 App written in Swift for iOS. Uploads camera roll to object storage providers.
 
+Clone the repo and open the workspace in Xcode then build for your iOS device
+
 ![alt text](https://raw.githubusercontent.com/crachel/Datapulter/master/screenshots.png)
 
 Datapulter uploads your camera roll (photos, videos, slo-mo, etc) to object storage. Supported providers include:
